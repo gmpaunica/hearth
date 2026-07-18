@@ -1,60 +1,27 @@
 import { room } from '@/theme/hearth';
+import { VoxMesh } from '../VoxMesh';
+import type { Vox } from '../voxel';
 
-/** Two-seat sofa. Built facing local +z; rotated into place by the parent. */
-export function Sofa(props: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  return (
-    <group {...props}>
-      {/* Base */}
-      <mesh position={[0, 0.28, 0]}>
-        <boxGeometry args={[2.3, 0.34, 0.95]} />
-        <meshStandardMaterial color={room.sofa} roughness={0.9} />
-      </mesh>
-      {/* Seat cushions */}
-      <mesh position={[-0.55, 0.5, 0.06]}>
-        <boxGeometry args={[1.04, 0.16, 0.8]} />
-        <meshStandardMaterial color={room.sofaCushion} roughness={0.95} />
-      </mesh>
-      <mesh position={[0.55, 0.5, 0.06]}>
-        <boxGeometry args={[1.04, 0.16, 0.8]} />
-        <meshStandardMaterial color={room.sofaCushion} roughness={0.95} />
-      </mesh>
-      {/* Backrest */}
-      <mesh position={[0, 0.72, -0.38]}>
-        <boxGeometry args={[2.3, 0.85, 0.22]} />
-        <meshStandardMaterial color={room.sofa} roughness={0.9} />
-      </mesh>
-      {/* Back cushions, slightly tilted */}
-      <mesh position={[-0.55, 0.82, -0.26]} rotation={[-0.18, 0, 0]}>
-        <boxGeometry args={[1.0, 0.52, 0.16]} />
-        <meshStandardMaterial color={room.sofaCushion} roughness={0.95} />
-      </mesh>
-      <mesh position={[0.55, 0.82, -0.26]} rotation={[-0.18, 0, 0]}>
-        <boxGeometry args={[1.0, 0.52, 0.16]} />
-        <meshStandardMaterial color={room.sofaCushion} roughness={0.95} />
-      </mesh>
-      {/* Armrests */}
-      <mesh position={[-1.26, 0.52, 0]}>
-        <boxGeometry args={[0.24, 0.66, 0.95]} />
-        <meshStandardMaterial color={room.sofa} roughness={0.9} />
-      </mesh>
-      <mesh position={[1.26, 0.52, 0]}>
-        <boxGeometry args={[0.24, 0.66, 0.95]} />
-        <meshStandardMaterial color={room.sofa} roughness={0.9} />
-      </mesh>
-      {/* Throw pillow */}
-      <mesh position={[-0.95, 0.68, 0.05]} rotation={[0, 0, 0.6]}>
-        <boxGeometry args={[0.34, 0.34, 0.14]} />
-        <meshStandardMaterial color="#e5b25f" roughness={0.95} />
-      </mesh>
-      {/* Legs */}
-      {[-1.05, 1.05].map((x) =>
-        [-0.38, 0.38].map((z) => (
-          <mesh key={`${x}${z}`} position={[x, 0.06, z]}>
-            <cylinderGeometry args={[0.04, 0.03, 0.12, 8]} />
-            <meshStandardMaterial color={room.woodDark} roughness={0.7} />
-          </mesh>
-        ))
-      )}
-    </group>
-  );
+// Local grid: 10 wide (x), 4 deep (z), back against z=0, facing +z.
+function buildSofa(v: Vox) {
+  // Base.
+  v.box(0, 0, 0, 10, 1, 4, room.sofa);
+  // Backrest.
+  v.box(0, 1, 0, 10, 4, 1, room.sofa);
+  // Armrests.
+  v.box(0, 1, 0, 1, 2, 4, room.sofa);
+  v.box(9, 1, 0, 1, 2, 4, room.sofa);
+  // Cream seat cushions.
+  v.box(1, 1, 1, 4, 1, 3, room.sofaCushion);
+  v.box(5, 1, 1, 4, 1, 3, room.sofaCushion);
+  // Back cushions.
+  v.box(1, 2, 1, 4, 2, 1, '#e8cfa4');
+  v.box(5, 2, 1, 4, 2, 1, '#e8cfa4');
+  // Mustard throw pillow.
+  v.box(1, 2, 2, 2, 2, 1, '#e0a844');
+}
+
+/** Coral voxel sofa; `position` is the min-corner of its local grid. */
+export function Sofa({ position }: { position: [number, number, number] }) {
+  return <VoxMesh build={buildSofa} scale={0.25} position={position} />;
 }

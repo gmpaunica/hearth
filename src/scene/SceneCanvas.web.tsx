@@ -7,8 +7,8 @@ export function SceneCanvas({ children }: { children: ReactNode }) {
   return (
     <View style={styles.container}>
       <Canvas
-        camera={{ position: [0.35, 5.1, 8.7], fov: 38, near: 0.1, far: 40 }}
-        dpr={[1, 2]}
+        orthographic
+        camera={{ position: [12, 9.8, 12], zoom: 50, near: 0.1, far: 60 }}
         gl={{ antialias: true }}
       >
         {children}
@@ -18,5 +18,5 @@ export function SceneCanvas({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191009' },
+  container: { flex: 1, backgroundColor: '#1a2340' },
 });

@@ -3,6 +3,22 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 
 import { room } from '@/theme/hearth';
+import { VoxMesh } from '../VoxMesh';
+import type { Vox } from '../voxel';
+
+function buildPot(v: Vox) {
+  v.box(0, 0, 0, 3, 2, 3, room.plantPot);
+  v.set(1, 2, 1, '#4a3222');
+}
+
+function buildFoliage(v: Vox) {
+  v.box(0, 0, 0, 1, 2, 1, '#4f7040'); // stem
+  v.box(-2, 2, -2, 5, 3, 5, room.plantLeaf);
+  v.box(-1, 5, -1, 3, 1, 3, room.plantLeafDark);
+  // Knock off corners for a rounded canopy.
+  v.remove(-2, 2, -2); v.remove(2, 2, -2); v.remove(-2, 2, 2); v.remove(2, 2, 2);
+  v.remove(-2, 4, -2); v.remove(2, 4, -2); v.remove(-2, 4, 2); v.remove(2, 4, 2);
+}
 
 interface PlantProps {
   position: [number, number, number];
@@ -11,7 +27,7 @@ interface PlantProps {
   phase?: number;
 }
 
-/** Potted plant with gently swaying foliage. */
+/** Chunky potted plant with gently swaying voxel foliage. */
 export function Plant({ position, scale = 1, phase = 0 }: PlantProps) {
   const foliageRef = useRef<THREE.Group>(null);
 
@@ -19,37 +35,16 @@ export function Plant({ position, scale = 1, phase = 0 }: PlantProps) {
     const f = foliageRef.current;
     if (f) {
       const t = state.clock.elapsedTime;
-      f.rotation.z = Math.sin(t * 0.9 + phase) * 0.045;
-      f.rotation.x = Math.sin(t * 0.7 + phase * 2.0) * 0.03;
+      f.rotation.z = Math.sin(t * 0.9 + phase) * 0.05;
+      f.rotation.x = Math.sin(t * 0.7 + phase * 2.0) * 0.035;
     }
   });
 
   return (
     <group position={position} scale={scale}>
-      {/* Pot */}
-      <mesh position={[0, 0.16, 0]}>
-        <cylinderGeometry args={[0.16, 0.12, 0.32, 12]} />
-        <meshStandardMaterial color={room.plantPot} roughness={0.85} />
-      </mesh>
-      <group ref={foliageRef} position={[0, 0.32, 0]}>
-        {/* Stems */}
-        <mesh position={[0, 0.25, 0]}>
-          <cylinderGeometry args={[0.015, 0.02, 0.5, 6]} />
-          <meshStandardMaterial color="#4a5f3a" roughness={0.9} />
-        </mesh>
-        {/* Leaf clusters */}
-        <mesh position={[0, 0.55, 0]}>
-          <sphereGeometry args={[0.22, 10, 10]} />
-          <meshStandardMaterial color={room.plantLeaf} roughness={0.95} />
-        </mesh>
-        <mesh position={[0.15, 0.4, 0.05]} scale={[1, 0.8, 1]}>
-          <sphereGeometry args={[0.15, 9, 9]} />
-          <meshStandardMaterial color="#6d8c5c" roughness={0.95} />
-        </mesh>
-        <mesh position={[-0.14, 0.44, -0.04]} scale={[1, 0.85, 1]}>
-          <sphereGeometry args={[0.13, 9, 9]} />
-          <meshStandardMaterial color="#54724a" roughness={0.95} />
-        </mesh>
+      <VoxMesh build={buildPot} scale={0.22} />
+      <group ref={foliageRef} position={[0.33, 0.44, 0.33]}>
+        <VoxMesh build={buildFoliage} scale={0.22} position={[-0.11, 0, -0.11]} />
       </group>
     </group>
   );

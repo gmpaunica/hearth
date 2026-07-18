@@ -4,45 +4,41 @@ import * as THREE from 'three';
 
 import { atmo } from './atmoState';
 
-const DROP_COUNT = 420;
+const DROP_COUNT = 60;
 
 const vertex = /* glsl */ `
   attribute float aSeed;
   uniform float uTime;
   uniform float uDpr;
-  varying float vSeed;
+  uniform float uZoom;
 
   void main() {
-    vSeed = aSeed;
-    float speed = 0.55 + fract(aSeed * 9.7) * 0.35;
+    float speed = 0.6 + fract(aSeed * 9.7) * 0.35;
     float life = fract(uTime * speed + aSeed);
-    // Fall through a volume outside the back wall, visible through the window.
+    // Streaks crossing the window opening only.
     vec3 p = vec3(
-      (fract(aSeed * 13.7) - 0.5) * 5.5,
-      4.6 * (1.0 - life),
-      -0.2 - fract(aSeed * 23.3) * 1.6
+      floor((fract(aSeed * 13.7) - 0.5) * 1.44 * 12.0) / 12.0,
+      1.6 * (1.0 - life),
+      0.0
     );
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = 11.0 * uDpr * (4.2 / -mv.z);
+    gl_PointSize = 0.09 * uZoom * uDpr;
   }
 `;
 
 const fragment = /* glsl */ `
   uniform float uAmount;
-  varying float vSeed;
 
   void main() {
     vec2 c = gl_PointCoord - vec2(0.5);
-    // Thin vertical streak.
-    float d = length(vec2(c.x * 4.5, c.y * 0.9));
-    float alpha = smoothstep(0.5, 0.1, d) * 0.55 * uAmount;
-    if (alpha < 0.01) discard;
-    gl_FragColor = vec4(0.62, 0.72, 0.86, alpha);
+    // Thin pixel streak.
+    if (abs(c.x) > 0.14) discard;
+    gl_FragColor = vec4(0.55, 0.68, 0.9, 0.55 * uAmount);
   }
 `;
 
-/** Rain falling outside the window (positioned behind the back wall). */
+/** Pixel rain falling outside the window (behind the back wall). */
 export function Rain() {
   const dpr = useThree((s) => s.viewport.dpr);
   const pointsRef = useRef<THREE.Points>(null);
@@ -54,7 +50,7 @@ export function Rain() {
     for (let i = 0; i < DROP_COUNT; i++) seeds[i] = Math.random();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
-    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2, -1.5), 8);
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2, -0.3), 7);
     return geo;
   }, []);
 
@@ -66,6 +62,7 @@ export function Rain() {
         uniforms: {
           uTime: { value: 0 },
           uDpr: { value: dpr },
+          uZoom: { value: 50 },
           uAmount: { value: 0 },
         },
         transparent: true,
@@ -78,6 +75,7 @@ export function Rain() {
 
   useFrame((state) => {
     material.uniforms.uTime.value = state.clock.elapsedTime;
+    material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
     material.uniforms.uAmount.value = atmo.rain;
     if (pointsRef.current) pointsRef.current.visible = atmo.rain > 0.02;
   });
@@ -87,7 +85,7 @@ export function Rain() {
       ref={pointsRef}
       geometry={geometry}
       material={material}
-      position={[1.45, 0, -4.6]}
+      position={[1.75, 1.22, -3.38]}
       frustumCulled={false}
     />
   );

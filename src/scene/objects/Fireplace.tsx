@@ -1,63 +1,52 @@
 import { room } from '@/theme/hearth';
 import { Fire } from '../Fire';
+import { VoxMesh } from '../VoxMesh';
+import type { Vox } from '../voxel';
 
-/** Stone fireplace with mantel, chimney breast, logs and the shader fire. */
+// Local grid: 8 wide (x), 3 deep (z), body 10 high + chimney to 13.
+function buildFireplace(v: Vox) {
+  // Brick body with alternating courses.
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 10; y++) {
+      for (let z = 0; z < 3; z++) {
+        const brick = (y + (x >> 1)) % 2 === 0 ? room.brick : room.brickDark;
+        v.set(x, y, z, brick);
+      }
+    }
+  }
+  // Firebox cavity + dark interior.
+  v.remove(1, 0, 1, 6, 5, 2);
+  v.box(1, 0, 0, 6, 5, 1, room.fireplaceInner);
+  // Glowing coals + logs on the cavity floor.
+  v.set(2, 0, 1, room.ember);
+  v.set(3, 0, 1, '#ffb95e');
+  v.set(4, 0, 1, room.ember);
+  v.set(5, 0, 1, '#e0763a');
+  v.set(2, 0, 2, '#5a3c26');
+  v.set(4, 0, 2, '#5a3c26');
+  // Mantel shelf.
+  v.box(-1, 10, 0, 10, 1, 4, room.mantel);
+  // Chimney breast up to the wall top.
+  v.box(1, 11, 0, 6, 3, 3, room.brickDark);
+  // Stone hearth slab in front.
+  v.box(0, 0, 3, 8, 1, 2, '#9c9187');
+  // Candles on the mantel.
+  v.box(0, 11, 1, 1, 2, 1, room.frameWhite);
+  v.set(0, 13, 1, room.ember);
+  v.box(7, 11, 1, 1, 1, 1, '#e8d9c4');
+  v.set(7, 12, 1, room.ember);
+  // Two tiny hearts, center mantel.
+  v.set(3, 11, 1, '#d0564a');
+  v.set(4, 11, 1, '#d0564a');
+}
+
+/** Brick voxel fireplace; `position` is the min-corner of its local grid. */
 export function Fireplace({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Hearth slab on the floor */}
-      <mesh position={[0, 0.06, -3.15]}>
-        <boxGeometry args={[2.3, 0.12, 0.85]} />
-        <meshStandardMaterial color="#4c4038" roughness={0.95} />
-      </mesh>
-      {/* Main body */}
-      <mesh position={[0, 0.75, -3.7]}>
-        <boxGeometry args={[1.95, 1.5, 0.55]} />
-        <meshStandardMaterial color={room.fireplaceStone} roughness={0.9} />
-      </mesh>
-      {/* Dark firebox opening (plane just proud of the body face) */}
-      <mesh position={[0, 0.52, -3.42]}>
-        <planeGeometry args={[1.15, 0.9]} />
-        <meshBasicMaterial color={room.fireplaceInner} />
-      </mesh>
-      {/* Mantel shelf */}
-      <mesh position={[0, 1.56, -3.65]}>
-        <boxGeometry args={[2.25, 0.13, 0.65]} />
-        <meshStandardMaterial color={room.mantel} roughness={0.7} />
-      </mesh>
-      {/* Chimney breast rising above the mantel */}
-      <mesh position={[0, 2.5, -3.78]}>
-        <boxGeometry args={[1.7, 1.9, 0.4]} />
-        <meshStandardMaterial color={room.fireplaceStone} roughness={0.9} />
-      </mesh>
-      {/* Logs */}
-      <mesh position={[-0.12, 0.2, -3.35]} rotation={[0, 0.5, Math.PI / 2]}>
-        <cylinderGeometry args={[0.075, 0.075, 0.55, 8]} />
-        <meshStandardMaterial color="#3d2a1a" roughness={1} />
-      </mesh>
-      <mesh position={[0.1, 0.24, -3.32]} rotation={[0, -0.6, Math.PI / 2]}>
-        <cylinderGeometry args={[0.065, 0.065, 0.5, 8]} />
-        <meshStandardMaterial color="#4a3220" roughness={1} />
-      </mesh>
-      {/* Candles on the mantel */}
-      <mesh position={[-0.75, 1.71, -3.6]}>
-        <cylinderGeometry args={[0.045, 0.05, 0.18, 10]} />
-        <meshStandardMaterial color="#e8d9c4" roughness={0.6} />
-      </mesh>
-      <mesh position={[-0.75, 1.83, -3.6]}>
-        <sphereGeometry args={[0.025, 8, 8]} />
-        <meshBasicMaterial color="#ffca6a" />
-      </mesh>
-      <mesh position={[0.7, 1.68, -3.62]}>
-        <cylinderGeometry args={[0.05, 0.055, 0.12, 10]} />
-        <meshStandardMaterial color="#d9c6ad" roughness={0.6} />
-      </mesh>
-      <mesh position={[0.7, 1.77, -3.62]}>
-        <sphereGeometry args={[0.022, 8, 8]} />
-        <meshBasicMaterial color="#ffca6a" />
-      </mesh>
-      {/* The fire itself */}
-      <Fire position={[0, 0.24, -3.42]} />
+      <VoxMesh build={buildFireplace} scale={0.25} />
+      {/* Pixel fire centered in the cavity */}
+      <Fire position={[1.0, 0.14, 0.42]} />
     </group>
   );
 }

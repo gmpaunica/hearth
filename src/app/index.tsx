@@ -22,7 +22,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191009' },
+  container: { flex: 1, backgroundColor: '#1a2340' },
   titleWrap: { position: 'absolute', top: 26, alignSelf: 'center' },
   title: {
     color: ui.textDim,

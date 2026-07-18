@@ -1,24 +1,18 @@
 import { room } from '@/theme/hearth';
+import { VoxMesh } from '../VoxMesh';
+import type { Vox } from '../voxel';
 
-/** Small wooden bench beside the garden door (the "I need some space" seat). */
-export function Bench(props: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  return (
-    <group {...props}>
-      <mesh position={[0, 0.4, 0]}>
-        <boxGeometry args={[0.45, 0.07, 1.35]} />
-        <meshStandardMaterial color={room.doorWood} roughness={0.8} />
-      </mesh>
-      {/* Thin seat cushion */}
-      <mesh position={[0, 0.46, 0]}>
-        <boxGeometry args={[0.4, 0.05, 1.25]} />
-        <meshStandardMaterial color="#9db08a" roughness={0.95} />
-      </mesh>
-      {[-0.55, 0.55].map((z) => (
-        <mesh key={z} position={[0, 0.19, z]}>
-          <boxGeometry args={[0.4, 0.38, 0.07]} />
-          <meshStandardMaterial color={room.woodDark} roughness={0.85} />
-        </mesh>
-      ))}
-    </group>
-  );
+// Local grid: 3 deep (x), 6 long (z); sits against the left wall facing +x.
+function buildBench(v: Vox) {
+  v.box(0, 1, 0, 3, 1, 6, room.doorWood);
+  // Sage cushion inset at the same level (keeps the seat height low).
+  v.box(0, 1, 1, 3, 1, 4, '#9db08a');
+  // Leg slabs.
+  v.box(0, 0, 0, 3, 1, 1, room.woodDark);
+  v.box(0, 0, 5, 3, 1, 1, room.woodDark);
+}
+
+/** Garden bench by the door; `position` is the min-corner of its local grid. */
+export function Bench({ position }: { position: [number, number, number] }) {
+  return <VoxMesh build={buildBench} scale={0.25} position={position} />;
 }
