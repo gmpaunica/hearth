@@ -1,5 +1,5 @@
 import { room } from '@/theme/hearth';
-import { Fire } from '../Fire';
+import { EmberColumn, Fire } from '../Fire';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
 
@@ -47,6 +47,8 @@ export function Fireplace({ position }: { position: [number, number, number] }) 
       <VoxMesh build={buildFireplace} scale={0.25} />
       {/* Pixel fire centered in the cavity */}
       <Fire position={[1.0, 0.14, 0.42]} />
+      {/* Embers escaping the chimney into the night */}
+      <EmberColumn position={[1.0, 3.55, 0.38]} />
     </group>
   );
 }

@@ -17,10 +17,10 @@ export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {
     a: { x: -0.6, z: 0.3, rotY: 0.5, seatY: 0 },
     b: { x: 0.4, z: -0.9, rotY: -0.2, seatY: 0 },
   },
-  // Sitting on the rug in front of the fire, facing the fireplace (-z).
+  // Sitting on the rug before the fire, angled slightly toward each other.
   fireplace: {
-    a: { x: -2.1, z: -1.85, rotY: Math.PI, seatY: 0.1 },
-    b: { x: -1.1, z: -1.85, rotY: Math.PI, seatY: 0.1 },
+    a: { x: -2.1, z: -1.85, rotY: Math.PI - 0.45, seatY: 0.1 },
+    b: { x: -1.1, z: -1.85, rotY: Math.PI + 0.45, seatY: 0.1 },
   },
   // Sofa against the back wall under the window, facing the camera (+z).
   sofa: {
