@@ -1,0 +1,147 @@
+import { create } from 'zustand';
+
+import type { Couple } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+
+/**
+ * Where the user is in the sign-in → pairing journey.
+ *  - loading:  still resolving the session / couple on launch
+ *  - noHome:   authed but not in a couple yet (show create/join choices)
+ *  - waiting:  created a home, partner hasn't joined (show the invite code)
+ *  - paired:   both members present — the app proper is usable
+ *  - error:    couldn't reach Supabase (offline / policy) — offer a retry
+ */
+export type AuthPhase = 'loading' | 'noHome' | 'waiting' | 'paired' | 'error';
+
+function phaseFor(userId: string | null, couple: Couple | null): AuthPhase {
+  if (!userId) return 'loading';
+  if (!couple) return 'noHome';
+  return couple.member_b ? 'paired' : 'waiting';
+}
+
+interface AuthState {
+  phase: AuthPhase;
+  userId: string | null;
+  couple: Couple | null;
+  /** The other member's id once paired (null while solo). */
+  partnerId: string | null;
+  /** True while a create/join/retry request is in flight. */
+  busy: boolean;
+  /** User-facing message for the last failure, or null. */
+  error: string | null;
+
+  /** Sign in anonymously (if needed) and load any existing couple. */
+  init: () => Promise<void>;
+  createHome: () => Promise<void>;
+  joinHome: (code: string) => Promise<void>;
+  /** Re-fetch the couple row (e.g. after a partner-joined realtime event). */
+  refreshCouple: () => Promise<void>;
+}
+
+function partnerOf(couple: Couple | null, userId: string | null): string | null {
+  if (!couple || !userId) return null;
+  const other = couple.member_a === userId ? couple.member_b : couple.member_a;
+  return other ?? null;
+}
+
+/** Load the caller's couple, if any. RLS guarantees we only see our own. */
+async function fetchCouple(): Promise<Couple | null> {
+  const { data, error } = await supabase
+    .from('couples')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return (data?.[0] as Couple | undefined) ?? null;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  phase: 'loading',
+  userId: null,
+  couple: null,
+  partnerId: null,
+  busy: false,
+  error: null,
+
+  init: async () => {
+    set({ phase: 'loading', error: null });
+    try {
+      let { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+        sessionData = (await supabase.auth.getSession()).data;
+      }
+      const userId = sessionData.session?.user.id ?? null;
+      const couple = await fetchCouple();
+      set({
+        userId,
+        couple,
+        partnerId: partnerOf(couple, userId),
+        phase: phaseFor(userId, couple),
+      });
+    } catch (e) {
+      set({ phase: 'error', error: messageOf(e) });
+    }
+  },
+
+  createHome: async () => {
+    if (get().busy) return;
+    set({ busy: true, error: null });
+    try {
+      const { data, error } = await supabase.rpc('create_couple');
+      if (error) throw error;
+      const couple = data as Couple;
+      const { userId } = get();
+      set({
+        couple,
+        partnerId: partnerOf(couple, userId),
+        phase: phaseFor(userId, couple),
+        busy: false,
+      });
+    } catch (e) {
+      set({ busy: false, error: messageOf(e) });
+    }
+  },
+
+  joinHome: async (code: string) => {
+    const trimmed = code.trim();
+    if (get().busy || !trimmed) return;
+    set({ busy: true, error: null });
+    try {
+      const { data, error } = await supabase.rpc('join_couple', { code: trimmed });
+      if (error) throw error;
+      const couple = data as Couple;
+      const { userId } = get();
+      set({
+        couple,
+        partnerId: partnerOf(couple, userId),
+        phase: phaseFor(userId, couple),
+        busy: false,
+      });
+    } catch (e) {
+      set({ busy: false, error: messageOf(e) });
+    }
+  },
+
+  refreshCouple: async () => {
+    try {
+      const couple = await fetchCouple();
+      const { userId } = get();
+      set({
+        couple,
+        partnerId: partnerOf(couple, userId),
+        phase: phaseFor(userId, couple),
+      });
+    } catch (e) {
+      set({ error: messageOf(e) });
+    }
+  },
+}));
+
+function messageOf(e: unknown): string {
+  if (e && typeof e === 'object' && 'message' in e) {
+    return String((e as { message: unknown }).message);
+  }
+  return 'Something went wrong. Please try again.';
+}
