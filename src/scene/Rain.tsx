@@ -1,8 +1,9 @@
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { atmo } from './atmoState';
+import { pixelScale } from './pixelState';
 
 const DROP_COUNT = 60;
 
@@ -29,18 +30,20 @@ const vertex = /* glsl */ `
 
 const fragment = /* glsl */ `
   uniform float uAmount;
+  vec3 srgb2lin(vec3 c) { return pow((c + 0.055) / 1.055, vec3(2.4)); }
 
   void main() {
     vec2 c = gl_PointCoord - vec2(0.5);
     // Thin pixel streak.
     if (abs(c.x) > 0.14) discard;
-    gl_FragColor = vec4(0.55, 0.68, 0.9, 0.55 * uAmount);
+    gl_FragColor = vec4(srgb2lin(vec3(0.55, 0.68, 0.9)), 0.55 * uAmount);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 /** Pixel rain falling outside the window (behind the back wall). */
 export function Rain() {
-  const dpr = useThree((s) => s.viewport.dpr);
   const pointsRef = useRef<THREE.Points>(null);
 
   const geometry = useMemo(() => {
@@ -61,7 +64,7 @@ export function Rain() {
         fragmentShader: fragment,
         uniforms: {
           uTime: { value: 0 },
-          uDpr: { value: dpr },
+          uDpr: { value: 1 },
           uZoom: { value: 50 },
           uAmount: { value: 0 },
         },
@@ -71,11 +74,11 @@ export function Rain() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
-  material.uniforms.uDpr.value = dpr;
 
   useFrame((state) => {
     material.uniforms.uTime.value = state.clock.elapsedTime;
     material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    material.uniforms.uDpr.value = pixelScale.value;
     material.uniforms.uAmount.value = atmo.rain;
     if (pointsRef.current) pointsRef.current.visible = atmo.rain > 0.02;
   });

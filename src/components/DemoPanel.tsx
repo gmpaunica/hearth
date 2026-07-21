@@ -3,7 +3,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SIGNALS, type SignalType } from '@/copy';
 import { useSceneStore, type AtmosphereMode, type AvatarKey, type SpotId } from '@/state/sceneStore';
+import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
+
+const SIGNAL_TYPES = Object.keys(SIGNALS) as SignalType[];
 
 const ATMOSPHERES: { id: AtmosphereMode; label: string }[] = [
   { id: 'warm', label: 'Warm' },
@@ -61,28 +64,24 @@ function AvatarRow({ avatar, name }: { avatar: AvatarKey; name: string }) {
 }
 
 /**
- * Phase-1 demo controls: tour every atmosphere, signal spot and the
- * reconciliation glow. Replaced by the real signal flows in later phases.
+ * Dev-only QA controls: atmosphere presets, raw spot control, and a partner
+ * simulator that stands in for the Phase-5 realtime sync. Never shipped.
  */
 export function DemoPanel() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const atmosphere = useSceneStore((s) => s.atmosphere);
   const setAtmosphere = useSceneStore((s) => s.setAtmosphere);
   const triggerGlow = useSceneStore((s) => s.triggerGlow);
-  const spotA = useSceneStore((s) => s.spots.a);
+  const mySignal = useSignalStore((s) => s.mySignal);
+  const simulatePartnerSignal = useSignalStore((s) => s.simulatePartnerSignal);
+  const simulatePartnerResponse = useSignalStore((s) => s.simulatePartnerResponse);
 
-  const signal: SignalType | null = spotA !== 'idle' ? (spotA as SignalType) : null;
+  if (!__DEV__) return null;
 
   return (
     <>
-      {signal && (
-        <View style={styles.signalCard} pointerEvents="none">
-          <Text style={styles.signalText}>“{SIGNALS[signal].selfText}”</Text>
-        </View>
-      )}
-
       <Pressable style={styles.fab} onPress={() => setOpen((v) => !v)} hitSlop={8}>
-        <Text style={styles.fabText}>{open ? '×' : '✦'}</Text>
+        <Text style={styles.fabText}>{open ? '×' : '⚙'}</Text>
       </Pressable>
 
       {open && (
@@ -102,6 +101,24 @@ export function DemoPanel() {
                 <Chip label="✨ Reconcile" onPress={triggerGlow} />
               </View>
             </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Partner sends (sim)</Text>
+              <View style={styles.row}>
+                {SIGNAL_TYPES.map((t) => (
+                  <Chip key={t} label={SIGNALS[t].label} onPress={() => simulatePartnerSignal(t)} />
+                ))}
+              </View>
+            </View>
+            {mySignal && !mySignal.response && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Partner answers (sim)</Text>
+                <View style={styles.row}>
+                  {SIGNALS[mySignal.type].responses.map((r) => (
+                    <Chip key={r} label={r} onPress={() => simulatePartnerResponse(r)} />
+                  ))}
+                </View>
+              </View>
+            )}
             <AvatarRow avatar="a" name="Avatar A (you)" />
             <AvatarRow avatar="b" name="Avatar B (partner)" />
           </ScrollView>
@@ -112,18 +129,6 @@ export function DemoPanel() {
 }
 
 const styles = StyleSheet.create({
-  signalCard: {
-    position: 'absolute',
-    top: 64,
-    alignSelf: 'center',
-    backgroundColor: ui.overlayBg,
-    borderColor: ui.overlayBorder,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  signalText: { color: ui.text, fontSize: 15, fontStyle: 'italic' },
   fab: {
     position: 'absolute',
     right: 18,

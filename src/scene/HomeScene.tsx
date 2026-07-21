@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { avatarPresets } from '@/theme/hearth';
 import { Atmosphere } from './Atmosphere';
 import { Avatar } from './Avatar';
+import { PixelPass } from './PixelPass';
 import { Rain } from './Rain';
 import { Room } from './Room';
 import { Sparkles } from './Sparkles';
@@ -46,12 +47,15 @@ export function HomeScene() {
       <TableSet position={[0.6, 0, 0.6]} />
       <Bench position={[-3.0, 0, 0.15]} />
       <Bookshelf position={[-3.0, 0, -1.55]} />
-      <Plant position={[-0.5, 0, -3.15]} phase={0} scale={0.9} />
-      <Plant position={[2.6, 0, 2.6]} phase={2.1} scale={0.9} />
+      {/* Palm blades reach ~0.9 units — keep pots clear of walls/floor edge. */}
+      <Plant position={[-0.45, 0, -2.8]} phase={0} scale={0.9} />
+      <Plant position={[2.4, 0, 2.1]} phase={2.1} scale={0.9} />
+      <Plant position={[-2.7, 0, 2.4]} phase={4.2} scale={0.8} />
       <Rain />
       <Sparkles />
       <Avatar avatar="a" colors={avatarPresets.a} />
       <Avatar avatar="b" colors={avatarPresets.b} />
+      <PixelPass />
     </>
   );
 }

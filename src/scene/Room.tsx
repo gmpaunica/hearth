@@ -16,16 +16,19 @@ const S = 0.25;
 function buildShell(v: Vox) {
   // Plinth under the floor (diorama base).
   v.box(-13, -2, -14, 26, 1, 27, '#5f3d24');
-  // Honey tile floor: 2x2 tiles with thin grout seams (hero target F).
+  // Golden brick floor in running bond: each course of bricks is offset half
+  // a brick from the previous, with thin darker mortar seams (hero target F).
   for (let x = -13; x <= 12; x++) {
     for (let z = -14; z <= 12; z++) {
-      const gx = ((x % 3) + 3) % 3;
+      const course = Math.floor((z + 30) / 3); // bands of 2 brick rows + 1 seam
       const gz = ((z % 3) + 3) % 3;
-      if (gx === 2 || gz === 2) {
-        v.set(x, -1, z, '#a87844'); // grout
+      const offset = (course % 2) * 2; // half-brick offset per course
+      const gx = (((x + offset) % 4) + 4) % 4; // bricks 3 long + 1 seam
+      if (gz === 2 || gx === 3) {
+        v.set(x, -1, z, room.floorGrout);
       } else {
-        const tile = (Math.floor((x + 30) / 3) + Math.floor((z + 30) / 3)) % 2 === 0;
-        v.set(x, -1, z, tile ? room.floorA : room.floorB);
+        const brick = (Math.floor((x + offset + 30) / 4) + course) % 2 === 0;
+        v.set(x, -1, z, brick ? room.floorA : room.floorB);
       }
     }
   }
@@ -81,31 +84,33 @@ function buildShell(v: Vox) {
   v.set(-12, 11, 4, '#f2ecd5');
 }
 
-function buildFireRug(v: Vox) {
-  // 10 x 8 rug: cream border with a warm checker weave (hero target B).
-  v.box(0, 0, 0, 10, 1, 8, '#e8d4a8');
-  for (let x = 1; x < 9; x++) {
-    for (let z = 1; z < 7; z++) {
-      v.set(x, 0, z, (x + z) % 2 === 0 ? '#c2703a' : '#d98e4f');
+// Hero-F rugs: cream woven mats with soft horizontal stripes — no loud
+// oranges, the rug reads as a pale island on the golden brick floor.
+function stripedRug(v: Vox, w: number, d: number) {
+  v.box(0, 0, 0, w, 1, d, '#eadcbd');
+  for (let z = 1; z < d - 1; z++) {
+    for (let x = 1; x < w - 1; x++) {
+      v.set(x, 0, z, z % 2 === 0 ? '#e0d0ab' : '#d2c096');
     }
   }
-  v.remove(0, 0, 0); v.remove(9, 0, 0); v.remove(0, 0, 7); v.remove(9, 0, 7);
+  v.remove(0, 0, 0); v.remove(w - 1, 0, 0); v.remove(0, 0, d - 1); v.remove(w - 1, 0, d - 1);
+}
+
+function buildFireRug(v: Vox) {
+  stripedRug(v, 10, 8);
 }
 
 function buildCenterRug(v: Vox) {
-  v.box(0, 0, 0, 12, 1, 10, '#e8d4a8');
-  v.box(1, 0, 1, 10, 1, 8, '#c2703a');
-  v.box(2, 0, 2, 8, 1, 6, '#d98e4f');
-  v.remove(0, 0, 0); v.remove(11, 0, 0); v.remove(0, 0, 9); v.remove(11, 0, 9);
+  stripedRug(v, 13, 10);
 }
 
 function buildMoon(v: Vox) {
-  // Crescent moon (C-shape opening to the right).
-  v.set(0, 0, 0, room.moon); v.set(1, 0, 0, room.moon);
-  v.set(0, 1, 0, room.moon);
-  v.set(0, 2, 0, room.moon);
-  v.set(0, 3, 0, room.moon); v.set(1, 3, 0, room.moon);
-  v.set(2, 3, 0, room.moon); v.set(2, 0, 0, room.moon);
+  // Big full moon with clipped corners and a couple of soft craters (hero F).
+  v.box(0, 0, 0, 5, 5, 1, room.moon);
+  v.remove(0, 0, 0); v.remove(4, 0, 0); v.remove(0, 4, 0); v.remove(4, 4, 0);
+  v.set(1, 3, 0, '#ddd6ba');
+  v.set(3, 1, 0, '#d6cfb2');
+  v.set(2, 2, 0, '#e6dfc4');
 }
 
 // With a fixed orthographic camera there is no parallax, so the "outside"
@@ -136,7 +141,8 @@ function SkyBackdrop() {
       <mesh position={[1.75, 2.0, -3.44]} material={skyMat}>
         <planeGeometry args={[1.5, 1.5]} />
       </mesh>
-      <VoxMesh build={buildMoon} scale={0.12} jitter={0.02} position={[1.12, 2.18, -3.42]} />
+      {/* Centered on the upper-left pane so the cross bars don't swallow it. */}
+      <VoxMesh build={buildMoon} scale={0.12} jitter={0.02} position={[0.98, 2.12, -3.42]} />
       {/* Distant treeline silhouette along the sill */}
       <VoxMesh
         scale={0.08}
@@ -162,26 +168,39 @@ const voidVertex = /* glsl */ `
   }
 `;
 
+// All custom shaders work in linear space like three's built-in materials:
+// authored display colors pass through srgb2lin(), and the standard output
+// chunks encode exactly once — identical result with or without the PixelPass.
+const srgb2lin = /* glsl */ `
+  vec3 srgb2lin(vec3 c) { return pow((c + 0.055) / 1.055, vec3(2.4)); }
+`;
+
 const voidFragment = /* glsl */ `
   varying vec2 vUv;
+  ${srgb2lin}
   void main() {
     // Vertical night gradient with a soft warm hearth-glow near the center.
-    vec3 top = vec3(0.055, 0.078, 0.16);
-    vec3 bottom = vec3(0.10, 0.13, 0.25);
+    vec3 top = srgb2lin(vec3(0.055, 0.078, 0.16));
+    vec3 bottom = srgb2lin(vec3(0.10, 0.13, 0.25));
     vec3 col = mix(bottom, top, vUv.y);
     float d = length(vec2((vUv.x - 0.5) * 1.6, (vUv.y - 0.42) * 1.2));
-    col = mix(col, vec3(0.16, 0.15, 0.24), smoothstep(0.55, 0.0, d));
+    col = mix(col, srgb2lin(vec3(0.16, 0.15, 0.24)), smoothstep(0.55, 0.0, d));
     gl_FragColor = vec4(col, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 const rimVertex = voidVertex;
 const rimFragment = /* glsl */ `
   varying vec2 vUv;
+  ${srgb2lin}
   void main() {
     float d = length((vUv - vec2(0.5)) * 2.0);
     float alpha = smoothstep(1.0, 0.1, d) * 0.28;
-    gl_FragColor = vec4(1.0, 0.61, 0.24, alpha);
+    gl_FragColor = vec4(srgb2lin(vec3(1.0, 0.61, 0.24)), alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -226,8 +245,10 @@ function VoidBackdrop() {
 
   return (
     <group>
-      <mesh position={[-5.5, 2.4, -5.5]} rotation={[0, Math.PI / 4, 0]} material={gradientMat}>
-        <planeGeometry args={[34, 22]} />
+      {/* Oversized so no screen aspect can see past its edges (the raw
+          scene.background would peek through as a flat band otherwise). */}
+      <mesh position={[-5.5, 0.4, -5.5]} rotation={[0, Math.PI / 4, 0]} material={gradientMat}>
+        <planeGeometry args={[44, 30]} />
       </mesh>
       <points geometry={stars}>
         <pointsMaterial color="#c9d2e8" size={0.055} sizeAttenuation transparent opacity={0.85} />
@@ -292,22 +313,28 @@ function BedroomBackdrop() {
 const poolFragment = /* glsl */ `
   uniform float uIntensity;
   varying vec2 vUv;
+  ${srgb2lin}
   void main() {
     float d = length((vUv - vec2(0.5)) * 2.0);
     float alpha = smoothstep(1.0, 0.05, d) * 0.34 * uIntensity;
-    vec3 col = mix(vec3(1.0, 0.55, 0.2), vec3(1.0, 0.78, 0.42), smoothstep(0.7, 0.0, d));
+    vec3 col = mix(srgb2lin(vec3(1.0, 0.55, 0.2)), srgb2lin(vec3(1.0, 0.78, 0.42)), smoothstep(0.7, 0.0, d));
     gl_FragColor = vec4(col, alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 const streakFragment = /* glsl */ `
   uniform float uIntensity;
   varying vec2 vUv;
+  ${srgb2lin}
   void main() {
     float across = smoothstep(0.5, 0.05, abs(vUv.x - 0.5));
     float along = smoothstep(0.0, 0.25, vUv.y) * smoothstep(1.0, 0.35, vUv.y);
     float alpha = across * along * 0.22 * uIntensity;
-    gl_FragColor = vec4(1.0, 0.62, 0.26, alpha);
+    gl_FragColor = vec4(srgb2lin(vec3(1.0, 0.62, 0.26)), alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -377,6 +404,71 @@ function FireGlowDecal() {
   );
 }
 
+// Neon-blue rim tracing the two camera-facing edges of the floating plinth,
+// with a soft glow bleeding down into the void (hero target F).
+const RIM_BLUE = '#37c4ff';
+
+const rimGlowFragment = /* glsl */ `
+  varying vec2 vUv;
+  ${srgb2lin}
+  void main() {
+    // Brightest right at the edge (top), fading down AND toward both ends so
+    // it reads as a soft halo, not a hard rectangle or a column at the corner.
+    float down = smoothstep(0.0, 1.0, vUv.y);
+    float ends = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
+    float a = down * down * ends * 0.6;
+    gl_FragColor = vec4(srgb2lin(vec3(0.24, 0.72, 1.0)), a);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
+/**
+ * The blue rim-light on the plinth. Two bright edge bars sit on the exposed
+ * bottom edges of the base slab; two additive glow planes hang just outside
+ * those faces and fade downward, so the diorama reads as a lit dollhouse
+ * floating in the night.
+ */
+function PlinthRim() {
+  const glowMat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: decalVertex,
+        fragmentShader: rimGlowFragment,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    []
+  );
+
+  // Plinth spans world x -3.25..3.25, z -3.5..3.25; base slab bottom ≈ y -0.5.
+  // The +x and +z faces meet at the near corner facing the camera.
+  const EDGE_Y = -0.33;
+  return (
+    <group>
+      {/* Bright edge bars (unlit — the warm global tint never touches these). */}
+      <mesh position={[0, EDGE_Y, 3.27]}>
+        <boxGeometry args={[6.52, 0.06, 0.04]} />
+        <meshBasicMaterial color={RIM_BLUE} toneMapped={false} />
+      </mesh>
+      <mesh position={[3.27, EDGE_Y, -0.125]}>
+        <boxGeometry args={[0.04, 0.06, 6.77]} />
+        <meshBasicMaterial color={RIM_BLUE} toneMapped={false} />
+      </mesh>
+      {/* Soft glow hugging each edge and fading down into the void. Kept short
+          and inset from the near corner so the two don't stack into a column. */}
+      <mesh position={[-0.15, -0.72, 3.33]} material={glowMat}>
+        <planeGeometry args={[6.1, 0.95]} />
+      </mesh>
+      <mesh position={[3.33, -0.72, -0.28]} rotation={[0, Math.PI / 2, 0]} material={glowMat}>
+        <planeGeometry args={[6.3, 0.95]} />
+      </mesh>
+    </group>
+  );
+}
+
 /** The room shell: floor, two walls, openings, rugs, backdrops, decals. */
 export function Room() {
   return (
@@ -389,6 +481,7 @@ export function Room() {
       <GardenBackdrop />
       <BedroomBackdrop />
       <FireGlowDecal />
+      <PlinthRim />
     </group>
   );
 }

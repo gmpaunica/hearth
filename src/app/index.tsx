@@ -2,6 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { DemoPanel } from '@/components/DemoPanel';
+import { MySignalCard, PartnerSignalCard, ReconciliationPrompt } from '@/components/SignalCards';
+import { SignalSheet } from '@/components/SignalSheet';
 import { HomeScene } from '@/scene/HomeScene';
 import { SceneCanvas } from '@/scene/SceneCanvas';
 import { APP_NAME, ui } from '@/theme/hearth';
@@ -16,6 +18,10 @@ export default function HomeScreen() {
       <View style={styles.titleWrap} pointerEvents="none">
         <Text style={styles.title}>{APP_NAME}</Text>
       </View>
+      <MySignalCard />
+      <PartnerSignalCard />
+      <SignalSheet />
+      <ReconciliationPrompt />
       <DemoPanel />
     </View>
   );

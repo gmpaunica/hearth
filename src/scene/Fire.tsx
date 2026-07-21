@@ -1,8 +1,9 @@
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
 import { atmo } from './atmoState';
+import { pixelScale } from './pixelState';
 
 // Chunky pixel-square flames for the voxel art style.
 const FLAME_COUNT = 130;
@@ -49,16 +50,24 @@ const flameVertex = /* glsl */ `
   }
 `;
 
+// Linear-space color helper — see Room.tsx: custom shaders author display
+// colors and encode via the standard chunks, matching built-in materials.
+const srgb2lin = /* glsl */ `
+  vec3 srgb2lin(vec3 c) { return pow((c + 0.055) / 1.055, vec3(2.4)); }
+`;
+
 const flameFragment = /* glsl */ `
   uniform float uIntensity;
   varying float vLife;
-
+  ${srgb2lin}
   void main() {
     if (vLife > 0.92) discard;
     vec3 col = vec3(0.88, 0.32, 0.18);
     if (vLife < 0.3) col = vec3(1.0, 0.88, 0.54);
     else if (vLife < 0.62) col = vec3(1.0, 0.61, 0.24);
-    gl_FragColor = vec4(col, clamp(uIntensity * 1.4, 0.0, 1.0));
+    gl_FragColor = vec4(srgb2lin(col), clamp(uIntensity * 1.4, 0.0, 1.0));
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -92,19 +101,20 @@ const emberVertex = /* glsl */ `
 const emberFragment = /* glsl */ `
   uniform float uIntensity;
   varying float vLife;
-
+  ${srgb2lin}
   void main() {
     if (vLife > 0.8) discard;
-    gl_FragColor = vec4(1.0, 0.66, 0.28, clamp(uIntensity, 0.0, 1.0));
+    gl_FragColor = vec4(srgb2lin(vec3(1.0, 0.66, 0.28)), clamp(uIntensity, 0.0, 1.0));
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 function usePixelMaterial(vertex: string, fragment: string, extra?: Record<string, number>) {
-  const dpr = useThree((s) => s.viewport.dpr);
   const material = useMemo(() => {
     const uniforms: Record<string, { value: number }> = {
       uTime: { value: 0 },
-      uDpr: { value: dpr },
+      uDpr: { value: 1 },
       uZoom: { value: 50 },
       uIntensity: { value: 1 },
     };
@@ -118,7 +128,6 @@ function usePixelMaterial(vertex: string, fragment: string, extra?: Record<strin
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vertex, fragment]);
-  material.uniforms.uDpr.value = dpr;
   return material;
 }
 
@@ -133,11 +142,14 @@ const glowVertex = /* glsl */ `
 const glowFragment = /* glsl */ `
   uniform float uIntensity;
   varying vec2 vUv;
+  ${srgb2lin}
   void main() {
     float d = length(vec2((vUv.x - 0.5) * 1.3, vUv.y - 0.32));
     float alpha = smoothstep(0.72, 0.0, d) * 0.8 * uIntensity;
-    vec3 col = mix(vec3(1.0, 0.5, 0.16), vec3(1.0, 0.86, 0.55), smoothstep(0.5, 0.0, d));
+    vec3 col = mix(srgb2lin(vec3(1.0, 0.5, 0.16)), srgb2lin(vec3(1.0, 0.86, 0.55)), smoothstep(0.5, 0.0, d));
     gl_FragColor = vec4(col, alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -157,6 +169,7 @@ export function Fire({ position }: { position: [number, number, number] }) {
     for (const m of [flameMat, emberMat, glowMat]) {
       m.uniforms.uTime.value = t;
       m.uniforms.uZoom.value = zoom;
+      m.uniforms.uDpr.value = pixelScale.value;
       m.uniforms.uIntensity.value = atmo.fire * flicker;
     }
   });
@@ -181,6 +194,7 @@ export function EmberColumn({ position }: { position: [number, number, number] }
   useFrame((state) => {
     mat.uniforms.uTime.value = state.clock.elapsedTime;
     mat.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    mat.uniforms.uDpr.value = pixelScale.value;
     mat.uniforms.uIntensity.value = atmo.fire * 0.9;
   });
 

@@ -1,8 +1,9 @@
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { atmo } from './atmoState';
+import { pixelScale } from './pixelState';
 
 const COUNT = 70;
 
@@ -34,16 +35,18 @@ const vertex = /* glsl */ `
 const fragment = /* glsl */ `
   uniform float uGlow;
   varying float vTwinkle;
+  vec3 srgb2lin(vec3 c) { return pow((c + 0.055) / 1.055, vec3(2.4)); }
 
   void main() {
     if (vTwinkle < -0.1) discard;
-    gl_FragColor = vec4(1.0, 0.85, 0.5, uGlow);
+    gl_FragColor = vec4(srgb2lin(vec3(1.0, 0.85, 0.5)), uGlow);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 /** Golden pixel motes that swirl through the room during the reconciliation glow. */
 export function Sparkles() {
-  const dpr = useThree((s) => s.viewport.dpr);
   const pointsRef = useRef<THREE.Points>(null);
 
   const geometry = useMemo(() => {
@@ -63,7 +66,7 @@ export function Sparkles() {
         fragmentShader: fragment,
         uniforms: {
           uTime: { value: 0 },
-          uDpr: { value: dpr },
+          uDpr: { value: 1 },
           uZoom: { value: 50 },
           uGlow: { value: 0 },
         },
@@ -73,11 +76,11 @@ export function Sparkles() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
-  material.uniforms.uDpr.value = dpr;
 
   useFrame((state) => {
     material.uniforms.uTime.value = state.clock.elapsedTime;
     material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    material.uniforms.uDpr.value = pixelScale.value;
     material.uniforms.uGlow.value = atmo.glow;
     if (pointsRef.current) pointsRef.current.visible = atmo.glow > 0.01;
   });

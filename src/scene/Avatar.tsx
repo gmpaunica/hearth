@@ -34,10 +34,11 @@ function buildLeg(colors: AvatarColors) {
 
 function buildTorso(colors: AvatarColors) {
   const v = new Vox();
-  v.box(0, 0, 0, 6, 5, 4, colors.outfit);
-  v.box(0, 0, 0, 6, 1, 4, colors.accent); // belt
+  // Narrow body under the big head (hero F: head reads much wider than body).
+  v.box(0, 0, 0, 5, 5, 4, colors.outfit);
+  v.box(0, 4, 0, 5, 1, 4, colors.accent); // collar/scarf band under the chin
   const g = v.build(S, 0.04);
-  g.translate(-3 * S, 0, -2 * S);
+  g.translate(-2.5 * S, 0, -2 * S);
   return g;
 }
 
@@ -54,19 +55,17 @@ function buildHead(colors: AvatarColors) {
   const v = new Vox();
   // Big cute head: 8 wide, 7 tall, 7 deep (front is +z).
   v.box(0, 0, 0, 8, 7, 7, colors.skin);
-  // Hair: top cap + back.
-  v.box(0, 5, 0, 8, 2, 7, colors.hair);
+  // Hero-F hair: a flat solid slab over the top 3 rows with a straight fringe
+  // across the forehead, plus the full back of the head.
+  v.box(0, 4, 0, 8, 3, 7, colors.hair);
   v.box(0, 0, 0, 8, 7, 2, colors.hair);
-  // Fringe pixels.
-  v.set(1, 4, 6, colors.hair);
-  v.set(6, 4, 6, colors.hair);
-  // Eyes, blush, mouth on the front face.
-  v.set(2, 2, 6, '#33241a');
-  v.set(5, 2, 6, '#33241a');
+  // Eyes, blush, small mouth on the front face.
+  v.set(2, 2, 6, '#2a1c12');
+  v.set(5, 2, 6, '#2a1c12');
   v.set(1, 1, 6, '#f0a08a');
   v.set(6, 1, 6, '#f0a08a');
-  v.set(3, 1, 6, '#d99a7c');
-  v.set(4, 1, 6, '#d99a7c');
+  v.set(3, 1, 6, '#d9997b');
+  v.set(4, 1, 6, '#d9997b');
   const g = v.build(S, 0.03);
   g.translate(-4 * S, 0, -3.5 * S);
   return g;
@@ -160,8 +159,8 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
           <mesh geometry={parts.leg} material={voxelMaterial} position={[S, 0, 0]} />
         </group>
         <mesh ref={torsoRef} geometry={parts.torso} material={voxelMaterial} position={[0, HIP_Y, 0]} />
-        <mesh geometry={parts.arm} material={voxelMaterial} position={[-4 * S, 8 * S, 0]} rotation={[0, 0, 0.08]} />
-        <mesh geometry={parts.arm} material={voxelMaterial} position={[4 * S, 8 * S, 0]} rotation={[0, 0, -0.08]} />
+        <mesh geometry={parts.arm} material={voxelMaterial} position={[-3.5 * S, 8 * S, 0]} rotation={[0, 0, 0.08]} />
+        <mesh geometry={parts.arm} material={voxelMaterial} position={[3.5 * S, 8 * S, 0]} rotation={[0, 0, -0.08]} />
         <mesh ref={headRef} geometry={parts.head} material={voxelMaterial} position={[0, 8 * S, 0]} />
       </group>
     </group>

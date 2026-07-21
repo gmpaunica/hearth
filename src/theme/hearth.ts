@@ -17,8 +17,9 @@ export const ui = {
 // Bright, saturated Tuber-Simulator-style palette. Flat colors — all light
 // and shade is baked by the voxel mesher.
 export const room = {
-  floorA: '#cd9a60',
-  floorB: '#c08b52',
+  floorA: '#d6a057',
+  floorB: '#c8914a',
+  floorGrout: '#9c6b38',
   wall: '#f0dcbc',
   wallShade: '#e3cca6',
   baseboard: '#b5824e',
@@ -43,7 +44,8 @@ export const room = {
   lamp: '#ffc061',
 } as const;
 
+// Hero-F couple: near-black flat hair slabs; deep brick-red and sage sweaters.
 export const avatarPresets = {
-  a: { skin: '#f4c9a2', hair: '#4a2f1d', outfit: '#e08a4c', accent: '#c26f38' },
-  b: { skin: '#ecb890', hair: '#6b4a2a', outfit: '#7ba05e', accent: '#63864c' },
+  a: { skin: '#f2c9a2', hair: '#241812', outfit: '#b04a3a', accent: '#7e2f26' },
+  b: { skin: '#eec19a', hair: '#332214', outfit: '#94a56d', accent: '#6d7f4e' },
 } as const;
