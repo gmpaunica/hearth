@@ -9,6 +9,7 @@ import { MySignalCard, PartnerSignalCard, ReconciliationPrompt } from '@/compone
 import { SignalSheet } from '@/components/SignalSheet';
 import { HomeScene } from '@/scene/HomeScene';
 import { SceneCanvas } from '@/scene/SceneCanvas';
+import { useReduceMotion } from '@/scene/useReduceMotion';
 import { useHearthSync } from '@/state/useHearthSync';
 import { useAuthStore } from '@/state/authStore';
 import { APP_NAME, ui } from '@/theme/hearth';
@@ -16,6 +17,8 @@ import { APP_NAME, ui } from '@/theme/hearth';
 export default function HomeScreen() {
   // Sign in, load the couple, and keep signals in sync with the partner.
   useHearthSync();
+  // Respect the OS "reduce motion" setting for the reconciliation glow.
+  useReduceMotion();
   const paired = useAuthStore((s) => s.phase === 'paired');
 
   return (

@@ -11,6 +11,8 @@ export const atmo = {
   rain: 0,
   /** 0..1 — golden reconciliation pulse. */
   glow: 0,
+  /** OS "reduce motion" is on — soften the glow (no bloom spike / swirl). */
+  reduceMotion: false,
   /** Shared color instances; materials reference these directly. */
   outsideSky: new THREE.Color('#22304f'),
   gardenLight: new THREE.Color('#3d6b3a'),

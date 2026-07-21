@@ -38,20 +38,26 @@ export function Atmosphere() {
     const { atmosphere, glowStartedAt } = useSceneStore.getState();
     const preset = PRESETS[atmosphere];
 
-    // Reconciliation glow: eased 1 -> 0 pulse over GLOW_DURATION seconds.
+    // Reconciliation glow over GLOW_DURATION seconds. Normally a bloom-like
+    // pulse; under "reduce motion" a calm, non-oscillating swell instead — the
+    // warm gold still lands, without the spike, bloom flash, or swirling motes.
+    const reduce = atmo.reduceMotion;
     let glow = 0;
     if (glowStartedAt != null) {
       const age = (Date.now() - glowStartedAt) / 1000;
       if (age < GLOW_DURATION) {
         const x = age / GLOW_DURATION;
-        glow = Math.min(1, x * 8) * (1 - x) * (1 - x);
+        glow = reduce
+          ? 0.55 * Math.min(1, x / 0.2, (1 - x) / 0.3) // ease in, hold, ease out
+          : Math.min(1, x * 8) * (1 - x) * (1 - x); // fast rise + slow decay
       }
     }
     atmo.glow = glow;
 
     target.tint.set(preset.tint).lerp(GOLD, glow * 0.75);
-    // Push slightly past white at the glow peak for a bloom-like lift.
-    target.tint.multiplyScalar(1 + glow * 0.25);
+    // Push slightly past white at the glow peak for a bloom-like lift (skipped
+    // when reducing motion so there's no flash).
+    target.tint.multiplyScalar(1 + glow * (reduce ? 0 : 0.25));
     target.bg.set(preset.bg).lerp(GOLD, glow * 0.25);
     target.outsideSky.set(preset.outsideSky);
     target.gardenLight.set(preset.gardenLight);
@@ -62,7 +68,12 @@ export function Atmosphere() {
     atmo.outsideSky.lerp(target.outsideSky, k);
     atmo.gardenLight.lerp(target.gardenLight, k);
 
-    atmo.fire = THREE.MathUtils.damp(atmo.fire, preset.fire + glow * 0.8, 3.2, delta);
+    atmo.fire = THREE.MathUtils.damp(
+      atmo.fire,
+      preset.fire + glow * (reduce ? 0.3 : 0.8),
+      3.2,
+      delta,
+    );
     atmo.rain = THREE.MathUtils.damp(atmo.rain, preset.rain, 2.5, delta);
   });
 

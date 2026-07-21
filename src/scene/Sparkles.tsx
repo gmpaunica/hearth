@@ -82,7 +82,9 @@ export function Sparkles() {
     material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
     material.uniforms.uDpr.value = pixelScale.value;
     material.uniforms.uGlow.value = atmo.glow;
-    if (pointsRef.current) pointsRef.current.visible = atmo.glow > 0.01;
+    // The motes swirl, so keep them off when the user asked for reduced motion.
+    if (pointsRef.current)
+      pointsRef.current.visible = atmo.glow > 0.01 && !atmo.reduceMotion;
   });
 
   return (
