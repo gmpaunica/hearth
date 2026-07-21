@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { SIGNALS, type SignalType } from '@/copy';
+import { RECONCILIATION, SIGNALS, type SignalType } from '@/copy';
 import type { ResponseRow, SignalRow } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { useSceneStore } from './sceneStore';
@@ -59,6 +59,22 @@ interface SignalFlowState {
 
 const scene = () => useSceneStore.getState();
 
+/**
+ * Fire a Supabase write without blocking the UI. Supabase query builders are
+ * lazy thenables — the request is only sent when `.then()`/`await` runs — so a
+ * bare `supabase.from(...).insert(...)` never hits the network. Adopting it
+ * with `Promise.resolve` executes it and lets us surface any error.
+ */
+function fire(pending: PromiseLike<unknown>): void {
+  Promise.resolve(pending).then(
+    (res) => {
+      const error = (res as { error?: unknown } | null)?.error;
+      if (error) console.warn('[hearth] Supabase write failed:', error);
+    },
+    (err) => console.warn('[hearth] Supabase write threw:', err),
+  );
+}
+
 /** Apply the scene reaction when a join-type response lands on `spot`. */
 function reactToJoin(actor: 'a' | 'b', type: SignalType, choice: string): boolean {
   if (JOIN_RESPONSES[type] !== choice) return false;
@@ -98,10 +114,12 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
     set({ mySignal: null });
     scene().setSpot('a', 'idle');
     if (ctx && mySignal?.id) {
-      void supabase
-        .from('signals')
-        .update({ resolved_at: new Date().toISOString() })
-        .eq('id', mySignal.id);
+      fire(
+        supabase
+          .from('signals')
+          .update({ resolved_at: new Date().toISOString() })
+          .eq('id', mySignal.id),
+      );
     }
   },
 
@@ -113,39 +131,61 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
       set({ reconciling: true });
     }
     if (ctx && partnerSignal.id) {
-      void supabase.from('responses').insert({
-        signal_id: partnerSignal.id,
-        from_user: ctx.userId,
-        choice,
-      });
+      fire(
+        supabase.from('responses').insert({
+          signal_id: partnerSignal.id,
+          from_user: ctx.userId,
+          choice,
+        }),
+      );
     }
   },
 
   chooseReconciliation: (choice) => {
     // Choices come verbatim from RECONCILIATION.choices (index order).
+    const { mySignal, partnerSignal, ctx } = get();
+    // Whoever is reconciling holds the shared fireplace signal on exactly one
+    // side (originator → mySignal, responder → partnerSignal).
+    const signalId = mySignal?.id ?? partnerSignal?.id;
+
+    // Tell the partner which way we chose so their scene mirrors ours — a glow
+    // for both, or both moving to the table. Rides the same responses channel
+    // as every other answer; RLS confines it to our couple.
+    const notifyPartner = () => {
+      if (ctx && signalId) {
+        fire(
+          supabase
+            .from('responses')
+            .insert({ signal_id: signalId, from_user: ctx.userId, choice }),
+        );
+      }
+    };
     const resolveBoth = () => {
-      const { mySignal, partnerSignal, ctx } = get();
       if (!ctx) return;
       const ids = [mySignal?.id, partnerSignal?.id].filter(Boolean) as string[];
       if (ids.length) {
-        void supabase
-          .from('signals')
-          .update({ resolved_at: new Date().toISOString() })
-          .in('id', ids);
+        fire(
+          supabase
+            .from('signals')
+            .update({ resolved_at: new Date().toISOString() })
+            .in('id', ids),
+        );
       }
     };
     if (choice === "We're okay now") {
       scene().triggerGlow();
+      notifyPartner();
       resolveBoth();
       set({ reconciling: false, mySignal: null, partnerSignal: null });
       // Both stay seated together in the warmth.
     } else if (choice === 'We should talk first') {
       scene().setSpot('a', 'table');
       scene().setSpot('b', 'table');
+      notifyPartner();
       resolveBoth();
       set({ reconciling: false, mySignal: null, partnerSignal: null });
     } else {
-      // 'I need more time' — step back; the signal stays open.
+      // 'I need more time' — step back; the signal stays open, partner unaffected.
       scene().setSpot('a', 'idle');
       set({ reconciling: false });
     }
@@ -215,8 +255,28 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
   },
 
   ingestResponse: (row) => {
-    const { ctx, mySignal, partnerSignal } = get();
+    const { ctx, mySignal, partnerSignal, reconciling } = get();
     if (!ctx) return;
+
+    // The partner's reconciliation decision — mirror it so the fireplace moment
+    // lands on both screens at once, not just on whoever tapped the choice.
+    if (
+      reconciling &&
+      row.from_user !== ctx.userId &&
+      (RECONCILIATION.choices as readonly string[]).includes(row.choice)
+    ) {
+      if (row.choice === "We're okay now") {
+        scene().triggerGlow();
+        set({ reconciling: false, mySignal: null, partnerSignal: null });
+      } else if (row.choice === 'We should talk first') {
+        scene().setSpot('a', 'table');
+        scene().setSpot('b', 'table');
+        set({ reconciling: false, mySignal: null, partnerSignal: null });
+      }
+      // 'I need more time' is never broadcast (the signal stays open).
+      return;
+    }
+
     // Partner answered the signal I left.
     if (mySignal?.id === row.signal_id && row.from_user !== ctx.userId) {
       set({ mySignal: { ...mySignal, response: row.choice } });

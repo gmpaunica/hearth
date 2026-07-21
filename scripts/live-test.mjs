@@ -36,6 +36,9 @@ function subscribed(channel) {
   });
 }
 
+/** Small delay. */
+const settle = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /** Wait for the first realtime payload matching `pred`, else null after `ms`. */
 function waitFor(getBox, ms = 8000) {
   return new Promise((resolve) => {
@@ -109,6 +112,13 @@ async function main() {
     (p) => (gotResponse = p.new),
   );
   await Promise.all([subscribed(bChan), subscribed(aChan)]);
+  // A client `SUBSCRIBED` status can arrive a beat before the server has
+  // finished binding the postgres_changes replication filter; an insert fired
+  // in that window is silently missed. The app never hits this (it hydrates
+  // current state after subscribing, and no one sends a signal the same
+  // instant they pair), but this harness tests live delivery in isolation, so
+  // let the binding settle before mutating.
+  await settle(1500);
   ok('both realtime channels subscribed');
 
   // A leaves a fireplace signal.
