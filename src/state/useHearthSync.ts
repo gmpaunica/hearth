@@ -38,26 +38,25 @@ export function useHearthSync() {
   // Tapping a signal notification deep-links straight into the room.
   useEffect(() => onNotificationTap(() => router.navigate('/')), []);
 
-  // While we have a couple but no partner yet, watch the row so member_b
-  // joining flips us to paired.
+  // Watch the couple row for membership changes: a partner joining (waiting →
+  // paired) or leaving/unpairing (paired → waiting or gone).
   useEffect(() => {
-    if (!coupleId || memberB) return;
+    if (!coupleId) return;
     const channel = supabase
       .channel(`couple:${coupleId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'couples', filter: `id=eq.${coupleId}` },
+        { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${coupleId}` },
         () => void refreshCouple(),
       )
       .subscribe();
-    // Fallback: if the realtime binding wasn't ready the instant the partner
-    // joined, the UPDATE can be missed and the host would wait forever. Poll
-    // gently until paired; the effect (and this interval) tear down the moment
-    // memberB appears.
-    const poll = setInterval(() => void refreshCouple(), 4000);
+    // Fallback only while waiting for a partner: if the realtime binding wasn't
+    // ready the instant they joined, the UPDATE can be missed and the host
+    // would wait forever. The interval tears down the moment memberB appears.
+    const poll = memberB ? null : setInterval(() => void refreshCouple(), 4000);
     return () => {
       void supabase.removeChannel(channel);
-      clearInterval(poll);
+      if (poll) clearInterval(poll);
     };
   }, [coupleId, memberB, refreshCouple]);
 

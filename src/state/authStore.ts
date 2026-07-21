@@ -38,6 +38,8 @@ interface AuthState {
   refreshCouple: () => Promise<void>;
   /** Sign out and start over with a fresh anonymous identity. */
   signOut: () => Promise<void>;
+  /** Leave the current couple (keeps your identity, drops the pairing). */
+  unpair: () => Promise<void>;
 }
 
 function partnerOf(couple: Couple | null, userId: string | null): string | null {
@@ -158,6 +160,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       error: null,
     });
     await get().init();
+  },
+
+  unpair: async () => {
+    set({ busy: true, error: null });
+    try {
+      const { error } = await supabase.rpc('leave_couple');
+      if (error) throw error;
+      const { userId } = get();
+      set({
+        couple: null,
+        partnerId: null,
+        phase: phaseFor(userId, null),
+        busy: false,
+      });
+    } catch (e) {
+      set({ busy: false, error: messageOf(e) });
+    }
   },
 }));
 

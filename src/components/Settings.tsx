@@ -14,10 +14,11 @@ import { ui } from '@/theme/hearth';
 export function Settings() {
   const [open, setOpen] = useState(false);
   const [notify, setNotify] = useState(true);
-  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+  const [confirming, setConfirming] = useState<null | 'unpair' | 'signout'>(null);
 
   const userId = useAuthStore((s) => s.userId);
   const signOut = useAuthStore((s) => s.signOut);
+  const unpair = useAuthStore((s) => s.unpair);
 
   // Reflect the stored preference when the sheet opens.
   useEffect(() => {
@@ -33,7 +34,7 @@ export function Settings() {
 
   const close = () => {
     setOpen(false);
-    setConfirmingSignOut(false);
+    setConfirming(null);
   };
 
   return (
@@ -77,16 +78,34 @@ export function Settings() {
 
             <View style={styles.divider} />
 
-            {confirmingSignOut ? (
+            {confirming === 'unpair' ? (
               <View style={styles.confirmBox}>
                 <Text style={styles.confirmText}>
-                  Sign out? You’ll leave this home and start fresh.
+                  Leave this home? You’ll be unpaired and can create or join a new
+                  one. Your partner keeps the home.
                 </Text>
                 <View style={styles.confirmRow}>
+                  <Pressable style={styles.confirmCancel} onPress={() => setConfirming(null)}>
+                    <Text style={styles.confirmCancelText}>Cancel</Text>
+                  </Pressable>
                   <Pressable
-                    style={styles.confirmCancel}
-                    onPress={() => setConfirmingSignOut(false)}
+                    style={styles.confirmDanger}
+                    onPress={() => {
+                      close();
+                      void unpair();
+                    }}
                   >
+                    <Text style={styles.confirmDangerText}>Leave</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : confirming === 'signout' ? (
+              <View style={styles.confirmBox}>
+                <Text style={styles.confirmText}>
+                  Sign out? You’ll leave this home and start completely fresh.
+                </Text>
+                <View style={styles.confirmRow}>
+                  <Pressable style={styles.confirmCancel} onPress={() => setConfirming(null)}>
                     <Text style={styles.confirmCancelText}>Cancel</Text>
                   </Pressable>
                   <Pressable
@@ -101,9 +120,14 @@ export function Settings() {
                 </View>
               </View>
             ) : (
-              <Pressable onPress={() => setConfirmingSignOut(true)} hitSlop={6}>
-                <Text style={styles.signOut}>Sign out</Text>
-              </Pressable>
+              <View style={styles.actions}>
+                <Pressable onPress={() => setConfirming('unpair')} hitSlop={6}>
+                  <Text style={styles.leaveHome}>Leave this home</Text>
+                </Pressable>
+                <Pressable onPress={() => setConfirming('signout')} hitSlop={6}>
+                  <Text style={styles.signOut}>Sign out</Text>
+                </Pressable>
+              </View>
             )}
 
             <Pressable style={styles.done} onPress={close} hitSlop={6}>
@@ -163,6 +187,8 @@ const styles = StyleSheet.create({
   },
   privacyTitle: { color: ui.text, fontSize: 14, marginBottom: 6 },
   privacyBody: { color: ui.textDim, fontSize: 13, lineHeight: 19 },
+  actions: { gap: 14 },
+  leaveHome: { color: ui.accent, fontSize: 15, paddingVertical: 4 },
   signOut: { color: ui.danger, fontSize: 15, paddingVertical: 4 },
   confirmBox: { gap: 12 },
   confirmText: { color: ui.text, fontSize: 14, lineHeight: 20 },
