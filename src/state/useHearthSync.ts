@@ -1,6 +1,8 @@
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 
 import type { ResponseRow, SignalRow } from '@/lib/db';
+import { onNotificationTap, registerPushToken } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from './authStore';
 import { useSignalStore } from './signalStore';
@@ -27,9 +29,19 @@ export function useHearthSync() {
     void init();
   }, [init]);
 
-  // While we have a couple, watch it so member_b joining flips us to paired.
+  // Register this device for push once signed in (native only; no-ops on web).
   useEffect(() => {
-    if (!coupleId) return;
+    if (!userId) return;
+    void registerPushToken(userId);
+  }, [userId]);
+
+  // Tapping a signal notification deep-links straight into the room.
+  useEffect(() => onNotificationTap(() => router.navigate('/')), []);
+
+  // While we have a couple but no partner yet, watch the row so member_b
+  // joining flips us to paired.
+  useEffect(() => {
+    if (!coupleId || memberB) return;
     const channel = supabase
       .channel(`couple:${coupleId}`)
       .on(
@@ -38,10 +50,16 @@ export function useHearthSync() {
         () => void refreshCouple(),
       )
       .subscribe();
+    // Fallback: if the realtime binding wasn't ready the instant the partner
+    // joined, the UPDATE can be missed and the host would wait forever. Poll
+    // gently until paired; the effect (and this interval) tear down the moment
+    // memberB appears.
+    const poll = setInterval(() => void refreshCouple(), 4000);
     return () => {
       void supabase.removeChannel(channel);
+      clearInterval(poll);
     };
-  }, [coupleId, refreshCouple]);
+  }, [coupleId, memberB, refreshCouple]);
 
   // Once both members are present, sync signals + responses live.
   useEffect(() => {

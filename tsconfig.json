@@ -8,6 +8,15 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      // expo-notifications pulls in expo-constants, whose "react-native" export
+      // condition resolves to its TypeScript source (Constants.server.ts →
+      // expo/config → @expo/config-plugins), dragging build-only tooling types
+      // (xcode, node:fs, expo-manifests) into the app typecheck. Pin it to its
+      // built declarations to break that chain. Type-only — the runtime import
+      // is unaffected.
+      "expo-constants": [
+        "./node_modules/expo-constants/build/Constants.d.ts"
       ]
     }
   },
@@ -16,5 +25,9 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase/functions"
   ]
 }
