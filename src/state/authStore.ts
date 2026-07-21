@@ -25,15 +25,19 @@ interface AuthState {
   couple: Couple | null;
   /** The other member's id once paired (null while solo). */
   partnerId: string | null;
+  /** The user's chosen name, or null before onboarding sets it. */
+  displayName: string | null;
   /** True while a create/join/retry request is in flight. */
   busy: boolean;
   /** User-facing message for the last failure, or null. */
   error: string | null;
 
-  /** Sign in anonymously (if needed) and load any existing couple. */
+  /** Sign in anonymously (if needed) and load any existing couple + profile. */
   init: () => Promise<void>;
   createHome: () => Promise<void>;
   joinHome: (code: string) => Promise<void>;
+  /** Save the user's display name to their profile (onboarding). */
+  setDisplayName: (name: string) => Promise<void>;
   /** Re-fetch the couple row (e.g. after a partner-joined realtime event). */
   refreshCouple: () => Promise<void>;
   /** Sign out and start over with a fresh anonymous identity. */
@@ -59,11 +63,23 @@ async function fetchCouple(): Promise<Couple | null> {
   return (data?.[0] as Couple | undefined) ?? null;
 }
 
+/** The caller's chosen display name, if they've set one. */
+async function fetchDisplayName(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const { data } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', userId)
+    .single();
+  return (data?.display_name as string | null) ?? null;
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   phase: 'loading',
   userId: null,
   couple: null,
   partnerId: null,
+  displayName: null,
   busy: false,
   error: null,
 
@@ -77,10 +93,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         sessionData = (await supabase.auth.getSession()).data;
       }
       const userId = sessionData.session?.user.id ?? null;
-      const couple = await fetchCouple();
+      const [couple, displayName] = await Promise.all([
+        fetchCouple(),
+        fetchDisplayName(userId),
+      ]);
       set({
         userId,
         couple,
+        displayName,
         partnerId: partnerOf(couple, userId),
         phase: phaseFor(userId, couple),
       });
@@ -128,6 +148,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  setDisplayName: async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || get().busy) return;
+    set({ busy: true, error: null });
+    try {
+      const { userId } = get();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ display_name: trimmed })
+        .eq('id', userId);
+      if (error) throw error;
+      set({ displayName: trimmed, busy: false });
+    } catch (e) {
+      set({ busy: false, error: messageOf(e) });
+    }
+  },
+
   refreshCouple: async () => {
     try {
       const couple = await fetchCouple();
@@ -156,6 +193,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       userId: null,
       couple: null,
       partnerId: null,
+      displayName: null,
       busy: false,
       error: null,
     });
