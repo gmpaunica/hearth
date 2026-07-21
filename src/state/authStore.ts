@@ -36,6 +36,8 @@ interface AuthState {
   joinHome: (code: string) => Promise<void>;
   /** Re-fetch the couple row (e.g. after a partner-joined realtime event). */
   refreshCouple: () => Promise<void>;
+  /** Sign out and start over with a fresh anonymous identity. */
+  signOut: () => Promise<void>;
 }
 
 function partnerOf(couple: Couple | null, userId: string | null): string | null {
@@ -136,6 +138,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (e) {
       set({ error: messageOf(e) });
     }
+  },
+
+  signOut: async () => {
+    set({ busy: true, error: null });
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Even if the network call fails, drop local state and start fresh.
+    }
+    // Clear everything, then re-init: with anonymous auth this mints a brand
+    // new identity, landing the user back at the create/join gate.
+    set({
+      phase: 'loading',
+      userId: null,
+      couple: null,
+      partnerId: null,
+      busy: false,
+      error: null,
+    });
+    await get().init();
   },
 }));
 

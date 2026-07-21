@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { DemoPanel } from '@/components/DemoPanel';
 import { Pairing } from '@/components/Pairing';
+import { Settings } from '@/components/Settings';
 import { MySignalCard, PartnerSignalCard, ReconciliationPrompt } from '@/components/SignalCards';
 import { SignalSheet } from '@/components/SignalSheet';
 import { HomeScene } from '@/scene/HomeScene';
@@ -31,6 +32,7 @@ export default function HomeScreen() {
           <PartnerSignalCard />
           <SignalSheet />
           <ReconciliationPrompt />
+          <Settings />
         </>
       )}
       <Pairing />

@@ -6,6 +6,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { getNotificationsEnabled } from './prefs';
 import { supabase } from './supabase';
 
 const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -32,6 +33,7 @@ if (isNative) {
  */
 export async function registerPushToken(userId: string): Promise<void> {
   if (!isNative || !Device.isDevice) return;
+  if (!(await getNotificationsEnabled())) return; // user turned pushes off
 
   // Android delivers notifications through a channel; create one up front.
   if (Platform.OS === 'android') {
@@ -58,6 +60,18 @@ export async function registerPushToken(userId: string): Promise<void> {
   } catch (e) {
     console.warn('[hearth] could not get a push token:', e);
   }
+}
+
+/**
+ * Forget this device's push token (used when the user turns notifications off).
+ * With no token on the profile, the notify-signal function has nowhere to send.
+ */
+export async function clearPushToken(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ push_token: null })
+    .eq('id', userId);
+  if (error) console.warn('[hearth] clearing push token failed:', error);
 }
 
 /**
