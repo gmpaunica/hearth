@@ -221,6 +221,8 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
     set({ mySignal, partnerSignal });
     if (mySignal) scene().setSpot('a', mySignal.type);
     if (partnerSignal) scene().setSpot('b', partnerSignal.type);
+    // This is a load of current state, not a live move — jump there, don't walk.
+    scene().requestSnap();
   },
 
   ingestSignal: (row) => {

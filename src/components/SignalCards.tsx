@@ -14,7 +14,13 @@ export function MySignalCard() {
     <View style={styles.topCard}>
       <Text style={styles.quote}>“{SIGNALS[mySignal.type].selfText}”</Text>
       {mySignal.response ? (
-        <Text style={styles.responseLine}>They answered: “{mySignal.response}”</Text>
+        <>
+          <Text style={styles.responseLine}>They answered: “{mySignal.response}”</Text>
+          {/* Always a way forward, whatever they answered — close the signal. */}
+          <Pressable onPress={cancel} hitSlop={6}>
+            <Text style={styles.takeBack}>Okay</Text>
+          </Pressable>
+        </>
       ) : (
         <Pressable onPress={cancel} hitSlop={6}>
           <Text style={styles.takeBack}>Take it back</Text>

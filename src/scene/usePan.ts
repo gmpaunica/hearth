@@ -31,9 +31,11 @@ export function useScenePan() {
         const dpy = g.dy - last.current.y;
         last.current = { x: g.dx, y: g.dy };
         const k = 1 / Math.max(camState.zoom, 1);
-        // Negative: move the camera opposite the drag so the world tracks it.
+        // Horizontal: move the camera opposite the drag so the world tracks the
+        // finger. Vertical reads correctly with the same sign as the drag (the
+        // depth axis flips how "up" maps onto the ground).
         const sx = -dpx * k;
-        const sy = -dpy * k;
+        const sy = dpy * k;
         const dX = RIGHT.x * sx + UP.x * sy;
         const dZ = RIGHT.z * sx + UP.z * sy;
         camState.offX = clampPan(camState.offX + dX, camState.limit);

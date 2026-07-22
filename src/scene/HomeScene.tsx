@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect } from 'react';
 import * as THREE from 'three';
 
+import { useAuthStore } from '@/state/authStore';
 import { useHomeProgress } from '@/state/homeProgress';
 import { avatarPresets } from '@/theme/hearth';
 import { Atmosphere } from './Atmosphere';
@@ -47,6 +48,15 @@ export function HomeScene() {
   // The home fills in as the relationship grows (see homeProgress). Day 0 is
   // just the room and the fire; the rest arrives at milestones.
   const { components, stageIndex } = useHomeProgress();
+
+  // Character colour is tied to *who you are*, not "self vs partner", so the
+  // same person looks the same on both phones. member_a always wears preset a,
+  // member_b preset b. Slot 'a' is always the local player's position.
+  const userId = useAuthStore((s) => s.userId);
+  const memberA = useAuthStore((s) => s.couple?.member_a ?? null);
+  const iAmA = !!userId && userId === memberA;
+  const selfColors = iAmA ? avatarPresets.a : avatarPresets.b;
+  const partnerColors = iAmA ? avatarPresets.b : avatarPresets.a;
   // More unlocked → more to explore, so allow the view to roam a little further.
   useEffect(() => {
     camState.limit = 1.4 + Math.max(0, stageIndex) * 0.4;
@@ -71,8 +81,8 @@ export function HomeScene() {
       )}
       <Rain />
       <Sparkles />
-      <Avatar avatar="a" colors={avatarPresets.a} />
-      <Avatar avatar="b" colors={avatarPresets.b} />
+      <Avatar avatar="a" colors={selfColors} />
+      <Avatar avatar="b" colors={partnerColors} />
       <PixelPass />
     </>
   );

@@ -87,6 +87,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
     rotY: SPOTS.idle[avatar].rotY,
     sit: 0,
     phase: avatar === 'a' ? 0 : 1.7,
+    seenSnap: 0,
   });
 
   const parts = useMemo(
@@ -108,8 +109,18 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
     const t = state.clock.elapsedTime;
     const a = anim.current;
 
-    const spotId = useSceneStore.getState().spots[avatar];
+    const scene = useSceneStore.getState();
+    const spotId = scene.spots[avatar];
     const pose = SPOTS[spotId][avatar];
+
+    // On a hydrate snap, jump straight to the current pose (the app is opening
+    // to existing state — it shouldn't replay the walk).
+    if (scene.snapAt !== a.seenSnap) {
+      a.seenSnap = scene.snapAt;
+      root.position.set(pose.x, 0, pose.z);
+      a.rotY = pose.rotY;
+      a.sit = pose.seatY > 0 ? 1 : 0;
+    }
 
     root.position.x = THREE.MathUtils.damp(root.position.x, pose.x, 3.2, dt);
     root.position.z = THREE.MathUtils.damp(root.position.z, pose.z, 3.2, dt);
