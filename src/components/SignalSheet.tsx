@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SIGNALS, type SignalType } from '@/copy';
+import { useHomeProgress } from '@/state/homeProgress';
 import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
 
@@ -16,6 +17,9 @@ export function SignalSheet() {
   const [open, setOpen] = useState(false);
   const mySignal = useSignalStore((s) => s.mySignal);
   const sendSignal = useSignalStore((s) => s.sendSignal);
+  // You can only signal to places that exist in the home yet.
+  const { signals } = useHomeProgress();
+  const available = SIGNAL_ORDER.filter((t) => signals.has(t));
 
   if (mySignal) return null; // the active-signal card takes over
 
@@ -30,7 +34,7 @@ export function SignalSheet() {
       {open && (
         <View style={styles.sheet}>
           <Text style={styles.sheetTitle}>Where do you want to be?</Text>
-          {SIGNAL_ORDER.map((type) => (
+          {available.map((type) => (
             <Pressable
               key={type}
               style={styles.row}

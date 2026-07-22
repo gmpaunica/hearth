@@ -9,6 +9,7 @@ import { MySignalCard, PartnerSignalCard, ReconciliationPrompt } from '@/compone
 import { SignalSheet } from '@/components/SignalSheet';
 import { HomeScene } from '@/scene/HomeScene';
 import { SceneCanvas } from '@/scene/SceneCanvas';
+import { useScenePan } from '@/scene/usePan';
 import { useReduceMotion } from '@/scene/useReduceMotion';
 import { useHearthSync } from '@/state/useHearthSync';
 import { useAuthStore } from '@/state/authStore';
@@ -19,14 +20,18 @@ export default function HomeScreen() {
   useHearthSync();
   // Respect the OS "reduce motion" setting for the reconciliation glow.
   useReduceMotion();
+  // Drag to scroll the home around.
+  const panHandlers = useScenePan();
   const paired = useAuthStore((s) => s.phase === 'paired');
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <SceneCanvas>
-        <HomeScene />
-      </SceneCanvas>
+      <View style={styles.scene} {...panHandlers}>
+        <SceneCanvas>
+          <HomeScene />
+        </SceneCanvas>
+      </View>
       <View style={styles.titleWrap} pointerEvents="none">
         <Text style={styles.title}>{APP_NAME}</Text>
       </View>
@@ -48,6 +53,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a2340' },
+  scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   titleWrap: { position: 'absolute', top: 26, alignSelf: 'center' },
   title: {
     color: ui.textDim,
