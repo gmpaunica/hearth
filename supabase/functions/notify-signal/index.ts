@@ -54,8 +54,10 @@ Deno.serve(async (req) => {
   const signal = payload.record;
   // Only brand-new, still-open signals warrant a nudge.
   if (payload.type !== 'INSERT' || !signal || signal.resolved_at) {
+    console.log('SKIP: not a fresh signal insert', { type: payload.type });
     return new Response('skip', { status: 200 });
   }
+  console.log('SIGNAL', { type: signal.type, couple: signal.couple_id, from: signal.from_user });
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -68,11 +70,17 @@ Deno.serve(async (req) => {
     .select('member_a, member_b')
     .eq('id', signal.couple_id)
     .single();
-  if (!couple) return new Response('no couple', { status: 200 });
+  if (!couple) {
+    console.log('NO COUPLE for', signal.couple_id);
+    return new Response('no couple', { status: 200 });
+  }
 
   const partnerId =
     couple.member_a === signal.from_user ? couple.member_b : couple.member_a;
-  if (!partnerId) return new Response('no partner yet', { status: 200 });
+  if (!partnerId) {
+    console.log('NO PARTNER yet (member_b null)');
+    return new Response('no partner yet', { status: 200 });
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -80,7 +88,11 @@ Deno.serve(async (req) => {
     .eq('id', partnerId)
     .single();
   const token = profile?.push_token;
-  if (!token) return new Response('partner has no push token', { status: 200 });
+  if (!token) {
+    console.log('NO PUSH TOKEN for partner', partnerId, '→ the app never registered/stored one');
+    return new Response('partner has no push token', { status: 200 });
+  }
+  console.log('PARTNER TOKEN present', String(token).slice(0, 24) + '…');
 
   // Hand it to Expo's push service, deep-linking into the room on tap.
   const message = {
@@ -96,8 +108,12 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(message),
   });
+  const respText = await res.text();
+  // This is the key diagnostic: an "ok" ticket = accepted; an error mentioning
+  // DeviceNotRegistered / credentials points at the Android FCM setup.
+  console.log('EXPO PUSH RESPONSE', res.status, respText);
 
-  return new Response(await res.text(), {
+  return new Response(respText, {
     status: res.ok ? 200 : 502,
     headers: { 'Content-Type': 'application/json' },
   });
