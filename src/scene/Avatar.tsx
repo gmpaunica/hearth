@@ -18,6 +18,7 @@ const ICONS: Record<SignalType, { color: string; rows: string[] }> = {
   table: { color: '#f5e6d8', rows: ['00000', '00000', '10101', '00000', '00000'] },
   garden: { color: '#7bb47a', rows: ['00010', '00110', '01110', '11110', '01100'] },
   rest: { color: '#9fc3e0', rows: ['11111', '00010', '00100', '01000', '11111'] },
+  romantic: { color: '#e0608a', rows: ['01010', '11111', '11111', '01110', '00100'] },
 };
 
 const iconMaterial = new THREE.MeshBasicMaterial({ vertexColors: true });

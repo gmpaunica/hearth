@@ -57,8 +57,16 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 - **Push notifications**: WORKING (Firebase/FCM set up). Edge Function
   `notify-signal` + DB trigger → the NOTIFICATIONS copy to the partner.
 - **Living home**: starts sparse, fills in on a milestone ladder (sofa d3,
-  table d7, shelves/plants d14, garden d30); signals gated to unlocked places;
-  "your home grew" card; drag-to-pan + **pinch-to-zoom**.
+  table d7, shelves/plants d14, **bedroom+bed d21**, garden d30); signals gated
+  to unlocked places; "your home grew" card; drag-to-pan + **pinch-to-zoom**.
+- **House build-out** ✅: the room is now bigger (widened toward the camera; the
+  camera reframes to fit). A **bedroom nook** (low partition + warm lamp) holds a
+  **double bed**; the daily-drawing frame moved onto the new wall above the bed
+  (no longer overlaps the window). Bigger, plusher main **sofa**. A tasteful
+  **"feeling romantic" signal** (the bed): leave it → your partner can "Come
+  close" and you sit together as a **heart pops over the bed** (the reconcile
+  heart is now spot-aware — it lands over the fire *or* the bed). Consent-aware
+  responses ("Just hold me", "Not tonight"). Needs `romantic.sql` (below).
 - **Daily drawing** ✅: 32×32 pixel note, one per person per day (upserts,
   resets daily UTC). Envelope button (top-left) / "Your partner drew you
   something" banner / tap the wall frame → the panel ("From them" / "Yours",
@@ -76,9 +84,17 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
   app.json native config): `eas build --platform android --profile preview`.
 - **Supabase deploys** (owner runs SQL in the dashboard SQL editor; the app
   can't create tables). Files in `supabase/`: `schema.sql` (base), then
-  `notifications.sql`, `unpair.sql`, `drawings.sql`. The `notify-signal` Edge
-  Function is deployed via the dashboard Functions editor. **A new feature that
-  needs a table won't work until its SQL is run — always call this out.**
+  `notifications.sql`, `unpair.sql`, `drawings.sql`, `romantic.sql`. The
+  `notify-signal` Edge Function is deployed via the dashboard Functions editor.
+  **A new feature that needs a table won't work until its SQL is run — always
+  call this out.**
+- **⚠️ ACTION NEEDED for the romantic signal:** run `supabase/romantic.sql`
+  once in the SQL editor — it widens the `signals.type` CHECK constraint to
+  allow `'romantic'`. Until then, leaving the bedroom signal *looks* fine on the
+  sender's phone (optimistic) but the DB insert is rejected, so it never reaches
+  the partner or fires a notification. Optional: redeploy `notify-signal` for the
+  tailored push copy ("Someone is thinking of you"); until then it falls back to
+  the generic "Something has changed at home."
 - **Verify before shipping.** `npx tsc --noEmit` must be clean. For visual/flow
   checks in this sandbox, use the localhost bridge + Playwright — see
   `dev/README.md` (the headless browser can't egress to Supabase; node can).
@@ -93,12 +109,14 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 
 ## Backlog
 
-### Next up — the house build-out (a focused update)
-- Bigger room; a **bedroom nook + bed**; a tasteful **"feeling romantic"**
-  signal (new SignalType — add to `src/copy`, `spots.ts`, schema check enum,
-  `homeProgress`, scene). Bigger / more couches. General voxel build-out.
-- **Move the drawing frame** somewhere good once the house is bigger (right now
-  it overlaps the window — no wall space in the small house).
+### Next up
+- **More couches / furniture polish** — the house build-out ✅ enlarged the main
+  sofa and kept the sage rest-couch (two couches), but a third seating piece was
+  deferred to avoid occluding the fireplace reconciliation tableau (a couch in
+  front of the fire seats hides the couple from the fixed camera). Add one only
+  where it won't block the back-corner content. General voxel build-out / more
+  furniture (nightstand, lamp, wardrobe in the nook) still welcome.
+- **Garden 3D** at d30 (still just a painted backdrop through the door).
 
 ### Open / smaller
 - **Deeper response consequences** — "ask to talk later" etc. do nothing
@@ -114,6 +132,9 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 - Google Play release (Phase 9).
 
 ## History (recent, newest first)
+House build-out (bigger room + camera reframe, bedroom nook + double bed,
+"feeling romantic" signal with spot-aware heart pop, bigger sofa, drawing frame
+moved above the bed; adds `supabase/romantic.sql`) →
 Daily-drawing fixes (paint-coord bug, 32² grid, send-once, wall frame, pinch
 zoom) → daily-drawing ritual + love polish (heart, bubble icons, bubbly cards)
 → round-2 device fixes (identity root-cause, snap-open, rest couch) → EAS build

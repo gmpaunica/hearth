@@ -28,7 +28,7 @@ create table if not exists public.signals (
   id          uuid primary key default gen_random_uuid(),
   couple_id   uuid not null references public.couples (id) on delete cascade,
   from_user   uuid not null references public.profiles (id) on delete cascade,
-  type        text not null check (type in ('fireplace','sofa','table','garden','rest')),
+  type        text not null check (type in ('fireplace','sofa','table','garden','rest','romantic')),
   created_at  timestamptz not null default now(),
   resolved_at timestamptz
 );

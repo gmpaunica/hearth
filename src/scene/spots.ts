@@ -43,4 +43,10 @@ export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {
     a: { x: 2.45, z: 0.7, rotY: -Math.PI / 2, seatY: 0.45 },
     b: { x: 2.45, z: 1.45, rotY: -Math.PI / 2, seatY: 0.45 },
   },
+  // Sitting close together on the edge of the bed in the back-right bedroom
+  // nook, turned gently toward each other. Seat height = bed surface (0.75).
+  romantic: {
+    a: { x: 3.95, z: -1.65, rotY: 0.28, seatY: 0.75 },
+    b: { x: 4.75, z: -1.65, rotY: -0.28, seatY: 0.75 },
+  },
 };

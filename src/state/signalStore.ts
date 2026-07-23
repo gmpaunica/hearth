@@ -19,6 +19,7 @@ const JOIN_RESPONSES: Partial<Record<SignalType, string>> = {
   fireplace: SIGNALS.fireplace.responses[0], // 'Sit beside them'
   sofa: SIGNALS.sofa.responses[0], // 'Sit with them'
   table: SIGNALS.table.responses[0], // "I'm ready"
+  romantic: SIGNALS.romantic.responses[0], // 'Come close'
 };
 
 /** Identity + couple context, set by the realtime sync once paired. */
@@ -82,6 +83,18 @@ function reactToJoin(actor: 'a' | 'b', type: SignalType, choice: string): boolea
   return true;
 }
 
+/**
+ * The shared payoff once both people are together at a signal's spot. Fireplace
+ * opens the reconciliation prompt; the bedroom's "Come close" lands the warm
+ * glow + heart pop right there (a soft, tasteful romantic moment). Returns true
+ * when it opened the reconciliation prompt (fireplace only).
+ */
+function celebrateJoin(type: SignalType): boolean {
+  if (type === 'fireplace') return true;
+  if (type === 'romantic') scene().triggerGlow('romantic');
+  return false;
+}
+
 export const useSignalStore = create<SignalFlowState>((set, get) => ({
   mySignal: null,
   partnerSignal: null,
@@ -127,7 +140,7 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
     const { partnerSignal, ctx } = get();
     if (!partnerSignal) return;
     set({ partnerSignal: { ...partnerSignal, response: choice } });
-    if (reactToJoin('a', partnerSignal.type, choice) && partnerSignal.type === 'fireplace') {
+    if (reactToJoin('a', partnerSignal.type, choice) && celebrateJoin(partnerSignal.type)) {
       set({ reconciling: true });
     }
     if (ctx && partnerSignal.id) {
@@ -282,7 +295,7 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
     // Partner answered the signal I left.
     if (mySignal?.id === row.signal_id && row.from_user !== ctx.userId) {
       set({ mySignal: { ...mySignal, response: row.choice } });
-      if (reactToJoin('b', mySignal.type, row.choice) && mySignal.type === 'fireplace') {
+      if (reactToJoin('b', mySignal.type, row.choice) && celebrateJoin(mySignal.type)) {
         set({ reconciling: true });
       }
     }
@@ -304,7 +317,7 @@ export const useSignalStore = create<SignalFlowState>((set, get) => ({
     const { mySignal } = get();
     if (!mySignal) return;
     set({ mySignal: { ...mySignal, response: choice } });
-    if (reactToJoin('b', mySignal.type, choice) && mySignal.type === 'fireplace') {
+    if (reactToJoin('b', mySignal.type, choice) && celebrateJoin(mySignal.type)) {
       set({ reconciling: true });
     }
   },

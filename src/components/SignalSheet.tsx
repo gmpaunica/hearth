@@ -7,7 +7,7 @@ import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
 import { PopIn } from './PopIn';
 
-const SIGNAL_ORDER: SignalType[] = ['fireplace', 'sofa', 'table', 'garden', 'rest'];
+const SIGNAL_ORDER: SignalType[] = ['fireplace', 'sofa', 'romantic', 'table', 'garden', 'rest'];
 
 /**
  * "Leave a signal" — the main interaction. A soft pill button opens a glass

@@ -18,6 +18,7 @@ export type HomeComponent =
   | 'bench'
   | 'bookshelf'
   | 'plants'
+  | 'bed'
   | 'garden';
 
 export interface HomeStage {
@@ -64,6 +65,13 @@ export const HOME_STAGES: HomeStage[] = [
     blurb: 'Shelves and plants — the room feels lived-in now.',
     components: ['bookshelf', 'bench', 'plants'],
     signals: [],
+  },
+  {
+    atDays: 21,
+    title: 'Growing closer',
+    blurb: 'A bedroom nook, with a bed — and a soft way to say you feel close.',
+    components: ['bed'],
+    signals: ['romantic'],
   },
   {
     atDays: 30,

@@ -21,6 +21,7 @@ const SPOT_OPTIONS: { id: SpotId; label: string }[] = [
   { id: 'table', label: 'Table' },
   { id: 'garden', label: 'Garden' },
   { id: 'rest', label: 'Rest' },
+  { id: 'romantic', label: 'Bed' },
 ];
 
 function Chip({

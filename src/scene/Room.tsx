@@ -13,13 +13,22 @@ import { Vox } from './voxel';
 
 const S = 0.25;
 
+// Floor extent (voxel indices). The back-left corner is fixed at (-14,-14) so
+// every wall feature keeps its world coordinates; the house grows toward the
+// camera on the two open sides (+x to 5.25, +z to 3.75).
+const FX0 = -13;
+const FX1 = 20;
+const FZ0 = -14;
+const FZ1 = 14;
+const WALL_H = 14;
+
 function buildShell(v: Vox) {
   // Plinth under the floor (diorama base).
-  v.box(-13, -2, -14, 26, 1, 27, '#5f3d24');
+  v.box(FX0, -2, FZ0, FX1 - FX0 + 1, 1, FZ1 - FZ0 + 1, '#5f3d24');
   // Golden brick floor in running bond: each course of bricks is offset half
   // a brick from the previous, with thin darker mortar seams (hero target F).
-  for (let x = -13; x <= 12; x++) {
-    for (let z = -14; z <= 12; z++) {
+  for (let x = FX0; x <= FX1; x++) {
+    for (let z = FZ0; z <= FZ1; z++) {
       const course = Math.floor((z + 30) / 3); // bands of 2 brick rows + 1 seam
       const gz = ((z % 3) + 3) % 3;
       const offset = (course % 2) * 2; // half-brick offset per course
@@ -33,13 +42,13 @@ function buildShell(v: Vox) {
     }
   }
   // Back wall (z = -14) and left wall (x = -14), 14 voxels high.
-  v.box(-14, 0, -14, 27, 14, 1, room.wall);
-  v.box(-14, 0, -14, 1, 14, 27, room.wall);
-  v.box(-14, -1, -14, 27, 1, 1, room.wall);
-  v.box(-14, -1, -14, 1, 1, 27, room.wall);
+  v.box(-14, 0, -14, FX1 + 15, WALL_H, 1, room.wall);
+  v.box(-14, 0, -14, 1, WALL_H, FZ1 + 15, room.wall);
+  v.box(-14, -1, -14, FX1 + 15, 1, 1, room.wall);
+  v.box(-14, -1, -14, 1, 1, FZ1 + 15, room.wall);
   // Baseboards.
-  v.box(-13, 0, -14, 26, 1, 1, room.baseboard);
-  v.box(-14, 0, -13, 1, 1, 26, room.baseboard);
+  v.box(FX0, 0, -14, FX1 - FX0 + 1, 1, 1, room.baseboard);
+  v.box(-14, 0, -13, 1, 1, FZ1 + 14, room.baseboard);
 
   // Window opening in the back wall (world x 1.0..2.5, y 1.25..2.75).
   v.remove(4, 5, -14, 6, 6, 1);
@@ -59,11 +68,12 @@ function buildShell(v: Vox) {
   v.box(-14, 0, 6, 1, 11, 1, room.doorWood);
   v.box(-14, 0, 12, 1, 11, 1, room.doorWood);
 
-  // Bedroom door opening in the left wall (world z -2.75..-1.75, h 2.5).
-  v.remove(-14, 0, -11, 1, 10, 4);
-  v.box(-14, 10, -11, 1, 1, 4, room.doorWood);
-  v.box(-14, 0, -12, 1, 11, 1, room.doorWood);
-  v.box(-14, 0, -7, 1, 11, 1, room.doorWood);
+  // Bedroom nook: a low partition dividing the back-right corner from the
+  // living room (kept on the far side of the bed so it never occludes it),
+  // topped with a trim cap and a warm little lamp lighting the nook.
+  v.box(12, 0, -14, 1, 8, 9, room.wall); // world x 3.0-3.25, z -3.5..-1.5, h 2.0
+  v.box(12, 8, -14, 1, 1, 9, room.wallShade); // trim cap
+  v.box(12, 8, -7, 1, 2, 2, room.lamp); // nook lamp at the front end
 
   // Big cross-stitch heart picture on the left wall (above the bookshelf).
   v.box(-13, 7, -6, 1, 7, 7, '#8a5a33'); // wooden frame
@@ -102,6 +112,10 @@ function buildFireRug(v: Vox) {
 
 function buildCenterRug(v: Vox) {
   stripedRug(v, 13, 10);
+}
+
+function buildNookRug(v: Vox) {
+  stripedRug(v, 6, 5);
 }
 
 function buildMoon(v: Vox) {
@@ -254,8 +268,8 @@ function VoidBackdrop() {
         <pointsMaterial color="#c9d2e8" size={0.055} sizeAttenuation transparent opacity={0.85} />
       </points>
       {/* Warm halo under the floating diorama */}
-      <mesh position={[0, -0.62, 0]} rotation={[-Math.PI / 2, 0, 0]} material={rimMat}>
-        <planeGeometry args={[11, 9]} />
+      <mesh position={[0.9, -0.62, 0.1]} rotation={[-Math.PI / 2, 0, 0]} material={rimMat}>
+        <planeGeometry args={[15, 11]} />
       </mesh>
     </group>
   );
@@ -283,27 +297,6 @@ function GardenBackdrop() {
           v.box(0, 2, 0, 1, 1, 2, room.plantLeaf);
           v.box(0, 0, 5, 1, 6, 1, '#4a3222');
           v.set(0, 6, 5, room.lamp);
-        }}
-      />
-    </group>
-  );
-}
-
-/** Dim bedroom filling the doorway, with a warm lamp relief. */
-function BedroomBackdrop() {
-  return (
-    <group>
-      <mesh position={[-3.44, 1.25, -2.25]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[1.0, 2.5]} />
-        <meshBasicMaterial color={room.bedroomDark} />
-      </mesh>
-      <VoxMesh
-        scale={0.14}
-        position={[-3.42, 0, -2.65]}
-        build={(v) => {
-          v.box(0, 0, 0, 1, 4, 2, '#5a3c26');
-          v.set(0, 4, 0, room.lamp);
-          v.set(0, 4, 1, room.lamp);
         }}
       />
     </group>
@@ -443,27 +436,27 @@ function PlinthRim() {
     []
   );
 
-  // Plinth spans world x -3.25..3.25, z -3.5..3.25; base slab bottom ≈ y -0.5.
+  // Plinth spans world x -3.25..5.25, z -3.5..3.75; base slab bottom ≈ y -0.5.
   // The +x and +z faces meet at the near corner facing the camera.
   const EDGE_Y = -0.33;
   return (
     <group>
       {/* Bright edge bars (unlit — the warm global tint never touches these). */}
-      <mesh position={[0, EDGE_Y, 3.27]}>
-        <boxGeometry args={[6.52, 0.06, 0.04]} />
+      <mesh position={[1.0, EDGE_Y, 3.77]}>
+        <boxGeometry args={[8.52, 0.06, 0.04]} />
         <meshBasicMaterial color={RIM_BLUE} toneMapped={false} />
       </mesh>
-      <mesh position={[3.27, EDGE_Y, -0.125]}>
-        <boxGeometry args={[0.04, 0.06, 6.77]} />
+      <mesh position={[5.27, EDGE_Y, 0.125]}>
+        <boxGeometry args={[0.04, 0.06, 7.27]} />
         <meshBasicMaterial color={RIM_BLUE} toneMapped={false} />
       </mesh>
       {/* Soft glow hugging each edge and fading down into the void. Kept short
           and inset from the near corner so the two don't stack into a column. */}
-      <mesh position={[-0.15, -0.72, 3.33]} material={glowMat}>
-        <planeGeometry args={[6.1, 0.95]} />
+      <mesh position={[0.85, -0.72, 3.83]} material={glowMat}>
+        <planeGeometry args={[8.0, 0.95]} />
       </mesh>
-      <mesh position={[3.33, -0.72, -0.28]} rotation={[0, Math.PI / 2, 0]} material={glowMat}>
-        <planeGeometry args={[6.3, 0.95]} />
+      <mesh position={[5.33, -0.72, -0.02]} rotation={[0, Math.PI / 2, 0]} material={glowMat}>
+        <planeGeometry args={[7.0, 0.95]} />
       </mesh>
     </group>
   );
@@ -476,10 +469,10 @@ export function Room() {
       <VoxMesh build={buildShell} scale={S} />
       <VoxMesh build={buildFireRug} scale={S} meshScale={[1, 0.22, 1]} position={[-2.85, 0, -2.9]} />
       <VoxMesh build={buildCenterRug} scale={S} meshScale={[1, 0.22, 1]} position={[-1.2, 0, -0.55]} />
+      <VoxMesh build={buildNookRug} scale={S} meshScale={[1, 0.22, 1]} position={[3.6, 0, -1.3]} />
       <VoidBackdrop />
       <SkyBackdrop />
       <GardenBackdrop />
-      <BedroomBackdrop />
       <FireGlowDecal />
       <PlinthRim />
     </group>

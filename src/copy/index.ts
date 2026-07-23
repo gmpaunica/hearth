@@ -1,7 +1,7 @@
 // Every user-facing string for emotional signals lives here, using the exact
 // spec wording. Screens must import from this file — never inline this copy.
 
-export type SignalType = 'fireplace' | 'sofa' | 'table' | 'garden' | 'rest';
+export type SignalType = 'fireplace' | 'sofa' | 'table' | 'garden' | 'rest' | 'romantic';
 
 export interface SignalCopy {
   /** Shown to the person selecting the signal. */
@@ -45,6 +45,12 @@ export const SIGNALS: Record<SignalType, SignalCopy> = {
     partnerText: 'Your partner is resting. They feel overwhelmed — it may not be about you.',
     responses: ['Let them rest', 'Send encouragement', 'Offer practical help', 'Send affection'],
   },
+  romantic: {
+    label: 'Bedroom',
+    selfText: 'I feel close to you tonight.',
+    partnerText: 'Your partner is waiting in the bedroom. They feel close to you.',
+    responses: ['Come close', 'Send a kiss', 'Just hold me', 'Not tonight'],
+  },
 };
 
 export const GARDEN_CHECKIN_OPTIONS = [
@@ -64,4 +70,5 @@ export const NOTIFICATIONS = {
   partnerSignal: 'Your partner has left a signal.',
   newSeed: 'A new seed was planted.',
   gardenWaiting: 'Someone is waiting in the garden.',
+  feelingClose: 'Someone is thinking of you.',
 } as const;

@@ -13,6 +13,7 @@ import { Rain } from './Rain';
 import { ReconcileHeart } from './ReconcileHeart';
 import { Room } from './Room';
 import { Sparkles } from './Sparkles';
+import { Bed } from './objects/Bed';
 import { Bench } from './objects/Bench';
 import { Bookshelf } from './objects/Bookshelf';
 import { Easel } from './objects/Easel';
@@ -22,7 +23,8 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 
-const LOOK_AT = new THREE.Vector3(0, 1.45, 0);
+// Centre of the widened diorama (world x -3.5..5.25, z -3.5..3.75).
+const LOOK_AT = new THREE.Vector3(0.7, 1.45, 0.0);
 
 /**
  * Fixed isometric camera (45° azimuth, ~30° elevation). Zoom is responsive
@@ -31,17 +33,18 @@ const LOOK_AT = new THREE.Vector3(0, 1.45, 0);
 function CameraRig() {
   useFrame((state) => {
     const cam = state.camera as THREE.OrthographicCamera;
-    const base = Math.min(state.size.width / 8.2, state.size.height / 8.0);
+    const base = Math.min(state.size.width / 13.0, state.size.height / 9.5);
     const zoom = base * camState.zoomMul;
     if (Math.abs(cam.zoom - zoom) > 0.3) {
       cam.zoom = zoom;
       cam.updateProjectionMatrix();
     }
     camState.zoom = cam.zoom;
-    // Apply the drag-pan offset to both the eye and the target so the view
-    // angle is preserved and the home simply slides under the camera.
+    // Eye stays a fixed diagonal offset from the target, so recentring on
+    // LOOK_AT preserves the exact isometric angle. The drag-pan offset slides
+    // both eye and target together so the home just moves under the camera.
     const { offX, offZ } = camState;
-    cam.position.set(12 + offX, 9.8, 12 + offZ);
+    cam.position.set(12 + LOOK_AT.x + offX, 9.8, 12 + LOOK_AT.z + offZ);
     cam.lookAt(LOOK_AT.x + offX, LOOK_AT.y, LOOK_AT.z + offZ);
   });
   return null;
@@ -72,8 +75,11 @@ export function HomeScene() {
       <Room />
       {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
       {components.has('restnook') && <RestNook position={[3.0, 0, 0.2]} />}
-      {components.has('easel') && <Easel position={[0.55, 0.9, -3.22]} />}
-      {components.has('sofa') && <Sofa position={[0.5, 0, -3.25]} />}
+      {/* Daily-drawing frame now hangs on the new back-right wall above the bed
+          (it used to overlap the window in the small house). */}
+      {components.has('easel') && <Easel position={[3.66, 1.7, -3.22]} />}
+      {components.has('sofa') && <Sofa position={[0.2, 0, -3.25]} />}
+      {components.has('bed') && <Bed position={[3.45, 0, -3.35]} />}
       {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
       {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}
       {components.has('bookshelf') && <Bookshelf position={[-3.0, 0, -1.55]} />}
@@ -81,7 +87,7 @@ export function HomeScene() {
       {components.has('plants') && (
         <>
           <Plant position={[-0.45, 0, -2.8]} phase={0} scale={0.9} />
-          <Plant position={[2.4, 0, 2.1]} phase={2.1} scale={0.9} />
+          <Plant position={[4.6, 0, 1.7]} phase={2.1} scale={0.9} />
           <Plant position={[-2.7, 0, 2.4]} phase={4.2} scale={0.8} />
         </>
       )}

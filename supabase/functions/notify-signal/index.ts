@@ -17,6 +17,7 @@ const NOTIFICATIONS = {
   partnerSignal: 'Your partner has left a signal.',
   newSeed: 'A new seed was planted.',
   gardenWaiting: 'Someone is waiting in the garden.',
+  feelingClose: 'Someone is thinking of you.',
 } as const;
 
 /** The exact copy line for a given signal type. */
@@ -26,6 +27,8 @@ function bodyFor(type: string): string {
       return NOTIFICATIONS.fireplaceGlowing;
     case 'garden':
       return NOTIFICATIONS.gardenWaiting;
+    case 'romantic':
+      return NOTIFICATIONS.feelingClose;
     case 'sofa':
     case 'table':
     case 'rest':

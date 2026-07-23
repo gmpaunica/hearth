@@ -4,6 +4,7 @@ import * as THREE from 'three';
 
 import { useSceneStore } from '@/state/sceneStore';
 import { atmo } from './atmoState';
+import { SPOTS } from './spots';
 import { Vox } from './voxel';
 
 // A chunky 7×7 heart, built once.
@@ -41,7 +42,7 @@ export function ReconcileHeart() {
   useFrame(() => {
     const g = ref.current;
     if (!g) return;
-    const startedAt = useSceneStore.getState().glowStartedAt;
+    const { glowStartedAt: startedAt, glowSpot } = useSceneStore.getState();
     const DUR = 2.2;
     let show = false;
     if (startedAt != null) {
@@ -55,6 +56,11 @@ export function ReconcileHeart() {
           : Math.min(1, x * 5) * (1 + 0.25 * Math.max(0, 1 - x * 5));
         const s = 0.9 * pop;
         g.scale.setScalar(s);
+        // Centre the heart over whichever pair of seats glowed (fire or bed).
+        const a = SPOTS[glowSpot].a;
+        const b = SPOTS[glowSpot].b;
+        g.position.x = (a.x + b.x) / 2;
+        g.position.z = (a.z + b.z) / 2;
         g.position.y = 2.15 + x * 0.5;
         const fade = x > 0.7 ? 1 - (x - 0.7) / 0.3 : 1;
         heartMaterial.opacity = fade;
@@ -64,7 +70,7 @@ export function ReconcileHeart() {
     g.visible = show;
   });
 
-  // Above and between the two fireplace-reconciliation seats.
+  // Positioned each frame over the glowing pair of seats (see useFrame).
   return (
     <group ref={ref} position={[-1.6, 2.15, -1.85]} visible={false}>
       <mesh geometry={geometry} material={heartMaterial} />
