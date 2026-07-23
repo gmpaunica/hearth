@@ -4,8 +4,9 @@ import type { DrawingRow } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from './authStore';
 
-/** Canvas is GRID×GRID pixels. Small enough to store as a short string. */
-export const GRID = 24;
+/** Canvas is GRID×GRID pixels. Small enough to store as a short string.
+ *  (Only painted pixels render, so a larger grid stays cheap.) */
+export const GRID = 32;
 
 /** Soft, on-brand palette. Index into this array; '.' means an empty pixel. */
 export const PALETTE = [

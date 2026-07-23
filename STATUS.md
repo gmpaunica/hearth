@@ -1,8 +1,9 @@
-# Hearth — Status, Vision & Backlog
+# Hearth — Status, Vision & Handoff
 
-> Living doc. Read this first each session. It captures where we are, the
-> long-term vision (owner's words), and the running bug/feature backlog from
-> real testing. Update it as things change.
+> **Read this first every session.** It's the single source of truth: the
+> vision, what works, how to make + ship changes, and the backlog. Keep it
+> current. Companion docs: `PRODUCTION_PLAN.md` (roadmap), `AGENTS.md` (use the
+> exact Expo v57 docs), `dev/README.md` (browser verification).
 
 ## The vision (owner's intent)
 
@@ -12,134 +13,110 @@ pixel look). You leave a **privacy-safe emotional signal** by moving your
 character to a place in the room (fireplace = "I want to make up", sofa =
 comfort, table = talk, garden = space, rest = overwhelmed). Your partner gets a
 gentle nudge, responds softly, and the fireplace path resolves in a warm
-reconciliation glow. Low-pressure, non-blaming.
+reconciliation glow (a heart pops). Low-pressure, non-blaming.
 
-**Where it's going (not built yet — build the systems, art via Higgsfield later):**
-- **Customizable characters** — definitely wanted: hair, face, simple stuff
-  first; unlockables/clothing later. Also makes identity obvious.
-- **Consistent character identity** — your character (colour/look) is *you*,
-  shown the same on both phones. Not "self = red, partner = green".
-- **A garden**, unlocking ~1 month in, that holds **memories / seeds**.
-- **An expandable house** — physically grows over time, not just fills in.
-  Room could get slightly bigger + more furniture even before the art pass.
-- **Room customization as rewards** — new placeable components granted at
-  milestones (a week, a month) AND for resolving conflicts; the couple chooses
-  where things go.
-- **Daily drawing / note** ★ owner's favourite: a little drawing or message
-  from your partner that resets every day; you come check it. Lives somewhere
-  in the app AND is represented by a physical object in the room (an easel or
-  frame). Higgsfield art could frame this beautifully.
-- **Cutesy everything** — Sims-style: sit-down animation, thought bubble over
-  the head, bubblier/sweeter message boxes, a little jump or kiss on
-  reconciliation. The feel should be soft and bubbly.
-- **Component art via Higgsfield** — owner can hook up Higgsfield when needed.
-  Note: Higgsfield = 2D art (paintings, onboarding, drawing-frames); in-room
-  3D furniture is hand-built voxel code, no Higgsfield needed.
-- **Deeper interactions** — the loop is too thin: "ask to talk later" does
-  nothing visible; responses should have consequences in the room. The core
-  product idea needs sharpening (see "What Hearth is for", below).
+**FUNCTIONAL FIRST.** The on-screen look is *not* final; polish graphics at the
+very end. Don't spend effort on the visual style now (owner's explicit call).
 
-## What Hearth is for (working answer to "what does it DO for a couple?")
+**Where it's going (build the systems now; 2D art via Higgsfield later):**
+- **Customizable characters** — hair, face, simple stuff first; clothing/
+  unlockables later. Also makes identity obvious.
+- **A garden**, unlocking ~1 month in, holding **memories / seeds**. (The left
+  green doorway is where the garden will go.)
+- **An expandable / bigger house** with a **bedroom + bed** and a tasteful
+  **"feeling romantic"** signal; **bigger / more couches**; more furniture.
+- **Daily drawing ritual** ✅ built (see below) — owner's favourite.
+- **Cutesy everything** — Sims-style animations, bubbly UI, a literal kiss on
+  reconcile (currently a heart + hops).
+- **Deeper interactions** — responses should *do* something (e.g. "ask to talk
+  later" should schedule a gentle nudge; resolved conflict leaves warmth).
+- **Higgsfield = 2D art only** (paintings, drawing frames, onboarding art,
+  garden backdrops). In-room 3D furniture is hand-built voxel code (`src/scene/
+  objects/*`), no art assets needed.
 
-1. **Say the unsayable, gently.** When talking is hard, moving your character
-   says "I want to make up / I need space / I'm overwhelmed" without blame.
-2. **Ambient presence.** Opening the app shows where your partner *is*
-   (emotionally) right now — like glancing across a shared room.
-3. **Low-stakes repair.** The fireplace arc turns "who apologises first" into
-   a tiny ritual with a warm payoff both see.
-4. **A shared thing you tend.** The home grows with the relationship —
-   milestones, unlocked furniture, the daily drawing — so checking in daily
-  has a reason beyond conflict.
-Every feature should serve one of these. Responses that "do nothing" break #3
-and need visible consequences (partner sees acknowledgement; scheduled
-check-ins actually schedule something; resolved conflicts leave warmth).
+## What Hearth is for (the product answer)
 
-**Guiding priority: FUNCTIONAL FIRST.** The on-screen look is *not* final and
-we polish graphics at the very end. Don't spend effort on the visual style now.
+1. **Say the unsayable, gently** — signal a feeling without blame.
+2. **Ambient presence** — glance at where your partner *is* emotionally.
+3. **Low-stakes repair** — the fireplace ritual with a warm shared payoff.
+4. **A shared thing you tend daily** — the home grows; the **daily drawing**
+   gives a reason to open the app on good days, not just hard ones.
 
-## Current state (what works)
+## Current state (what works, on real Android devices)
 
-- Expo 57 / RN 0.86 / react-three-fiber. Supabase backend (auth, pairing,
-  realtime, RLS). Runs on web preview and as an Android EAS build on device.
-- **Pairing**: anonymous auth, create/join by 6-letter code, "home is full"
-  guard. Onboarding (intro + name).
+- Expo 57 / RN 0.86 / react-three-fiber. Supabase backend. Shipped as an
+  Android EAS "preview" APK on two phones; **over-the-air updates** live.
+- **Onboarding** (intro + name), **pairing** (anon auth, 6-char code, full-home
+  guard, "Start over" exit on the waiting screen).
 - **Signals + realtime**: leave a signal → your character walks there → partner
-  sees a card; responses sync; fireplace "Sit beside them" → reconciliation
-  prompt → "We're okay now" glows on both.
-- **Push notifications**: WORKING on real Android devices ✅. Edge Function
-  `notify-signal` + DB trigger sends the NOTIFICATIONS copy to the partner;
-  Firebase/FCM is set up (google-services.json committed; FCM V1 service-account
-  key uploaded to Expo via eas credentials).
-- **Over-the-air updates**: EAS Update is configured (expo-updates, channel
-  "preview", runtimeVersion appVersion). JS/scene changes now ship via
-  `git pull` + `eas update --branch preview` — no rebuild. Only native changes
-  (new SDKs, Firebase-type config) need a full `eas build`.
-- **On device**: installed as an Android EAS "preview" APK on two phones.
-- **Settings**: notifications toggle, privacy note, sign out, leave-home/unpair.
-- **Living home**: starts sparse (just the fire), fills in on a milestone ladder
-  (sofa d3, table d7, shelves/plants d14, garden d30); signals gated to unlocked
-  places; "your home grew" milestone card; drag-to-pan camera.
-- **Accessibility**: reduce-motion softens the glow.
+  sees a card → responds; every answer has an "Okay" exit; fireplace "Sit
+  beside them" → reconciliation prompt → "We're okay now" glows + a **heart
+  pops** on both. Character colour is tied to identity (same on both phones).
+  Opening the app snaps to current state (no replayed walk). Foreground
+  re-sync. A **thought bubble** shows a meaningful icon per signal.
+- **Push notifications**: WORKING (Firebase/FCM set up). Edge Function
+  `notify-signal` + DB trigger → the NOTIFICATIONS copy to the partner.
+- **Living home**: starts sparse, fills in on a milestone ladder (sofa d3,
+  table d7, shelves/plants d14, garden d30); signals gated to unlocked places;
+  "your home grew" card; drag-to-pan + **pinch-to-zoom**.
+- **Daily drawing** ✅: 32×32 pixel note, one per person per day (upserts,
+  resets daily UTC). Envelope button (top-left) / "Your partner drew you
+  something" banner / tap the wall frame → the panel ("From them" / "Yours",
+  paint + Send once). Shows on an **easel/wall frame** in the room as voxels.
+- **Settings**: notifications toggle, privacy note, sign out, unpair.
+- **Accessibility**: reduce-motion softens glow/hops.
 
-Backend pieces the owner deploys via the Supabase dashboard (SQL/functions):
-`supabase/schema.sql`, `supabase/notifications.sql`, `supabase/unpair.sql`, and
-the `notify-signal` Edge Function.
+## How to continue (dev workflow) — IMPORTANT
 
-## Backlog — from real two-phone testing (prioritised)
+- **Branch:** `claude/session-c959ub`. Commit + push here.
+- **Ship a code change (no rebuild):** `git pull` then
+  `eas update --branch preview --message "..."`. Owner reopens the app twice.
+  Works for all JS/scene changes.
+- **A rebuild is only needed for native changes** (new native SDK, Firebase/
+  app.json native config): `eas build --platform android --profile preview`.
+- **Supabase deploys** (owner runs SQL in the dashboard SQL editor; the app
+  can't create tables). Files in `supabase/`: `schema.sql` (base), then
+  `notifications.sql`, `unpair.sql`, `drawings.sql`. The `notify-signal` Edge
+  Function is deployed via the dashboard Functions editor. **A new feature that
+  needs a table won't work until its SQL is run — always call this out.**
+- **Verify before shipping.** `npx tsc --noEmit` must be clean. For visual/flow
+  checks in this sandbox, use the localhost bridge + Playwright — see
+  `dev/README.md` (the headless browser can't egress to Supabase; node can).
+  `node scripts/live-test.mjs` checks the backend directly.
+- **Key IDs:** Supabase project `gtdigidqsczptqpbplar` (URL + anon key in
+  `src/lib/config.ts`); EAS projectId `8d2d87bc-75fc-42c2-b838-bd81286c5557`
+  (in app.json); Android package `com.hearth.app`; Firebase project
+  `hearth-efb7c` (`google-services.json` committed; FCM V1 key uploaded to Expo
+  — do NOT commit the service-account key).
+- **Model identity note:** answer "which model are you" with the configured id
+  only; never put it in commits/PRs/code.
 
-### Fixed (shipped in the current build)
-- **[NOTIFS]** ✅ Push works on device (Firebase/FCM set up).
-- **[SCENE]** ✅ Opens at the current spot (snap on hydrate), no replayed walk.
-- **[PAN]** ✅ Vertical drag no longer inverted.
-- **[SPOTS]** ✅ "Resting area" moved out of the fireplace to its own corner.
-- **[IDENTITY]** ✅ Character colour tied to the person (same on both phones).
-- **[FLOW]** ✅ Non-join answers now have an "Okay" exit (no more dead-end).
-- **[PAIRING]** ✅ "Start over" exit on the waiting screen (was a trap).
-- **[OTA]** ✅ Over-the-air updates configured.
+## Backlog
 
-### Still open (functional)
-1. **[SYNC] State can go stale.** One phone showed the partner at the fireplace
-   when they weren't. Mitigation shipped: re-hydrate on app foreground. Verify
-   on device; if still flaky, resubscribe the realtime channel on foreground.
-2. **[FLOW] Mutual-signal tangle.** Both leaving a fireplace signal at once, both
-   answering "Not ready yet", is still confusing. The single-exit "Okay" unblocks
-   it, but a fuller reconciliation state machine (who's waiting on whom) is worth
-   a dedicated pass.
-3. **[FLOW] Thin responses.** "Ask to talk later" (and similar) have no visible
-   effect. Design pass needed: every response leaves a trace (ack the partner
-   sees, a scheduled nudge, warmth added to the room).
+### Next up — the house build-out (a focused update)
+- Bigger room; a **bedroom nook + bed**; a tasteful **"feeling romantic"**
+  signal (new SignalType — add to `src/copy`, `spots.ts`, schema check enum,
+  `homeProgress`, scene). Bigger / more couches. General voxel build-out.
+- **Move the drawing frame** somewhere good once the house is bigger (right now
+  it overlaps the window — no wall space in the small house).
 
-### Round-3 build (daily drawing + love polish)
-- **[DRAWING]** ✅ Daily drawing ritual built. `drawings` table (supabase/
-  drawings.sql — owner must deploy). Pixel-art canvas (14×14, PALETTE), one per
-  person per day (upsert), resets daily (UTC). Envelope button (top-left) opens
-  the panel: "From them" (partner's art) / "Yours" (paint + send). Realtime in
-  its own channel (won't break signals if drawings.sql not yet run). An **easel**
-  in the room (day-0 component) shows the partner's drawing as flat voxels.
-- **[CUTE]** ✅ Thought bubble now shows a meaningful icon (heart / "…" / leaf /
-  "z") not a dot; a big pink **heart pops** above the pair on reconciliation +
-  bigger springy hops; cards/sheets pop-in with bubblier corners.
-- TODO next: literal kiss animation (faces together) is still just heart+hop;
-  render the drawing bigger/clearer on the easel; deeper response consequences.
+### Open / smaller
+- **Deeper response consequences** — "ask to talk later" etc. do nothing
+  visible yet. Make every response leave a trace.
+- **Live-sync staleness** — mitigated (foreground re-hydrate); verify on device.
+- **Literal kiss** on reconcile (currently heart + hops) if the heart isn't
+  enough.
+- **Mutual-signal flow** — both fireplace at once is unblocked but not elegant.
 
-### Round-2 device feedback (fixes shipped via OTA — verify on device)
-- **[IDENTITY root cause]** Avatar geometry was built once with first-render
-  colours (useMemo with empty deps) — identity arrived a moment later and was
-  ignored. Fixed: rebuild on colour change. Both phones should now agree.
-- **[GLITCH]** A frame of "standing in the middle" before snapping to the real
-  spot on open. Fixed: avatars stay hidden until the saved state has loaded,
-  then appear already in place.
-- **[REST]** Rest was "just sitting on the carpet". Added a small sage couch
-  (RestNook) on the right side; rest now sits on it. Bigger room + more
-  furniture still queued for the art pass.
-- **[CUTE]** Thought bubble over a character with an active signal; a little
-  double-hop on reconciliation; bubblier card corners + pop-in animation.
-
-### Polish (later, after functional)
-9. Cutesy animations: sit-down motion, Sims-style thought bubble.
-10. Graphics/look pass — deferred to the end on purpose.
-
-## Deferred / needs owner or art
-- iOS build (needs Apple Developer account, $99/yr).
-- Physically-bigger room + garden 3D + new furniture = Higgsfield art pass.
+### Deferred / needs owner or 2D art (Higgsfield)
+- iOS build (Apple Developer account, $99/yr).
+- Garden 3D + memories/seeds; wall paintings; onboarding illustrations.
 - Google Play release (Phase 9).
+
+## History (recent, newest first)
+Daily-drawing fixes (paint-coord bug, 32² grid, send-once, wall frame, pinch
+zoom) → daily-drawing ritual + love polish (heart, bubble icons, bubbly cards)
+→ round-2 device fixes (identity root-cause, snap-open, rest couch) → EAS build
++ Firebase/notifications working + OTA → onboarding → unpair → settings → living
+home (progression/pan) → Phase 6 push → Phase 4/5 auth+pairing+realtime + the
+two silent-write/one-sided-glow fixes.

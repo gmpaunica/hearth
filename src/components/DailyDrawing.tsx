@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EMPTY_GRID, useDrawingStore } from '@/state/drawingStore';
+import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
 import { DrawingCanvas } from './DrawingCanvas';
 import { PixelArt } from './PixelArt';
@@ -29,6 +30,9 @@ export function DailyDrawing() {
   const markSeen = useDrawingStore((s) => s.markSeen);
   const clearOpenRequest = useDrawingStore((s) => s.clearOpenRequest);
 
+  // Don't float the banner while a signal card is up top — it would sit on top
+  // of "I want to make up". The ✉ badge still flags the note.
+  const activeCard = useSignalStore((s) => !!s.mySignal || !!s.partnerSignal);
   const hasNews = !!partnerGrid && !partnerSeen;
   const canSend = myGrid !== EMPTY_GRID && !mineSaved;
 
@@ -61,7 +65,7 @@ export function DailyDrawing() {
         {hasNews && <View style={styles.badge} />}
       </Pressable>
 
-      {hasNews && !open && (
+      {hasNews && !open && !activeCard && (
         <Pressable style={styles.banner} onPress={() => setOpen(true)}>
           <Text style={styles.bannerText}>💌 Your partner drew you something</Text>
         </Pressable>
