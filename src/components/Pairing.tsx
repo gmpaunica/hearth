@@ -24,6 +24,7 @@ export function Pairing() {
   const error = useAuthStore((s) => s.error);
   const createHome = useAuthStore((s) => s.createHome);
   const joinHome = useAuthStore((s) => s.joinHome);
+  const unpair = useAuthStore((s) => s.unpair);
   const init = useAuthStore((s) => s.init);
 
   const [mode, setMode] = useState<'choose' | 'join'>('choose');
@@ -64,6 +65,10 @@ export function Pairing() {
               <ActivityIndicator color={ui.accent} size="small" />
               <Text style={styles.dim}>Waiting for them to arrive…</Text>
             </View>
+            {/* Always a way back out — e.g. if you created a home by mistake. */}
+            <Pressable style={styles.secondary} onPress={unpair} disabled={busy}>
+              <Text style={styles.secondaryText}>Start over</Text>
+            </Pressable>
           </View>
         )}
 

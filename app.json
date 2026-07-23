@@ -7,6 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "hearth",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8d2d87bc-75fc-42c2-b838-bd81286c5557"
+    },
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.hearth.app"
@@ -40,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8d2d87bc-75fc-42c2-b838-bd81286c5557"
+      }
+    },
+    "owner": "gmpaunica"
   }
 }
