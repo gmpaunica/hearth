@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "504290307663",
+    "project_id": "hearth-efb7c",
+    "storage_bucket": "hearth-efb7c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504290307663:android:9f2bf549db1d555831843a",
+        "android_client_info": {
+          "package_name": "com.hearth.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB27BsA4-uJTBv07MLOHl45Ux4PS9Vo0qA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
