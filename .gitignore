@@ -41,3 +41,8 @@ example
 # generated native folders
 /ios
 /android
+
+# Firebase Android config is intentionally committed (it's bundled into the
+# app anyway). Force-include it so no global/parent gitignore can skip it,
+# which would drop notifications from the build.
+!google-services.json
