@@ -39,9 +39,15 @@ we polish graphics at the very end. Don't spend effort on the visual style now.
 - **Signals + realtime**: leave a signal → your character walks there → partner
   sees a card; responses sync; fireplace "Sit beside them" → reconciliation
   prompt → "We're okay now" glows on both.
-- **Push notifications**: Edge Function `notify-signal` deployed + a DB trigger;
-  sends the exact NOTIFICATIONS copy to the partner. (⚠️ not delivering on real
-  devices yet — see backlog.)
+- **Push notifications**: WORKING on real Android devices ✅. Edge Function
+  `notify-signal` + DB trigger sends the NOTIFICATIONS copy to the partner;
+  Firebase/FCM is set up (google-services.json committed; FCM V1 service-account
+  key uploaded to Expo via eas credentials).
+- **Over-the-air updates**: EAS Update is configured (expo-updates, channel
+  "preview", runtimeVersion appVersion). JS/scene changes now ship via
+  `git pull` + `eas update --branch preview` — no rebuild. Only native changes
+  (new SDKs, Firebase-type config) need a full `eas build`.
+- **On device**: installed as an Android EAS "preview" APK on two phones.
 - **Settings**: notifications toggle, privacy note, sign out, leave-home/unpair.
 - **Living home**: starts sparse (just the fire), fills in on a milestone ladder
   (sofa d3, table d7, shelves/plants d14, garden d30); signals gated to unlocked
@@ -54,32 +60,25 @@ the `notify-signal` Edge Function.
 
 ## Backlog — from real two-phone testing (prioritised)
 
-### Bugs (functional)
-1. **[NOTIFS] Push not arriving on device.** Both phones opted in; sending a
-   fireplace signal delivers nothing. Likely Android standalone needs FCM
-   credentials, or the push token isn't stored. Diagnose via Supabase →
-   Functions → notify-signal → Logs first.
-2. **[SCENE] Opens replaying the walk.** On launch the character animates from
-   its old spot to the current one; it should *start* at the current spot.
-3. **[PAN] Up/down inverted.** Left/right feels perfect; vertical drag is
-   backwards both ways.
-4. **[SPOTS] "Resting area" is inside the fireplace** — the character stands in
-   the fire, and rest overlaps the reconciliation spot. Give rest its own place
-   (a couch/corner).
-5. **[SYNC] State goes stale.** One phone shows the partner at the fireplace
-   when they aren't. Live updates don't flow reliably / don't clear.
-6. **[IDENTITY] Character colour isn't consistent.** Each phone shows "me" as
-   red and "partner" as green, so the same person is red on one phone and green
-   on the other. Colour/identity must be tied to the person, the same on both.
-7. **[FLOW] Reconciliation/response dead-ends.** After a non-join answer (e.g.
-   "Not ready yet") there's no way forward — you're stuck at the fire with no
-   button to resolve. Mutual fireplace signals ("I want to make up" on both,
-   both answer "Not ready yet") make no sense. Needs a proper state machine with
-   clear exits for every branch.
+### Fixed (shipped in the current build)
+- **[NOTIFS]** ✅ Push works on device (Firebase/FCM set up).
+- **[SCENE]** ✅ Opens at the current spot (snap on hydrate), no replayed walk.
+- **[PAN]** ✅ Vertical drag no longer inverted.
+- **[SPOTS]** ✅ "Resting area" moved out of the fireplace to its own corner.
+- **[IDENTITY]** ✅ Character colour tied to the person (same on both phones).
+- **[FLOW]** ✅ Non-join answers now have an "Okay" exit (no more dead-end).
+- **[PAIRING]** ✅ "Start over" exit on the waiting screen (was a trap).
+- **[OTA]** ✅ Over-the-air updates configured.
 
-### Infrastructure
-8. **[OTA] Over-the-air updates.** Owner doesn't want to rebuild for every
-   change — set up EAS Update so JS fixes ship without a new build.
+### Still open (functional)
+1. **[SYNC] State can go stale.** One phone showed the partner at the fireplace
+   when they weren't — live updates don't always flow/clear. Needs on-device
+   reproduction; check realtime resubscribe on app foreground, and that resolves
+   propagate. (The snap-on-open + "Okay" exit help, but verify.)
+2. **[FLOW] Mutual-signal tangle.** Both leaving a fireplace signal at once, both
+   answering "Not ready yet", is still confusing. The single-exit "Okay" unblocks
+   it, but a fuller reconciliation state machine (who's waiting on whom) is worth
+   a dedicated pass.
 
 ### Polish (later, after functional)
 9. Cutesy animations: sit-down motion, Sims-style thought bubble.
