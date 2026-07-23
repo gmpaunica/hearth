@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from './authStore';
 
 /** Canvas is GRID×GRID pixels. Small enough to store as a short string. */
-export const GRID = 14;
+export const GRID = 24;
 
 /** Soft, on-brand palette. Index into this array; '.' means an empty pixel. */
 export const PALETTE = [
@@ -37,10 +37,16 @@ interface DrawingState {
   partnerSeen: boolean;
   loading: boolean;
   saving: boolean;
+  /** Last save error (e.g. the drawings table isn't set up), or null. */
+  error: string | null;
+  /** Set by tapping the easel to ask the panel to open. */
+  openRequested: boolean;
 
   setPixel: (index: number, ch: string) => void;
   clearMine: () => void;
   markSeen: () => void;
+  requestOpen: () => void;
+  clearOpenRequest: () => void;
   load: () => Promise<void>;
   save: () => Promise<void>;
   ingest: (row: DrawingRow) => void;
@@ -63,6 +69,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   partnerSeen: true,
   loading: false,
   saving: false,
+  error: null,
+  openRequested: false,
 
   setPixel: (index, ch) => {
     if (index < 0 || index >= GRID * GRID) return;
@@ -74,6 +82,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   clearMine: () => set({ myGrid: EMPTY_GRID }),
 
   markSeen: () => set({ partnerSeen: true }),
+  requestOpen: () => set({ openRequested: true }),
+  clearOpenRequest: () => set({ openRequested: false }),
 
   load: async () => {
     const { coupleId, userId, partnerId } = ctx();
@@ -99,7 +109,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   save: async () => {
     const { coupleId, userId } = ctx();
     if (!coupleId || !userId || get().saving) return;
-    set({ saving: true });
+    if (get().myGrid === EMPTY_GRID) return; // nothing to send
+    set({ saving: true, error: null });
     const grid = get().myGrid;
     const { error } = await supabase.from('drawings').upsert(
       {
@@ -112,7 +123,11 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       { onConflict: 'couple_id,from_user,day' },
     );
     if (error) console.warn('[hearth] save drawing failed:', error);
-    set({ saving: false, mineSaved: !error });
+    set({
+      saving: false,
+      mineSaved: !error,
+      error: error ? 'Couldn’t send your note. Please try again.' : null,
+    });
   },
 
   ingest: (row) => {
@@ -133,5 +148,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       partnerSeen: true,
       loading: false,
       saving: false,
+      error: null,
+      openRequested: false,
     }),
 }));

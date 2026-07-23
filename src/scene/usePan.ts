@@ -16,17 +16,41 @@ const UP = { x: -0.7071, z: -0.7071 };
  * `camState.limit`. Only claims the gesture on an actual drag, so taps still
  * reach the UI above.
  */
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
 export function useScenePan() {
   const last = useRef({ x: 0, y: 0 });
+  const pinch = useRef<{ dist: number; mul: number } | null>(null);
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_e, g) =>
-        Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
+      onMoveShouldSetPanResponder: (e, g) =>
+        e.nativeEvent.touches.length >= 2 || Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
       onPanResponderGrant: (_e, g) => {
         last.current = { x: g.dx, y: g.dy };
+        pinch.current = null;
       },
-      onPanResponderMove: (_e, g) => {
+      onPanResponderMove: (e, g) => {
+        const touches = e.nativeEvent.touches;
+        // Two fingers → pinch zoom.
+        if (touches.length >= 2) {
+          const d = Math.hypot(
+            touches[0].pageX - touches[1].pageX,
+            touches[0].pageY - touches[1].pageY,
+          );
+          if (!pinch.current) {
+            pinch.current = { dist: d, mul: camState.zoomMul };
+          } else if (pinch.current.dist > 0) {
+            camState.zoomMul = clamp(pinch.current.mul * (d / pinch.current.dist), 0.65, 2.4);
+          }
+          return;
+        }
+        // Back to one finger after a pinch: rebase the pan origin, skip a frame.
+        if (pinch.current) {
+          pinch.current = null;
+          last.current = { x: g.dx, y: g.dy };
+          return;
+        }
         const dpx = g.dx - last.current.x;
         const dpy = g.dy - last.current.y;
         last.current = { x: g.dx, y: g.dy };

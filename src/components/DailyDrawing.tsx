@@ -8,9 +8,9 @@ import { PixelArt } from './PixelArt';
 import { PopIn } from './PopIn';
 
 /**
- * The daily drawing ritual: a little pixel note you leave your partner, and
- * theirs to you. Resets each day. Opened from the envelope button (top-left),
- * which shows a dot when there's a fresh note from them.
+ * The daily drawing ritual: one little pixel note a day, each way. Opened from
+ * the envelope button (top-left), the "new note" banner, or by tapping the
+ * frame in the room. A note can only be sent once per day.
  */
 export function DailyDrawing() {
   const [open, setOpen] = useState(false);
@@ -22,18 +22,29 @@ export function DailyDrawing() {
   const myGrid = useDrawingStore((s) => s.myGrid);
   const saving = useDrawingStore((s) => s.saving);
   const loading = useDrawingStore((s) => s.loading);
+  const error = useDrawingStore((s) => s.error);
+  const openRequested = useDrawingStore((s) => s.openRequested);
   const load = useDrawingStore((s) => s.load);
   const save = useDrawingStore((s) => s.save);
   const markSeen = useDrawingStore((s) => s.markSeen);
+  const clearOpenRequest = useDrawingStore((s) => s.clearOpenRequest);
 
   const hasNews = !!partnerGrid && !partnerSeen;
-  const dirty = myGrid !== EMPTY_GRID && !mineSaved;
+  const canSend = myGrid !== EMPTY_GRID && !mineSaved;
+
+  // Tapping the frame in the room asks the panel to open.
+  useEffect(() => {
+    if (openRequested) {
+      setOpen(true);
+      clearOpenRequest();
+    }
+  }, [openRequested, clearOpenRequest]);
 
   useEffect(() => {
     if (open) {
       void load();
       markSeen();
-      setTab(partnerGrid ? 'theirs' : 'yours');
+      setTab(hasNews ? 'theirs' : mineSaved ? 'theirs' : 'yours');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -50,10 +61,17 @@ export function DailyDrawing() {
         {hasNews && <View style={styles.badge} />}
       </Pressable>
 
+      {hasNews && !open && (
+        <Pressable style={styles.banner} onPress={() => setOpen(true)}>
+          <Text style={styles.bannerText}>💌 Your partner drew you something</Text>
+        </Pressable>
+      )}
+
       {open && (
         <View style={styles.overlay}>
           <PopIn style={styles.card}>
             <Text style={styles.title}>Today’s note</Text>
+            <Text style={styles.sub}>One little note a day, each way.</Text>
 
             <View style={styles.tabs}>
               <Pressable
@@ -68,19 +86,17 @@ export function DailyDrawing() {
                 style={[styles.tab, tab === 'yours' && styles.tabOn]}
                 onPress={() => setTab('yours')}
               >
-                <Text style={[styles.tabText, tab === 'yours' && styles.tabTextOn]}>
-                  Yours
-                </Text>
+                <Text style={[styles.tabText, tab === 'yours' && styles.tabTextOn]}>Yours</Text>
               </Pressable>
             </View>
 
             {tab === 'theirs' ? (
-              <View style={styles.theirs}>
+              <View style={styles.viewer}>
                 {loading ? (
                   <ActivityIndicator color={ui.accent} />
                 ) : partnerGrid ? (
                   <>
-                    <PixelArt grid={partnerGrid} size={260} />
+                    <PixelArt grid={partnerGrid} size={280} />
                     <Text style={styles.caption}>They left this for you today.</Text>
                   </>
                 ) : (
@@ -89,20 +105,29 @@ export function DailyDrawing() {
                   </Text>
                 )}
               </View>
+            ) : mineSaved ? (
+              // Already sent today — show it, no re-send (one per day).
+              <View style={styles.viewer}>
+                <PixelArt grid={myGrid} size={280} />
+                <Text style={styles.sentLine}>💌 Sent today — they can see it now.</Text>
+                <Text style={styles.caption}>Come back tomorrow for a new one.</Text>
+              </View>
             ) : (
               <View style={styles.yours}>
                 <DrawingCanvas />
+                {error && <Text style={styles.err}>{error}</Text>}
                 <Pressable
-                  style={[styles.save, !dirty && styles.saveDim]}
+                  style={[styles.send, !canSend && styles.sendDim]}
                   onPress={save}
-                  disabled={saving}
+                  disabled={saving || !canSend}
                 >
                   {saving ? (
                     <ActivityIndicator color={ui.text} />
                   ) : (
-                    <Text style={styles.saveText}>{mineSaved ? 'Update note' : 'Send it'}</Text>
+                    <Text style={styles.sendText}>Send it</Text>
                   )}
                 </Pressable>
+                <Text style={styles.hint}>You can send once a day — make it count 💛</Text>
               </View>
             )}
 
@@ -142,6 +167,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: ui.overlayBg,
   },
+  banner: {
+    position: 'absolute',
+    top: 70,
+    left: 16,
+    right: 16,
+    alignSelf: 'center',
+    backgroundColor: ui.overlayBg,
+    borderColor: ui.accentSoft,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  bannerText: { color: ui.text, fontSize: 14 },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -162,22 +202,18 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 20,
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   title: { color: ui.text, fontSize: 20 },
-  tabs: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: ui.chipBg,
-    borderRadius: 16,
-    padding: 4,
-  },
+  sub: { color: ui.textDim, fontSize: 12, marginTop: -6 },
+  tabs: { flexDirection: 'row', gap: 8, backgroundColor: ui.chipBg, borderRadius: 16, padding: 4 },
   tab: { paddingVertical: 8, paddingHorizontal: 20, borderRadius: 13 },
   tabOn: { backgroundColor: ui.chipActiveBg },
   tabText: { color: ui.textDim, fontSize: 14 },
   tabTextOn: { color: ui.text },
-  theirs: { alignItems: 'center', gap: 10, minHeight: 260, justifyContent: 'center' },
+  viewer: { alignItems: 'center', gap: 8, minHeight: 280, justifyContent: 'center' },
   caption: { color: ui.textDim, fontSize: 13, fontStyle: 'italic' },
+  sentLine: { color: ui.accent, fontSize: 14 },
   empty: {
     color: ui.textDim,
     fontSize: 14,
@@ -185,8 +221,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 20,
   },
-  yours: { alignItems: 'center', gap: 14 },
-  save: {
+  yours: { alignItems: 'center', gap: 12 },
+  err: { color: ui.danger, fontSize: 13, textAlign: 'center' },
+  send: {
     backgroundColor: ui.chipActiveBg,
     borderRadius: 18,
     paddingVertical: 12,
@@ -195,8 +232,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveDim: { opacity: 0.7 },
-  saveText: { color: ui.text, fontSize: 15, letterSpacing: 0.3 },
+  sendDim: { opacity: 0.5 },
+  sendText: { color: ui.text, fontSize: 15, letterSpacing: 0.3 },
+  hint: { color: ui.textDim, fontSize: 12 },
   done: { paddingVertical: 6, paddingHorizontal: 20 },
   doneText: { color: ui.accent, fontSize: 15 },
 });

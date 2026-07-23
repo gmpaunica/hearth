@@ -1,26 +1,21 @@
+import { type ThreeEvent } from '@react-three/fiber';
 import { useMemo } from 'react';
-import * as THREE from 'three';
 
 import { GRID, PALETTE, useDrawingStore } from '@/state/drawingStore';
 import { VoxMesh } from '../VoxMesh';
 import { Vox, voxelMaterial } from '../voxel';
 
 const WOOD = '#8a5a33';
-const WOOD_DARK = '#6e4526';
+const S = 0.11; // frame voxel size
+const FW = 12; // frame width/height in voxels
 
-// A-frame stand + a board to hold the picture. Built in local space; the
-// wrapping group handles world position + facing.
-function buildEasel(v: Vox) {
-  v.box(0, 0, 0, 1, 14, 1, WOOD); // front-left leg
-  v.box(6, 0, 0, 1, 14, 1, WOOD); // front-right leg
-  v.box(3, 0, -3, 1, 13, 1, WOOD_DARK); // back leg
-  v.box(0, 6, 0, 7, 1, 1, WOOD_DARK); // ledge
-  v.box(-1, 7, 0, 9, 9, 1, '#efe6d6'); // board
-  // Frame edging around the board.
-  v.box(-1, 7, 1, 9, 1, 1, WOOD);
-  v.box(-1, 15, 1, 9, 1, 1, WOOD);
-  v.box(-1, 7, 1, 1, 9, 1, WOOD);
-  v.box(7, 7, 1, 1, 9, 1, WOOD);
+// A flat framed canvas that hangs on the wall, facing the camera (+z).
+function buildFrame(v: Vox) {
+  v.box(1, 1, 0, FW - 2, FW - 2, 1, '#efe6d6'); // cream canvas backing
+  v.box(0, 0, 1, FW, 1, 1, WOOD); // bottom rail
+  v.box(0, FW - 1, 1, FW, 1, 1, WOOD); // top rail
+  v.box(0, 0, 1, 1, FW, 1, WOOD); // left rail
+  v.box(FW - 1, 0, 1, 1, FW, 1, WOOD); // right rail
 }
 
 function usePictureGeometry(grid: string | null) {
@@ -36,27 +31,33 @@ function usePictureGeometry(grid: string | null) {
       any = true;
       v.set(i % GRID, GRID - 1 - Math.floor(i / GRID), 0, color);
     }
-    return any ? v.build(1, 0) : null;
+    // Fit the GRID-wide picture into the (FW-2)-voxel canvas.
+    return any ? v.build(((FW - 2) * S) / GRID, 0) : null;
   }, [grid]);
 }
 
 /**
- * The daily-drawing easel. Faces the isometric camera; shows the partner's
- * drawing (as flat voxels) on the board, or an empty canvas if none today.
+ * The daily-drawing frame on the wall. Shows the partner's drawing (as flat
+ * voxels) or a blank canvas. Tapping it opens the note panel. `position` is the
+ * world min-corner of the frame.
  */
 export function Easel({ position }: { position: [number, number, number] }) {
   const partnerGrid = useDrawingStore((s) => s.partnerGrid);
   const picture = usePictureGeometry(partnerGrid);
 
+  const open = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    useDrawingStore.getState().requestOpen();
+  };
+
   return (
-    <group position={position} rotation={[0, Math.PI / 4, 0]}>
-      <VoxMesh build={buildEasel} scale={0.09} />
+    <group position={position} onClick={open}>
+      <VoxMesh build={buildFrame} scale={S} />
       {picture && (
         <mesh
           geometry={picture}
           material={voxelMaterial}
-          position={[0.0, 0.66, 0.19]}
-          scale={[0.045, 0.045, 0.045]}
+          position={[1 * S, 1 * S, 1.02 * S]}
         />
       )}
     </group>

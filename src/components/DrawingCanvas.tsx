@@ -12,7 +12,7 @@ import { GRID, PALETTE, useDrawingStore } from '@/state/drawingStore';
 import { ui } from '@/theme/hearth';
 import { PixelArt } from './PixelArt';
 
-const CANVAS = 260; // px
+const CANVAS = 280; // px
 
 /** Finger-paint pixel canvas for your daily drawing. */
 export function DrawingCanvas() {
@@ -24,13 +24,14 @@ export function DrawingCanvas() {
   const colorRef = useRef(color);
   colorRef.current = color;
 
+  // Paint using coordinates relative to the touch overlay (a single full-size
+  // view), so a touch anywhere maps to the right cell.
   const paintAt = (e: GestureResponderEvent) => {
     const cell = CANVAS / GRID;
     const cx = Math.floor(e.nativeEvent.locationX / cell);
     const cy = Math.floor(e.nativeEvent.locationY / cell);
     if (cx < 0 || cx >= GRID || cy < 0 || cy >= GRID) return;
-    const idx = cy * GRID + cx;
-    setPixel(idx, colorRef.current < 0 ? '.' : String(colorRef.current));
+    setPixel(cy * GRID + cx, colorRef.current < 0 ? '.' : String(colorRef.current));
   };
 
   const responder = useMemo(
@@ -38,6 +39,7 @@ export function DrawingCanvas() {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: paintAt,
         onPanResponderMove: paintAt,
       }),
@@ -48,9 +50,10 @@ export function DrawingCanvas() {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.canvasBox} {...responder.panHandlers}>
+      <View style={styles.canvasBox}>
         <PixelArt grid={myGrid} size={CANVAS} />
-        <View style={styles.grille} pointerEvents="none" />
+        {/* Single transparent surface captures all touches → correct coords. */}
+        <View style={StyleSheet.absoluteFill} {...responder.panHandlers} />
       </View>
 
       <View style={styles.palette}>
@@ -58,11 +61,7 @@ export function DrawingCanvas() {
           <Pressable
             key={c}
             onPress={() => setColor(i)}
-            style={[
-              styles.swatch,
-              { backgroundColor: c },
-              color === i && styles.swatchOn,
-            ]}
+            style={[styles.swatch, { backgroundColor: c }, color === i && styles.swatchOn]}
           />
         ))}
         <Pressable
@@ -89,14 +88,6 @@ const styles = StyleSheet.create({
     borderColor: ui.overlayBorder,
     overflow: 'hidden',
   },
-  grille: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 12,
-  },
   palette: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -112,11 +103,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   swatchOn: { borderColor: ui.text },
-  eraser: {
-    backgroundColor: ui.chipBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  eraser: { backgroundColor: ui.chipBg, alignItems: 'center', justifyContent: 'center' },
   eraserText: { color: ui.text, fontSize: 14 },
   clear: {
     paddingHorizontal: 12,

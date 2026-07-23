@@ -31,8 +31,9 @@ const LOOK_AT = new THREE.Vector3(0, 1.45, 0);
 function CameraRig() {
   useFrame((state) => {
     const cam = state.camera as THREE.OrthographicCamera;
-    const zoom = Math.min(state.size.width / 8.2, state.size.height / 8.0);
-    if (Math.abs(cam.zoom - zoom) > 0.5) {
+    const base = Math.min(state.size.width / 8.2, state.size.height / 8.0);
+    const zoom = base * camState.zoomMul;
+    if (Math.abs(cam.zoom - zoom) > 0.3) {
       cam.zoom = zoom;
       cam.updateProjectionMatrix();
     }
@@ -71,7 +72,7 @@ export function HomeScene() {
       <Room />
       {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
       {components.has('restnook') && <RestNook position={[3.0, 0, 0.2]} />}
-      {components.has('easel') && <Easel position={[1.9, 0, 1.7]} />}
+      {components.has('easel') && <Easel position={[0.55, 0.9, -3.22]} />}
       {components.has('sofa') && <Sofa position={[0.5, 0, -3.25]} />}
       {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
       {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}

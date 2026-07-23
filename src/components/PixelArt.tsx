@@ -1,29 +1,40 @@
+import { memo } from 'react';
 import { View } from 'react-native';
 
 import { GRID, PALETTE } from '@/state/drawingStore';
 
-/** Read-only render of a GRID×GRID drawing string as coloured pixels. */
-export function PixelArt({ grid, size }: { grid: string; size: number }) {
-  const cell = size / GRID;
-  const pixels = [];
-  for (let i = 0; i < GRID * GRID; i++) {
-    const ch = grid[i];
+// One row of pixels. Memoised on its string, so painting a pixel only
+// re-renders the one row that changed (keeps the bigger grid smooth).
+const Row = memo(function Row({ row, cell, y }: { row: string; cell: number; y: number }) {
+  const cells = [];
+  for (let x = 0; x < row.length; x++) {
+    const ch = row[x];
     if (!ch || ch === '.') continue;
     const color = PALETTE[Number(ch)];
     if (!color) continue;
-    pixels.push(
+    cells.push(
       <View
-        key={i}
+        key={x}
         style={{
           position: 'absolute',
-          left: (i % GRID) * cell,
-          top: Math.floor(i / GRID) * cell,
-          width: cell + 0.5,
-          height: cell + 0.5,
+          left: x * cell,
+          top: y * cell,
+          width: cell + 0.6,
+          height: cell + 0.6,
           backgroundColor: color,
         }}
       />,
     );
+  }
+  return <>{cells}</>;
+});
+
+/** Read-only render of a GRID×GRID drawing string as coloured pixels. */
+export function PixelArt({ grid, size }: { grid: string; size: number }) {
+  const cell = size / GRID;
+  const rows = [];
+  for (let y = 0; y < GRID; y++) {
+    rows.push(<Row key={y} row={grid.slice(y * GRID, (y + 1) * GRID)} cell={cell} y={y} />);
   }
   return (
     <View
@@ -34,8 +45,9 @@ export function PixelArt({ grid, size }: { grid: string; size: number }) {
         borderRadius: 12,
         overflow: 'hidden',
       }}
+      pointerEvents="none"
     >
-      {pixels}
+      {rows}
     </View>
   );
 }

@@ -11,6 +11,8 @@ export const camState = {
   /** How far the view may pan from centre (world units). Widens as the home
    *  grows so there's more to explore; snug at the start. */
   limit: 1.6,
+  /** Pinch-zoom multiplier on the responsive base zoom (1 = default fit). */
+  zoomMul: 1,
 };
 
 export const clampPan = (v: number, limit: number) =>
