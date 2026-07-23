@@ -10,10 +10,12 @@ import { camState } from './cameraState';
 import { Avatar } from './Avatar';
 import { PixelPass } from './PixelPass';
 import { Rain } from './Rain';
+import { ReconcileHeart } from './ReconcileHeart';
 import { Room } from './Room';
 import { Sparkles } from './Sparkles';
 import { Bench } from './objects/Bench';
 import { Bookshelf } from './objects/Bookshelf';
+import { Easel } from './objects/Easel';
 import { Fireplace } from './objects/Fireplace';
 import { Plant } from './objects/Plant';
 import { RestNook } from './objects/RestNook';
@@ -69,6 +71,7 @@ export function HomeScene() {
       <Room />
       {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
       {components.has('restnook') && <RestNook position={[3.0, 0, 0.2]} />}
+      {components.has('easel') && <Easel position={[1.9, 0, 1.7]} />}
       {components.has('sofa') && <Sofa position={[0.5, 0, -3.25]} />}
       {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
       {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}
@@ -83,6 +86,7 @@ export function HomeScene() {
       )}
       <Rain />
       <Sparkles />
+      <ReconcileHeart />
       <Avatar avatar="a" colors={selfColors} />
       <Avatar avatar="b" colors={partnerColors} />
       <PixelPass />

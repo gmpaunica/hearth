@@ -26,3 +26,13 @@ export interface ResponseRow {
   choice: string;
   created_at: string;
 }
+
+export interface DrawingRow {
+  id: string;
+  couple_id: string;
+  from_user: string;
+  day: string;
+  grid: string;
+  created_at: string;
+  updated_at: string;
+}

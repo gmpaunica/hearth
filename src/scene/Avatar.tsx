@@ -9,14 +9,33 @@ import { atmo } from './atmoState';
 import { SPOTS } from './spots';
 import { Vox, voxelMaterial } from './voxel';
 
-// Thought-bubble dot colour per signal (soft, readable at pixel scale).
-const BUBBLE_DOT: Record<SignalType, string> = {
-  fireplace: '#ff9b3d',
-  sofa: '#e0705a',
-  table: '#b07a44',
-  garden: '#59a04c',
-  rest: '#8fb7d8',
+// A tiny 5×5 icon per signal so a glance across the room reads the *feeling*:
+// heart = wants to reconnect / affection, "…" = wants to talk, leaf = needs
+// space, "z" = overwhelmed/resting.
+const ICONS: Record<SignalType, { color: string; rows: string[] }> = {
+  fireplace: { color: '#e8607a', rows: ['01010', '11111', '11111', '01110', '00100'] },
+  sofa: { color: '#f08aa2', rows: ['01010', '11111', '11111', '01110', '00100'] },
+  table: { color: '#f5e6d8', rows: ['00000', '00000', '10101', '00000', '00000'] },
+  garden: { color: '#7bb47a', rows: ['00010', '00110', '01110', '11110', '01100'] },
+  rest: { color: '#9fc3e0', rows: ['11111', '00010', '00100', '01000', '11111'] },
 };
+
+const iconMaterial = new THREE.MeshBasicMaterial({ vertexColors: true });
+const iconCache: Partial<Record<SignalType, THREE.BufferGeometry>> = {};
+function iconGeometry(type: SignalType): THREE.BufferGeometry {
+  if (iconCache[type]) return iconCache[type]!;
+  const { rows, color } = ICONS[type];
+  const v = new Vox();
+  rows.forEach((row, y) => {
+    [...row].forEach((c, x) => {
+      if (c === '1') v.set(x, rows.length - 1 - y, 0, color);
+    });
+  });
+  const g = v.build(0.05, 0);
+  g.translate(-2.5 * 0.05, -2.5 * 0.05, 0);
+  iconCache[type] = g;
+  return g;
+}
 
 export interface AvatarColors {
   skin: string;
@@ -168,8 +187,9 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
     let hop = 0;
     if (scene.glowStartedAt != null && !atmo.reduceMotion) {
       const age = (Date.now() - scene.glowStartedAt) / 1000;
-      if (age < 0.9) {
-        hop = 0.22 * Math.abs(Math.sin((age / 0.9) * Math.PI * 2)) * (1 - age / 0.9);
+      if (age < 1.3) {
+        // Two bigger, springy hops (obvious "yay we made up").
+        hop = 0.34 * Math.abs(Math.sin((age / 1.3) * Math.PI * 3)) * (1 - age / 1.3);
       }
     }
     body.position.y = a.sit * (pose.seatY - HIP_Y + 0.06) + bob + hop;
@@ -220,19 +240,20 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
         <mesh ref={headRef} geometry={parts.head} material={voxelMaterial} position={[0, 8 * S, 0]} />
         {signalType && (
           <group ref={bubbleRef} position={[0, 1.62, 0]}>
-            {/* Cream speech bubble with a little tail and a signal-colour dot. */}
-            <mesh position={[0.16, 0, 0]}>
-              <boxGeometry args={[0.44, 0.32, 0.08]} />
+            {/* Cream speech bubble with a little tail and a meaningful icon. */}
+            <mesh position={[0.16, 0.02, 0]}>
+              <boxGeometry args={[0.46, 0.36, 0.08]} />
               <meshBasicMaterial color="#fdf6ec" />
             </mesh>
-            <mesh position={[-0.02, -0.22, 0]}>
+            <mesh position={[-0.02, -0.24, 0]}>
               <boxGeometry args={[0.1, 0.1, 0.08]} />
               <meshBasicMaterial color="#fdf6ec" />
             </mesh>
-            <mesh position={[0.16, 0, 0.05]}>
-              <boxGeometry args={[0.16, 0.16, 0.02]} />
-              <meshBasicMaterial color={BUBBLE_DOT[signalType]} />
-            </mesh>
+            <mesh
+              geometry={iconGeometry(signalType)}
+              material={iconMaterial}
+              position={[0.16, 0.02, 0.06]}
+            />
           </group>
         )}
       </group>

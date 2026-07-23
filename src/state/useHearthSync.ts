@@ -2,10 +2,11 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import type { ResponseRow, SignalRow } from '@/lib/db';
+import type { DrawingRow, ResponseRow, SignalRow } from '@/lib/db';
 import { onNotificationTap, registerPushToken } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from './authStore';
+import { useDrawingStore } from './drawingStore';
 import { useSignalStore } from './signalStore';
 
 /**
@@ -66,9 +67,12 @@ export function useHearthSync() {
     const store = useSignalStore.getState();
     if (!coupleId || !userId || !memberB) {
       store.reset();
+      useDrawingStore.getState().reset();
       return;
     }
     store.setContext({ coupleId, userId, partnerId });
+    // Daily drawings: load today's, and stream fresh ones from the partner.
+    void useDrawingStore.getState().load();
 
     // Late-join: reflect the current unresolved state, not just live deltas.
     const hydrateNow = async () => {
@@ -101,6 +105,7 @@ export function useHearthSync() {
       if (s === 'active') {
         void refreshCouple();
         void hydrateNow();
+        void useDrawingStore.getState().load();
       }
     });
 
@@ -120,9 +125,21 @@ export function useHearthSync() {
       )
       .subscribe();
 
+    // Drawings live in their own channel so that, if a couple hasn't run
+    // drawings.sql yet, a failed subscription can't take signal sync down too.
+    const drawingChannel = supabase
+      .channel(`drawings:${coupleId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'drawings', filter: `couple_id=eq.${coupleId}` },
+        (payload) => useDrawingStore.getState().ingest(payload.new as DrawingRow),
+      )
+      .subscribe();
+
     return () => {
       appState.remove();
       void supabase.removeChannel(channel);
+      void supabase.removeChannel(drawingChannel);
     };
   }, [coupleId, userId, memberB, partnerId, refreshCouple]);
 }

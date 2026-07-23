@@ -12,6 +12,7 @@ import { useAuthStore } from './authStore';
 export type HomeComponent =
   | 'fireplace'
   | 'restnook'
+  | 'easel'
   | 'sofa'
   | 'table'
   | 'bench'
@@ -40,7 +41,7 @@ export const HOME_STAGES: HomeStage[] = [
     atDays: 0,
     title: 'Moving in',
     blurb: 'Your home begins — a fire to gather by, and a little couch to rest on.',
-    components: ['fireplace', 'restnook'],
+    components: ['fireplace', 'restnook', 'easel'],
     signals: ['fireplace', 'rest'],
   },
   {

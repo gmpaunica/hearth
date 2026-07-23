@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { DailyDrawing } from '@/components/DailyDrawing';
 import { DemoPanel } from '@/components/DemoPanel';
 import { HomeGrewCard } from '@/components/HomeGrewCard';
 import { Onboarding } from '@/components/Onboarding';
@@ -43,6 +44,7 @@ export default function HomeScreen() {
           <SignalSheet />
           <ReconciliationPrompt />
           <Settings />
+          <DailyDrawing />
           <HomeGrewCard />
         </>
       )}

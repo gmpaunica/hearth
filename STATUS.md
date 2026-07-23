@@ -109,6 +109,19 @@ the `notify-signal` Edge Function.
    effect. Design pass needed: every response leaves a trace (ack the partner
    sees, a scheduled nudge, warmth added to the room).
 
+### Round-3 build (daily drawing + love polish)
+- **[DRAWING]** ✅ Daily drawing ritual built. `drawings` table (supabase/
+  drawings.sql — owner must deploy). Pixel-art canvas (14×14, PALETTE), one per
+  person per day (upsert), resets daily (UTC). Envelope button (top-left) opens
+  the panel: "From them" (partner's art) / "Yours" (paint + send). Realtime in
+  its own channel (won't break signals if drawings.sql not yet run). An **easel**
+  in the room (day-0 component) shows the partner's drawing as flat voxels.
+- **[CUTE]** ✅ Thought bubble now shows a meaningful icon (heart / "…" / leaf /
+  "z") not a dot; a big pink **heart pops** above the pair on reconciliation +
+  bigger springy hops; cards/sheets pop-in with bubblier corners.
+- TODO next: literal kiss animation (faces together) is still just heart+hop;
+  render the drawing bigger/clearer on the easel; deeper response consequences.
+
 ### Round-2 device feedback (fixes shipped via OTA — verify on device)
 - **[IDENTITY root cause]** Avatar geometry was built once with first-render
   colours (useMemo with empty deps) — identity arrived a moment later and was
