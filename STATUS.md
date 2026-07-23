@@ -57,16 +57,25 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 - **Push notifications**: WORKING (Firebase/FCM set up). Edge Function
   `notify-signal` + DB trigger → the NOTIFICATIONS copy to the partner.
 - **Living home**: starts sparse, fills in on a milestone ladder (sofa d3,
-  table d7, shelves/plants d14, **bedroom+bed d21**, garden d30); signals gated
-  to unlocked places; "your home grew" card; drag-to-pan + **pinch-to-zoom**.
-- **House build-out** ✅: the room is now bigger (widened toward the camera; the
-  camera reframes to fit). A **bedroom nook** (low partition + warm lamp) holds a
-  **double bed**; the daily-drawing frame moved onto the new wall above the bed
-  (no longer overlaps the window). Bigger, plusher main **sofa**. A tasteful
-  **"feeling romantic" signal** (the bed): leave it → your partner can "Come
-  close" and you sit together as a **heart pops over the bed** (the reconcile
-  heart is now spot-aware — it lands over the fire *or* the bed). Consent-aware
+  table d7, shelves/plants d14, **bedroom+bed d21**, **garden d30**); signals
+  gated to unlocked places; "your home grew" card; drag-to-pan + pinch-to-zoom.
+- **Multi-room home** ✅ (the big rework): the home is now a **cluster of
+  floating corner-room dioramas** laid out on one screen-horizontal line and
+  **panned between** (drag left/right). Each room is its own two-wall shell —
+  interior partition walls always occlude in a fixed iso view, so rooms are
+  separate platforms connected by little **plank bridges**, the proven pattern
+  for cozy-home apps. The home *grows by adding rooms*: **living room** (default
+  view) → a **bedroom** appears to the right at d21 → a **garden** to the left at
+  d30. Architecture: `src/scene/shell.ts` (shared corner-shell + rug builders +
+  `*_OFFSET`s), `PlatformFx.tsx` (per-room blue rim + warm halo), and modular
+  `LivingRoom`/`Bedroom`/`Garden` in `Room.tsx`. Pan reach widens once other
+  rooms exist. **New rooms slot in by adding an offset + a builder** — no rewrite.
+- **Bedroom** holds the tasteful **"feeling romantic" signal** (the bed): leave
+  it → your partner "Come close" → you sit together as a **heart pops over the
+  bed** (the reconcile heart is spot-aware — fire *or* bed). Consent-aware
   responses ("Just hold me", "Not tonight"). Needs `romantic.sql` (below).
+- **Garden** is now a real explorable platform (grass, hedges, trees, flower
+  beds, pond, bench) — the "I need some space" signal seats on its bench.
 - **Daily drawing** ✅: 32×32 pixel note, one per person per day (upserts,
   resets daily UTC). Envelope button (top-left) / "Your partner drew you
   something" banner / tap the wall frame → the panel ("From them" / "Yours",
@@ -109,14 +118,15 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 
 ## Backlog
 
-### Next up
-- **More couches / furniture polish** — the house build-out ✅ enlarged the main
-  sofa and kept the sage rest-couch (two couches), but a third seating piece was
-  deferred to avoid occluding the fireplace reconciliation tableau (a couch in
-  front of the fire seats hides the couple from the fixed camera). Add one only
-  where it won't block the back-corner content. General voxel build-out / more
-  furniture (nightstand, lamp, wardrobe in the nook) still welcome.
-- **Garden 3D** at d30 (still just a painted backdrop through the door).
+### Next up — multi-room polish
+- **Pan clamp is a square** (`camState.limit` ±box), so you can drag into empty
+  void at the diagonal corners. Clamp to a band along the room row (the
+  screen-right axis) so panning feels rail-guided between rooms.
+- **Room-snap / peek affordance** — the rooms are discoverable only by dragging.
+  Consider gentle snap-to-room on release, or small arrow/edge hints so a new
+  user knows there's more to scroll to.
+- **Furniture fill** — bedroom (wardrobe, nightstand) and garden (more beds, a
+  path, memories/seeds) can hold more; general voxel build-out still welcome.
 
 ### Open / smaller
 - **Deeper response consequences** — "ask to talk later" etc. do nothing
@@ -128,10 +138,14 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 
 ### Deferred / needs owner or 2D art (Higgsfield)
 - iOS build (Apple Developer account, $99/yr).
-- Garden 3D + memories/seeds; wall paintings; onboarding illustrations.
+- Garden memories/seeds; wall paintings; onboarding illustrations.
 - Google Play release (Phase 9).
 
 ## History (recent, newest first)
+Multi-room home (floating living/bedroom/garden platforms panned between +
+bridges; living-room cleanup: partition removed, drawing frame moved, doorway
+plant + stacked paintings removed, rest couch relocated; garden is now a real
+platform; idempotent realtime SQL) →
 House build-out (bigger room + camera reframe, bedroom nook + double bed,
 "feeling romantic" signal with spot-aware heart pop, bigger sofa, drawing frame
 moved above the bed; adds `supabase/romantic.sql`) →

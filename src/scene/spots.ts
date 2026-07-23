@@ -32,10 +32,10 @@ export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {
     a: { x: 1.35, z: 2.8, rotY: Math.PI, seatY: 0.5 },
     b: { x: 1.35, z: 0.1, rotY: 0, seatY: 0.5 },
   },
-  // Bench beside the garden door on the left wall.
+  // On the bench in the garden platform (GARDEN_OFFSET -6.9,6.9 + bench seats).
   garden: {
-    a: { x: -2.6, z: 0.55, rotY: Math.PI / 2, seatY: 0.5 },
-    b: { x: -2.6, z: 1.25, rotY: Math.PI / 2, seatY: 0.5 },
+    a: { x: -8.5, z: 7.3, rotY: Math.PI / 2, seatY: 0.5 },
+    b: { x: -8.5, z: 8.0, rotY: Math.PI / 2, seatY: 0.5 },
   },
   // Curled up on the sage reading couch (RestNook) on the right, beside the
   // sofa — a quiet spot of its own, away from the fire and the table.
