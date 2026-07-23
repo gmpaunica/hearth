@@ -32,4 +32,14 @@ create policy drawings_update on public.drawings for update
   using (from_user = auth.uid() and is_couple_member(couple_id));
 
 -- Live updates so a fresh drawing lights up the partner's easel right away.
-alter publication supabase_realtime add table public.drawings;
+-- Idempotent: adding a table that's already in the publication raises 42710,
+-- so only add it when it isn't a member yet (safe to re-run).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'drawings'
+  ) then
+    alter publication supabase_realtime add table public.drawings;
+  end if;
+end $$;

@@ -37,16 +37,16 @@ export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {
     a: { x: -2.6, z: 0.55, rotY: Math.PI / 2, seatY: 0.5 },
     b: { x: -2.6, z: 1.25, rotY: Math.PI / 2, seatY: 0.5 },
   },
-  // Curled up on the sage rest couch (RestNook) along the right edge, facing
-  // into the room — a quiet place of its own, away from the fire.
+  // Curled up on the sage reading couch (RestNook) on the right, beside the
+  // sofa — a quiet spot of its own, away from the fire and the table.
   rest: {
-    a: { x: 2.45, z: 0.7, rotY: -Math.PI / 2, seatY: 0.45 },
-    b: { x: 2.45, z: 1.45, rotY: -Math.PI / 2, seatY: 0.45 },
+    a: { x: 2.45, z: -1.0, rotY: -Math.PI / 2, seatY: 0.45 },
+    b: { x: 2.45, z: -0.25, rotY: -Math.PI / 2, seatY: 0.45 },
   },
-  // Sitting close together on the edge of the bed in the back-right bedroom
-  // nook, turned gently toward each other. Seat height = bed surface (0.75).
+  // Sitting close together on the bed in the bedroom platform (BEDROOM_OFFSET
+  // 6.6,-6.6 + the bed's local seats). Seat height = bed surface (0.75).
   romantic: {
-    a: { x: 3.95, z: -1.65, rotY: 0.28, seatY: 0.75 },
-    b: { x: 4.75, z: -1.65, rotY: -0.28, seatY: 0.75 },
+    a: { x: 6.25, z: -7.3, rotY: 0.28, seatY: 0.75 },
+    b: { x: 6.95, z: -7.3, rotY: -0.28, seatY: 0.75 },
   },
 };

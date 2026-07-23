@@ -13,7 +13,6 @@ import { Rain } from './Rain';
 import { ReconcileHeart } from './ReconcileHeart';
 import { Room } from './Room';
 import { Sparkles } from './Sparkles';
-import { Bed } from './objects/Bed';
 import { Bench } from './objects/Bench';
 import { Bookshelf } from './objects/Bookshelf';
 import { Easel } from './objects/Easel';
@@ -23,8 +22,9 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 
-// Centre of the widened diorama (world x -3.5..5.25, z -3.5..3.75).
-const LOOK_AT = new THREE.Vector3(0.7, 1.45, 0.0);
+// The default view is centred on the living room; you pan (drag) to the other
+// floating rooms in the cluster.
+const LOOK_AT = new THREE.Vector3(0, 1.45, 0);
 
 /**
  * Fixed isometric camera (45° azimuth, ~30° elevation). Zoom is responsive
@@ -33,7 +33,7 @@ const LOOK_AT = new THREE.Vector3(0.7, 1.45, 0.0);
 function CameraRig() {
   useFrame((state) => {
     const cam = state.camera as THREE.OrthographicCamera;
-    const base = Math.min(state.size.width / 13.0, state.size.height / 9.5);
+    const base = Math.min(state.size.width / 8.2, state.size.height / 8.0);
     const zoom = base * camState.zoomMul;
     if (Math.abs(cam.zoom - zoom) > 0.3) {
       cam.zoom = zoom;
@@ -54,7 +54,7 @@ function CameraRig() {
 export function HomeScene() {
   // The home fills in as the relationship grows (see homeProgress). Day 0 is
   // just the room and the fire; the rest arrives at milestones.
-  const { components, stageIndex } = useHomeProgress();
+  const { components } = useHomeProgress();
 
   // Character colour is tied to *who you are*, not "self vs partner", so the
   // same person looks the same on both phones. member_a always wears preset a,
@@ -64,31 +64,35 @@ export function HomeScene() {
   const iAmA = !!userId && userId === memberA;
   const selfColors = iAmA ? avatarPresets.a : avatarPresets.b;
   const partnerColors = iAmA ? avatarPresets.b : avatarPresets.a;
-  // More unlocked → more to explore, so allow the view to roam a little further.
+  // Pan reach widens once there are other rooms to scroll to; snug until then.
+  const hasBedroom = components.has('bed');
+  const hasGarden = components.has('garden');
   useEffect(() => {
-    camState.limit = 1.4 + Math.max(0, stageIndex) * 0.4;
-  }, [stageIndex]);
+    camState.limit = hasBedroom || hasGarden ? 7.6 : 1.8;
+  }, [hasBedroom, hasGarden]);
   return (
     <>
       <CameraRig />
       <Atmosphere />
       <Room />
       {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
-      {components.has('restnook') && <RestNook position={[3.0, 0, 0.2]} />}
-      {/* Daily-drawing frame now hangs on the new back-right wall above the bed
-          (it used to overlap the window in the small house). */}
-      {components.has('easel') && <Easel position={[3.66, 1.7, -3.22]} />}
+      {/* Cosy reading couch on the right, paired with the sofa, clear of the table. */}
+      {components.has('restnook') && <RestNook position={[3.0, 0, -1.5]} />}
+      {/* Daily-drawing frame on the left wall above the bench (faces the room). */}
+      {components.has('easel') && (
+        <group position={[-3.28, 1.35, 0.2]} rotation={[0, Math.PI / 2, 0]}>
+          <Easel position={[0, 0, 0]} />
+        </group>
+      )}
       {components.has('sofa') && <Sofa position={[0.2, 0, -3.25]} />}
-      {components.has('bed') && <Bed position={[3.45, 0, -3.35]} />}
       {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
       {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}
       {components.has('bookshelf') && <Bookshelf position={[-3.0, 0, -1.55]} />}
-      {/* Palm blades reach ~0.9 units — keep pots clear of walls/floor edge. */}
+      {/* Palm blades reach ~0.9 units — keep pots clear of walls/doors/edges. */}
       {components.has('plants') && (
         <>
           <Plant position={[-0.45, 0, -2.8]} phase={0} scale={0.9} />
-          <Plant position={[4.6, 0, 1.7]} phase={2.1} scale={0.9} />
-          <Plant position={[-2.7, 0, 2.4]} phase={4.2} scale={0.8} />
+          <Plant position={[2.9, 0, 1.4]} phase={2.1} scale={0.85} />
         </>
       )}
       <Rain />

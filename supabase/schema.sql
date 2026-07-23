@@ -163,7 +163,17 @@ create policy responses_insert on public.responses for insert with check (
 );
 
 -- ── Realtime ────────────────────────────────────────────────────────────────
--- Push live inserts/updates to the partner's app (Phase 5).
-alter publication supabase_realtime add table public.signals;
-alter publication supabase_realtime add table public.responses;
-alter publication supabase_realtime add table public.couples;
+-- Push live inserts/updates to the partner's app (Phase 5). Idempotent: adding
+-- a table already in the publication raises 42710, so guard each add.
+do $$
+declare t text;
+begin
+  foreach t in array array['signals', 'responses', 'couples'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
