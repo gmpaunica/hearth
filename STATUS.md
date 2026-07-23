@@ -70,6 +70,12 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
   `*_OFFSET`s), `PlatformFx.tsx` (per-room blue rim + warm halo), and modular
   `LivingRoom`/`Bedroom`/`Garden` in `Room.tsx`. Pan reach widens once other
   rooms exist. **New rooms slot in by adding an offset + a builder** — no rewrite.
+  The default view zooms out just enough that the neighbouring rooms **peek in at
+  the edges** (with the bridges) so it's obvious you can drag to them.
+- **`PREVIEW_UNLOCK_ALL`** (in `homeProgress.ts`) is currently **`true`**: the
+  whole home is unlocked from day 0 so every room is visible immediately while
+  testing (a fresh couple would otherwise wait to d21/d30). Flip it to `false`
+  to restore the "home grows over time" milestone pacing.
 - **Bedroom** holds the tasteful **"feeling romantic" signal** (the bed): leave
   it → your partner "Come close" → you sit together as a **heart pops over the
   bed** (the reconcile heart is spot-aware — fire *or* bed). Consent-aware

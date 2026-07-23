@@ -34,6 +34,12 @@ export interface HomeStage {
   signals: SignalType[];
 }
 
+// While testing on a brand-new couple you'd otherwise wait weeks to see the
+// bedroom (d21) and garden (d30). With this on, the whole home is unlocked from
+// day 0 so every room is visible immediately. Flip to false to restore the
+// milestone pacing below (the "your home grows over time" experience).
+export const PREVIEW_UNLOCK_ALL = true;
+
 // The milestone ladder. Tunable — change the numbers or add rows freely.
 // Day 0 is intentionally sparse ("quite empty except the essentials"); the
 // garden opens at a month, per the product vision.
@@ -130,5 +136,8 @@ export function progressForDays(days: number): HomeProgress {
  */
 export function useHomeProgress(): HomeProgress {
   const since = useAuthStore((s) => s.couple?.created_at ?? null);
-  return useMemo(() => progressForDays(daysTogether(since)), [since]);
+  return useMemo(
+    () => progressForDays(PREVIEW_UNLOCK_ALL ? Infinity : daysTogether(since)),
+    [since],
+  );
 }

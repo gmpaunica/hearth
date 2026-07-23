@@ -13,6 +13,13 @@ export const camState = {
   limit: 1.6,
   /** Pinch-zoom multiplier on the responsive base zoom (1 = default fit). */
   zoomMul: 1,
+  /** World point the camera frames by default (the home base / living room). */
+  centerX: 0,
+  centerZ: 0,
+  /** World units the fitted view spans across width / height. Larger = more
+   *  zoomed out; widened when there are neighbouring rooms so they peek in. */
+  viewW: 8.2,
+  viewH: 8.0,
 };
 
 export const clampPan = (v: number, limit: number) =>

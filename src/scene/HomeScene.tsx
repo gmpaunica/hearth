@@ -22,30 +22,29 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 
-// The default view is centred on the living room; you pan (drag) to the other
-// floating rooms in the cluster.
-const LOOK_AT = new THREE.Vector3(0, 1.45, 0);
+const LOOK_AT_Y = 1.45;
 
 /**
- * Fixed isometric camera (45° azimuth, ~30° elevation). Zoom is responsive
- * so the whole diorama — every seat included — always fits the screen.
+ * Fixed isometric camera (45° azimuth, ~30° elevation). The framing (centre +
+ * how much world it spans) is published to camState by HomeScene so the default
+ * view can widen once there are neighbouring rooms to reveal.
  */
 function CameraRig() {
   useFrame((state) => {
     const cam = state.camera as THREE.OrthographicCamera;
-    const base = Math.min(state.size.width / 8.2, state.size.height / 8.0);
+    const base = Math.min(state.size.width / camState.viewW, state.size.height / camState.viewH);
     const zoom = base * camState.zoomMul;
     if (Math.abs(cam.zoom - zoom) > 0.3) {
       cam.zoom = zoom;
       cam.updateProjectionMatrix();
     }
     camState.zoom = cam.zoom;
-    // Eye stays a fixed diagonal offset from the target, so recentring on
-    // LOOK_AT preserves the exact isometric angle. The drag-pan offset slides
-    // both eye and target together so the home just moves under the camera.
-    const { offX, offZ } = camState;
-    cam.position.set(12 + LOOK_AT.x + offX, 9.8, 12 + LOOK_AT.z + offZ);
-    cam.lookAt(LOOK_AT.x + offX, LOOK_AT.y, LOOK_AT.z + offZ);
+    // Eye stays a fixed diagonal offset from the target, so recentring on the
+    // frame centre preserves the exact isometric angle. The drag-pan offset
+    // slides both eye and target together so the home moves under the camera.
+    const { offX, offZ, centerX, centerZ } = camState;
+    cam.position.set(12 + centerX + offX, 9.8, 12 + centerZ + offZ);
+    cam.lookAt(centerX + offX, LOOK_AT_Y, centerZ + offZ);
   });
   return null;
 }
@@ -64,11 +63,18 @@ export function HomeScene() {
   const iAmA = !!userId && userId === memberA;
   const selfColors = iAmA ? avatarPresets.a : avatarPresets.b;
   const partnerColors = iAmA ? avatarPresets.b : avatarPresets.a;
-  // Pan reach widens once there are other rooms to scroll to; snug until then.
+  // Once there are neighbouring rooms, zoom the default view out a little so
+  // they peek in at the screen edges (a clear cue to drag) and widen the pan
+  // reach so you can scroll all the way to them. Snug on the living room until.
   const hasBedroom = components.has('bed');
   const hasGarden = components.has('garden');
   useEffect(() => {
-    camState.limit = hasBedroom || hasGarden ? 7.6 : 1.8;
+    const multi = hasBedroom || hasGarden;
+    camState.centerX = 0;
+    camState.centerZ = 0;
+    camState.viewW = multi ? 13.5 : 8.2;
+    camState.viewH = multi ? 9.5 : 8.0;
+    camState.limit = multi ? 7.6 : 1.8;
   }, [hasBedroom, hasGarden]);
   return (
     <>
