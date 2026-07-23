@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 
 import type { ResponseRow, SignalRow } from '@/lib/db';
 import { onNotificationTap, registerPushToken } from '@/lib/notifications';
@@ -70,7 +71,7 @@ export function useHearthSync() {
     store.setContext({ coupleId, userId, partnerId });
 
     // Late-join: reflect the current unresolved state, not just live deltas.
-    void (async () => {
+    const hydrateNow = async () => {
       const { data: signals } = await supabase
         .from('signals')
         .select('*')
@@ -90,7 +91,18 @@ export function useHearthSync() {
         responses = (resp ?? []) as ResponseRow[];
       }
       useSignalStore.getState().hydrate(rows, responses);
-    })();
+    };
+    void hydrateNow();
+
+    // Realtime events missed while backgrounded leave the room stale ("they're
+    // at the fire" when they aren't). Re-fetch truth whenever the app returns
+    // to the foreground.
+    const appState = AppState.addEventListener('change', (s) => {
+      if (s === 'active') {
+        void refreshCouple();
+        void hydrateNow();
+      }
+    });
 
     const channel = supabase
       .channel(`signals:${coupleId}`)
@@ -109,7 +121,8 @@ export function useHearthSync() {
       .subscribe();
 
     return () => {
+      appState.remove();
       void supabase.removeChannel(channel);
     };
-  }, [coupleId, userId, memberB, partnerId]);
+  }, [coupleId, userId, memberB, partnerId, refreshCouple]);
 }

@@ -16,6 +16,7 @@ import { Bench } from './objects/Bench';
 import { Bookshelf } from './objects/Bookshelf';
 import { Fireplace } from './objects/Fireplace';
 import { Plant } from './objects/Plant';
+import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 
@@ -67,6 +68,7 @@ export function HomeScene() {
       <Atmosphere />
       <Room />
       {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
+      {components.has('restnook') && <RestNook position={[3.0, 0, 0.2]} />}
       {components.has('sofa') && <Sofa position={[0.5, 0, -3.25]} />}
       {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
       {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}

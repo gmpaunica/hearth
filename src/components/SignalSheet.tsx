@@ -5,6 +5,7 @@ import { SIGNALS, type SignalType } from '@/copy';
 import { useHomeProgress } from '@/state/homeProgress';
 import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
+import { PopIn } from './PopIn';
 
 const SIGNAL_ORDER: SignalType[] = ['fireplace', 'sofa', 'table', 'garden', 'rest'];
 
@@ -32,7 +33,7 @@ export function SignalSheet() {
       )}
 
       {open && (
-        <View style={styles.sheet}>
+        <PopIn style={styles.sheet}>
           <Text style={styles.sheetTitle}>Where do you want to be?</Text>
           {available.map((type) => (
             <Pressable
@@ -50,7 +51,7 @@ export function SignalSheet() {
           <Pressable style={styles.closeRow} onPress={() => setOpen(false)} hitSlop={6}>
             <Text style={styles.closeText}>Not now</Text>
           </Pressable>
-        </View>
+        </PopIn>
       )}
     </>
   );
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     backgroundColor: ui.overlayBg,
     borderColor: ui.overlayBorder,
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 24,
     paddingVertical: 8,
     paddingHorizontal: 6,
   },

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RECONCILIATION, SIGNALS } from '@/copy';
 import { useSignalStore } from '@/state/signalStore';
 import { ui } from '@/theme/hearth';
+import { PopIn } from './PopIn';
 
 /** My active signal: quoted self-copy at the top, with a gentle take-back. */
 export function MySignalCard() {
@@ -11,7 +12,7 @@ export function MySignalCard() {
   if (!mySignal) return null;
 
   return (
-    <View style={styles.topCard}>
+    <PopIn style={styles.topCard}>
       <Text style={styles.quote}>“{SIGNALS[mySignal.type].selfText}”</Text>
       {mySignal.response ? (
         <>
@@ -26,7 +27,7 @@ export function MySignalCard() {
           <Text style={styles.takeBack}>Take it back</Text>
         </Pressable>
       )}
-    </View>
+    </PopIn>
   );
 }
 
@@ -38,7 +39,7 @@ export function PartnerSignalCard() {
   const copy = SIGNALS[partnerSignal.type];
 
   return (
-    <View style={styles.bottomCard}>
+    <PopIn style={styles.bottomCard}>
       <Text style={styles.partnerText}>{copy.partnerText}</Text>
       {partnerSignal.response ? (
         <Text style={styles.responseLine}>You answered: “{partnerSignal.response}”</Text>
@@ -51,7 +52,7 @@ export function PartnerSignalCard() {
           ))}
         </View>
       )}
-    </View>
+    </PopIn>
   );
 }
 
@@ -62,14 +63,14 @@ export function ReconciliationPrompt() {
   if (!reconciling) return null;
 
   return (
-    <View style={styles.centerCard}>
+    <PopIn style={styles.centerCard}>
       <Text style={styles.prompt}>{RECONCILIATION.prompt}</Text>
       {RECONCILIATION.choices.map((c) => (
         <Pressable key={c} style={styles.choiceWide} onPress={() => choose(c)}>
           <Text style={styles.choiceText}>{c}</Text>
         </Pressable>
       ))}
-    </View>
+    </PopIn>
   );
 }
 
@@ -77,7 +78,7 @@ const card = {
   backgroundColor: ui.overlayBg,
   borderColor: ui.overlayBorder,
   borderWidth: 1,
-  borderRadius: 16,
+  borderRadius: 22,
 } as const;
 
 const styles = StyleSheet.create({
@@ -106,13 +107,13 @@ const styles = StyleSheet.create({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   choice: {
     backgroundColor: ui.chipBg,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 13,
     paddingVertical: 8,
   },
   choiceWide: {
     backgroundColor: ui.chipBg,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginTop: 8,

@@ -2,9 +2,21 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import type { SignalType } from '@/copy';
+import { useSignalStore } from '@/state/signalStore';
 import { useSceneStore, type AvatarKey } from '@/state/sceneStore';
+import { atmo } from './atmoState';
 import { SPOTS } from './spots';
 import { Vox, voxelMaterial } from './voxel';
+
+// Thought-bubble dot colour per signal (soft, readable at pixel scale).
+const BUBBLE_DOT: Record<SignalType, string> = {
+  fireplace: '#ff9b3d',
+  sofa: '#e0705a',
+  table: '#b07a44',
+  garden: '#59a04c',
+  rest: '#8fb7d8',
+};
 
 export interface AvatarColors {
   skin: string;
@@ -90,6 +102,9 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
     seenSnap: 0,
   });
 
+  // Rebuild the body when colors change: identity (who is member_a/member_b)
+  // loads a beat after first render, and freezing the first-render colors was
+  // exactly the "same person is a different colour on each phone" bug.
   const parts = useMemo(
     () => ({
       leg: buildLeg(colors),
@@ -97,9 +112,14 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
       arm: buildArm(colors),
       head: buildHead(colors),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [colors]
   );
+
+  // Show a thought bubble while this character has an open signal.
+  const signalType = useSignalStore((s) =>
+    (avatar === 'a' ? s.mySignal?.type : s.partnerSignal?.type) ?? null,
+  );
+  const bubbleRef = useRef<THREE.Group>(null);
 
   useFrame((state, rawDelta) => {
     const root = rootRef.current;
@@ -112,6 +132,11 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
     const scene = useSceneStore.getState();
     const spotId = scene.spots[avatar];
     const pose = SPOTS[spotId][avatar];
+
+    // Stay hidden until the saved state has loaded (first snap): the app then
+    // opens with everyone already in place — no flash of "standing in the
+    // middle" before a glitchy catch-up walk.
+    root.visible = a.seenSnap !== 0;
 
     // On a hydrate snap, jump straight to the current pose (the app is opening
     // to existing state — it shouldn't replay the walk).
@@ -138,7 +163,22 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
 
     // Hips land just above the seat surface.
     const bob = moving ? Math.abs(Math.sin(t * 9 + a.phase)) * 0.04 : 0;
-    body.position.y = a.sit * (pose.seatY - HIP_Y + 0.06) + bob;
+    // Reconciliation: a happy little double-hop as the glow begins (skipped
+    // under reduce-motion — the warm glow itself still lands).
+    let hop = 0;
+    if (scene.glowStartedAt != null && !atmo.reduceMotion) {
+      const age = (Date.now() - scene.glowStartedAt) / 1000;
+      if (age < 0.9) {
+        hop = 0.22 * Math.abs(Math.sin((age / 0.9) * Math.PI * 2)) * (1 - age / 0.9);
+      }
+    }
+    body.position.y = a.sit * (pose.seatY - HIP_Y + 0.06) + bob + hop;
+
+    // Thought bubble: gentle bob, always turned toward the isometric camera.
+    if (bubbleRef.current) {
+      bubbleRef.current.position.y = 1.62 + Math.sin(t * 2.2 + a.phase) * 0.03;
+      bubbleRef.current.rotation.y = Math.PI / 4 - a.rotY;
+    }
 
     if (legsRef.current) {
       legsRef.current.rotation.x = -a.sit * 1.22;
@@ -163,7 +203,12 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
 
   const start = SPOTS.idle[avatar];
   return (
-    <group ref={rootRef} position={[start.x, 0, start.z]} rotation={[0, start.rotY, 0]}>
+    <group
+      ref={rootRef}
+      position={[start.x, 0, start.z]}
+      rotation={[0, start.rotY, 0]}
+      visible={false}
+    >
       <group ref={bodyRef}>
         <group ref={legsRef} position={[0, HIP_Y, 0]}>
           <mesh geometry={parts.leg} material={voxelMaterial} position={[-S, 0, 0]} />
@@ -173,6 +218,23 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
         <mesh geometry={parts.arm} material={voxelMaterial} position={[-3.5 * S, 8 * S, 0]} rotation={[0, 0, 0.08]} />
         <mesh geometry={parts.arm} material={voxelMaterial} position={[3.5 * S, 8 * S, 0]} rotation={[0, 0, -0.08]} />
         <mesh ref={headRef} geometry={parts.head} material={voxelMaterial} position={[0, 8 * S, 0]} />
+        {signalType && (
+          <group ref={bubbleRef} position={[0, 1.62, 0]}>
+            {/* Cream speech bubble with a little tail and a signal-colour dot. */}
+            <mesh position={[0.16, 0, 0]}>
+              <boxGeometry args={[0.44, 0.32, 0.08]} />
+              <meshBasicMaterial color="#fdf6ec" />
+            </mesh>
+            <mesh position={[-0.02, -0.22, 0]}>
+              <boxGeometry args={[0.1, 0.1, 0.08]} />
+              <meshBasicMaterial color="#fdf6ec" />
+            </mesh>
+            <mesh position={[0.16, 0, 0.05]}>
+              <boxGeometry args={[0.16, 0.16, 0.02]} />
+              <meshBasicMaterial color={BUBBLE_DOT[signalType]} />
+            </mesh>
+          </group>
+        )}
       </group>
     </group>
   );

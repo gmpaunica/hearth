@@ -15,17 +15,44 @@ gentle nudge, responds softly, and the fireplace path resolves in a warm
 reconciliation glow. Low-pressure, non-blaming.
 
 **Where it's going (not built yet — build the systems, art via Higgsfield later):**
-- **Customizable characters** — unlockables, hairstyles, clothing. (Later.)
+- **Customizable characters** — definitely wanted: hair, face, simple stuff
+  first; unlockables/clothing later. Also makes identity obvious.
 - **Consistent character identity** — your character (colour/look) is *you*,
   shown the same on both phones. Not "self = red, partner = green".
 - **A garden**, unlocking ~1 month in, that holds **memories / seeds**.
 - **An expandable house** — physically grows over time, not just fills in.
-- **Cutesy animations** — Sims-style: a little sit-down animation, a thought
-  bubble over the head, small delightful touches.
-- **Component art via Higgsfield** — new furniture/room designs come from there;
-  we build the *systems* now so art slots in.
-- **More interactions** — right now you can only leave a signal; the emotional
-  flows need depth (see backlog).
+  Room could get slightly bigger + more furniture even before the art pass.
+- **Room customization as rewards** — new placeable components granted at
+  milestones (a week, a month) AND for resolving conflicts; the couple chooses
+  where things go.
+- **Daily drawing / note** ★ owner's favourite: a little drawing or message
+  from your partner that resets every day; you come check it. Lives somewhere
+  in the app AND is represented by a physical object in the room (an easel or
+  frame). Higgsfield art could frame this beautifully.
+- **Cutesy everything** — Sims-style: sit-down animation, thought bubble over
+  the head, bubblier/sweeter message boxes, a little jump or kiss on
+  reconciliation. The feel should be soft and bubbly.
+- **Component art via Higgsfield** — owner can hook up Higgsfield when needed.
+  Note: Higgsfield = 2D art (paintings, onboarding, drawing-frames); in-room
+  3D furniture is hand-built voxel code, no Higgsfield needed.
+- **Deeper interactions** — the loop is too thin: "ask to talk later" does
+  nothing visible; responses should have consequences in the room. The core
+  product idea needs sharpening (see "What Hearth is for", below).
+
+## What Hearth is for (working answer to "what does it DO for a couple?")
+
+1. **Say the unsayable, gently.** When talking is hard, moving your character
+   says "I want to make up / I need space / I'm overwhelmed" without blame.
+2. **Ambient presence.** Opening the app shows where your partner *is*
+   (emotionally) right now — like glancing across a shared room.
+3. **Low-stakes repair.** The fireplace arc turns "who apologises first" into
+   a tiny ritual with a warm payoff both see.
+4. **A shared thing you tend.** The home grows with the relationship —
+   milestones, unlocked furniture, the daily drawing — so checking in daily
+  has a reason beyond conflict.
+Every feature should serve one of these. Responses that "do nothing" break #3
+and need visible consequences (partner sees acknowledgement; scheduled
+check-ins actually schedule something; resolved conflicts leave warmth).
 
 **Guiding priority: FUNCTIONAL FIRST.** The on-screen look is *not* final and
 we polish graphics at the very end. Don't spend effort on the visual style now.
@@ -72,13 +99,28 @@ the `notify-signal` Edge Function.
 
 ### Still open (functional)
 1. **[SYNC] State can go stale.** One phone showed the partner at the fireplace
-   when they weren't — live updates don't always flow/clear. Needs on-device
-   reproduction; check realtime resubscribe on app foreground, and that resolves
-   propagate. (The snap-on-open + "Okay" exit help, but verify.)
+   when they weren't. Mitigation shipped: re-hydrate on app foreground. Verify
+   on device; if still flaky, resubscribe the realtime channel on foreground.
 2. **[FLOW] Mutual-signal tangle.** Both leaving a fireplace signal at once, both
    answering "Not ready yet", is still confusing. The single-exit "Okay" unblocks
    it, but a fuller reconciliation state machine (who's waiting on whom) is worth
    a dedicated pass.
+3. **[FLOW] Thin responses.** "Ask to talk later" (and similar) have no visible
+   effect. Design pass needed: every response leaves a trace (ack the partner
+   sees, a scheduled nudge, warmth added to the room).
+
+### Round-2 device feedback (fixes shipped via OTA — verify on device)
+- **[IDENTITY root cause]** Avatar geometry was built once with first-render
+  colours (useMemo with empty deps) — identity arrived a moment later and was
+  ignored. Fixed: rebuild on colour change. Both phones should now agree.
+- **[GLITCH]** A frame of "standing in the middle" before snapping to the real
+  spot on open. Fixed: avatars stay hidden until the saved state has loaded,
+  then appear already in place.
+- **[REST]** Rest was "just sitting on the carpet". Added a small sage couch
+  (RestNook) on the right side; rest now sits on it. Bigger room + more
+  furniture still queued for the art pass.
+- **[CUTE]** Thought bubble over a character with an active signal; a little
+  double-hop on reconciliation; bubblier card corners + pop-in animation.
 
 ### Polish (later, after functional)
 9. Cutesy animations: sit-down motion, Sims-style thought bubble.

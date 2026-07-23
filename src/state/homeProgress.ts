@@ -11,6 +11,7 @@ import { useAuthStore } from './authStore';
 /** A placeable/visible piece of the home. New art registers as one of these. */
 export type HomeComponent =
   | 'fireplace'
+  | 'restnook'
   | 'sofa'
   | 'table'
   | 'bench'
@@ -38,8 +39,8 @@ export const HOME_STAGES: HomeStage[] = [
   {
     atDays: 0,
     title: 'Moving in',
-    blurb: 'Your home begins — just a fire to gather by.',
-    components: ['fireplace'],
+    blurb: 'Your home begins — a fire to gather by, and a little couch to rest on.',
+    components: ['fireplace', 'restnook'],
     signals: ['fireplace', 'rest'],
   },
   {

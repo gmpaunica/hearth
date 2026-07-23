@@ -37,10 +37,10 @@ export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {
     a: { x: -2.6, z: 0.55, rotY: Math.PI / 2, seatY: 0.5 },
     b: { x: -2.6, z: 1.25, rotY: Math.PI / 2, seatY: 0.5 },
   },
-  // Curled up on the floor in the open right-front corner — a quiet spot of
-  // their own, well clear of the fireplace and the reconciliation rug.
+  // Curled up on the sage rest couch (RestNook) along the right edge, facing
+  // into the room — a quiet place of its own, away from the fire.
   rest: {
-    a: { x: 2.35, z: 0.5, rotY: -Math.PI / 2 - 0.3, seatY: 0.1 },
-    b: { x: 2.35, z: 1.4, rotY: -Math.PI / 2 - 0.3, seatY: 0.1 },
+    a: { x: 2.45, z: 0.7, rotY: -Math.PI / 2, seatY: 0.45 },
+    b: { x: 2.45, z: 1.45, rotY: -Math.PI / 2, seatY: 0.45 },
   },
 };
