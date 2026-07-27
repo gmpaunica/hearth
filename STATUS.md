@@ -1,9 +1,11 @@
 # Hearth — Status, Vision & Handoff
 
-> **Read this first every session.** It's the single source of truth: the
-> vision, what works, how to make + ship changes, and the backlog. Keep it
-> current. Companion docs: `PRODUCTION_PLAN.md` (roadmap), `AGENTS.md` (use the
-> exact Expo v57 docs), `dev/README.md` (browser verification).
+> **Read this first every session.** It's the living status: the vision, what
+> works, how to make + ship changes, and the backlog. Keep it current.
+> **New to the project? Read `HANDOFF.md` first** — the complete, self-contained
+> onboarding (vision + full architecture + backend + workflow + gotchas). Other
+> companion docs: `PRODUCTION_PLAN.md` (roadmap), `AGENTS.md` (use the exact Expo
+> v57 docs), `dev/README.md` (browser verification), `docs/art-bible.md` (look).
 
 ## The vision (owner's intent)
 

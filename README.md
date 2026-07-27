@@ -1,56 +1,36 @@
-# Welcome to your Expo app 👋
+# Hearth 🔥
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A **two-person relationship app**. A couple shares one cozy voxel home — a
+cluster of floating isometric rooms you pan between. You leave a **privacy-safe
+emotional signal** by moving your character to a place in the home (fireplace =
+"I want to make up", sofa = comfort, table = talk, garden = space, rest =
+overwhelmed, bedroom = feeling close). Your partner gets a gentle nudge, responds
+softly, and the fireplace path resolves in a warm reconciliation glow. Plus a
+daily pixel-drawing ritual. Low-pressure, non-blaming, ambient.
 
-## Get started
+Expo (SDK 57) + React Native + `@react-three/fiber` voxel scene, Supabase
+backend (auth, realtime, RLS, edge-function push), shipped to Android via EAS.
 
-1. Install dependencies
+## 📖 Start here
 
-   ```bash
-   npm install
-   ```
+- **[`HANDOFF.md`](./HANDOFF.md)** — the complete, self-contained onboarding:
+  vision, full architecture (file-by-file), the multi-room system, the backend,
+  how to run/ship, and the gotchas. **Read this first.**
+- **[`STATUS.md`](./STATUS.md)** — the living status + backlog. Keep it current.
+- [`PRODUCTION_PLAN.md`](./PRODUCTION_PLAN.md) — the original phased roadmap.
+- [`AGENTS.md`](./AGENTS.md) — Expo changed a lot in v57; use the exact versioned
+  docs.
+- [`dev/README.md`](./dev/README.md) — browser-based visual QA (sandbox tooling).
+- [`docs/art-bible.md`](./docs/art-bible.md) — the locked "Style F" visual target.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick start
 
 ```bash
-npm run reset-project
+npm install
+npx tsc --noEmit      # must stay clean
+npx expo start        # open on a device/emulator, or add --web for a quick look
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Ship a JS/scene change over-the-air (no rebuild): `eas update --branch preview
+--message "..."` then reopen the app twice. See `HANDOFF.md` §11 for the full
+shipping + Supabase deploy steps.
