@@ -11,6 +11,9 @@ daily pixel-drawing ritual. Low-pressure, non-blaming, ambient.
 Expo (SDK 57) + React Native + `@react-three/fiber` voxel scene, Supabase
 backend (auth, realtime, RLS, edge-function push), shipped to Android via EAS.
 
+Durable owner feedback and accepted staged product decisions live in
+[`docs/universal-brain.md`](docs/universal-brain.md).
+
 ## 📖 Start here
 
 - **[`HANDOFF.md`](./HANDOFF.md)** — the complete, self-contained onboarding:

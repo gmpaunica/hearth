@@ -1,11 +1,19 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MomentDestination } from '@/lib/db';
-import { momentsTypography } from '@/theme/hearth';
+import { hearthUi, momentsTypography } from '@/theme/hearth';
 
 type Run = readonly [start: number, length: number, color: string];
 type Mosaic = { rows: Run[][]; colors: Record<string, string>; background: string };
 const row = (...runs: Run[]) => runs;
+const DESTINATION_MARKS: Record<MomentDestination, string> = {
+  fireplace: '♥',
+  garden: '✿',
+  sofa: '⌒',
+  table: '◌',
+  rest: '☾',
+  romantic: '♡',
+};
 
 /** 40×18 horizontal color runs keep each banner richly pixel-built while
  * mounting only the visible shapes rather than 720 individual React views. */
@@ -157,9 +165,11 @@ export function MomentFeelingBanner({ destination, title, location, onPress }: {
     <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${location}.`} onPress={onPress} style={({ pressed }) => [styles.banner, pressed && styles.pressed]}>
       <VoxelMosaic destination={destination} />
       <View style={styles.lowerScrim} />
+      <View style={styles.tape} />
+      <View style={styles.destinationMark}><Text style={styles.destinationMarkText}>{DESTINATION_MARKS[destination]}</Text></View>
       <View style={styles.bannerCopy}>
         <Text style={styles.bannerTitle}>{title}</Text>
-        <Text style={styles.bannerLocation}>{location}</Text>
+        <View style={styles.locationPill}><Text style={styles.bannerLocation}>{location}</Text></View>
       </View>
     </Pressable>
   );
@@ -170,10 +180,14 @@ const styles = StyleSheet.create({
   frame: { width: '100%', aspectRatio: 40 / 18, overflow: 'hidden', borderRadius: 8 },
   mosaic: { position: 'absolute', inset: 0, overflow: 'hidden' },
   pixelRow: { flex: 1 },
-  banner: { height: 118, marginBottom: 11, overflow: 'hidden', justifyContent: 'flex-end', borderRadius: 20, borderWidth: 2, borderColor: '#E2B29A' },
+  banner: { height: 126, marginBottom: 13, overflow: 'hidden', justifyContent: 'flex-end', borderRadius: 24, borderWidth: 2, borderColor: hearthUi.outline, backgroundColor: hearthUi.shellWarm, shadowColor: hearthUi.shadow, shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   lowerScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 55, backgroundColor: 'rgba(49, 27, 21, 0.86)' },
+  tape: { position: 'absolute', top: -3, left: '42%', width: 58, height: 16, backgroundColor: 'rgba(255, 236, 185, 0.82)', transform: [{ rotate: '-2deg' }] },
+  destinationMark: { position: 'absolute', top: 11, right: 11, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.86)', backgroundColor: 'rgba(255,248,238,0.9)' },
+  destinationMarkText: { color: hearthUi.coralDark, fontFamily: momentsTypography.heading, fontSize: 17, lineHeight: 21 },
   bannerCopy: { paddingHorizontal: 12, paddingVertical: 8 },
   bannerTitle: { color: '#FFFFFF', fontFamily: momentsTypography.heading, fontSize: 17, lineHeight: 20, ...WHITE_SHADOW },
-  bannerLocation: { color: '#FFFFFF', fontFamily: momentsTypography.bodyBold, fontSize: 10, marginTop: 2, ...WHITE_SHADOW },
+  locationPill: { alignSelf: 'flex-start', minHeight: 20, justifyContent: 'center', marginTop: 3, paddingHorizontal: 8, borderRadius: 10, backgroundColor: 'rgba(255, 247, 235, 0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  bannerLocation: { color: '#FFFFFF', fontFamily: momentsTypography.bodyBold, fontSize: 9, ...WHITE_SHADOW },
   pressed: { opacity: 0.78 },
 });

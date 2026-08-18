@@ -49,6 +49,29 @@ export const momentsTypography = {
   bodyBold: 'HearthNunito-ExtraBold',
 } as const;
 
+// Tactile stationery tokens shared by the review-gate surfaces. These keep
+// buttons, chips, cards, and media frames recognizably Hearth without importing
+// the reference mockup's navigation or screen structure.
+export const hearthUi = {
+  shell: '#FFF8EE',
+  shellRaised: '#FFFCF7',
+  shellWarm: '#FCEBDD',
+  coral: '#F16F7F',
+  coralDark: '#C74E61',
+  coralHighlight: '#FFB2B8',
+  peach: '#FFC69F',
+  blush: '#F8D1D6',
+  lavender: '#E7D7F5',
+  sage: '#CFE2C5',
+  sky: '#D8EAF7',
+  butter: '#F8E4A8',
+  cocoa: '#4B2E24',
+  cocoaSoft: '#77594B',
+  hairline: 'rgba(111, 65, 48, 0.14)',
+  outline: 'rgba(171, 91, 63, 0.32)',
+  shadow: '#6C3C2D',
+} as const;
+
 // Bright, saturated Tuber-Simulator-style palette. Flat colors — all light
 // and shade is baked by the voxel mesher.
 export const room = {

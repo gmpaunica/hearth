@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { MOMENT_V2 } from '@/copy';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
 
 interface MomentNoteComposerProps {
   value: string;
@@ -19,6 +19,7 @@ export function MomentNoteComposer({ value, onChange }: MomentNoteComposerProps)
         onPress={() => setOpen(true)}
         style={({ pressed }) => [styles.openRow, pressed && styles.pressed]}
       >
+        <View style={styles.noteMark}><Text style={styles.noteMarkText}>✎</Text></View>
         <View style={styles.openCopy}>
           <Text style={styles.label}>{MOMENT_V2.noteLabel}</Text>
           <Text style={styles.optional}>{MOMENT_V2.noteOptional}</Text>
@@ -72,22 +73,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
-    borderRadius: 18,
-    backgroundColor: '#FFF9F2',
+    borderColor: hearthUi.outline,
+    borderBottomWidth: 3,
+    borderRadius: 19,
+    backgroundColor: hearthUi.shellRaised,
     paddingHorizontal: 13,
     paddingVertical: 9,
     marginTop: 10,
   },
+  noteMark: { width: 34, height: 34, marginRight: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: hearthUi.lavender },
+  noteMarkText: { color: hearthUi.cocoa, fontFamily: momentsTypography.heading, fontSize: 17, lineHeight: 20 },
   openCopy: { flex: 1, paddingRight: 12 },
   label: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
   optional: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 12, lineHeight: 17, marginTop: 2 },
   add: { color: editorial.clayDark, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
   composer: {
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
-    borderRadius: 18,
-    backgroundColor: '#FFF9F2',
+    borderColor: hearthUi.outline,
+    borderRadius: 20,
+    backgroundColor: hearthUi.shellRaised,
     padding: 12,
     marginTop: 10,
   },
@@ -97,9 +101,9 @@ const styles = StyleSheet.create({
     minHeight: 88,
     maxHeight: 132,
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
+    borderColor: hearthUi.outline,
     borderRadius: 16,
-    backgroundColor: editorial.paperStrong,
+    backgroundColor: hearthUi.shell,
     color: editorial.ink,
     fontFamily: momentsTypography.body,
     fontSize: 15,

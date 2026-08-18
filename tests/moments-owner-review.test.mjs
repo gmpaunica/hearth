@@ -74,8 +74,8 @@ test('creation and destination previews match the owner review flow', () => {
   assert.match(controller, /\['fireplace', 'table', 'romantic'\]/);
   assert.match(controller, /\['garden', 'sofa', 'rest'\]/);
   assert.ok(controller.indexOf('About us') < controller.indexOf('What I need'));
-  assert.equal((controller.match(/>1 of 2</g) ?? []).length, 1);
-  assert.equal((controller.match(/>2 of 2</g) ?? []).length, 1);
+  assert.equal((controller.match(/<StepPill current=\{1\} total=\{2\}/g) ?? []).length, 1);
+  assert.equal((controller.match(/<StepPill current=\{2\} total=\{2\}/g) ?? []).length, 1);
   assert.doesNotMatch(controller, /Review moment|review page/i);
   assert.match(preview, /<VoxelMosaic destination=\{consequence\.destination\}/);
   assert.match(preview, /<PostcardProp prop=\{consequence\.prop\}/);
@@ -246,23 +246,30 @@ test('payoff routing waits for dock and focus, restores camera, and keeps Romant
   assert.doesNotMatch(home, /MomentDestinationPayoff/);
 });
 
-test('ending preserves avatar position, doorway owns one floor layer, and the real hearth opens status', () => {
+test('ending uses safe furniture egress, doorway owns one floor layer, and the real hearth opens illustrated status', () => {
   const store = read('src/state/momentV2Store.ts');
   const completionBeat = store.slice(store.indexOf('const beginNextCompletionBeat'), store.indexOf('const beginNextReactionBeat'));
   const avatar = read('src/scene/Avatar.tsx');
   const room = read('src/scene/rooms/RoomComposition.tsx');
   const garden = read('src/scene/rooms/Garden.tsx');
   const fireplace = read('src/scene/objects/Fireplace.tsx');
+  const hearth = read('src/components/HearthStatusCard.tsx');
   const layout = read('src/app/_layout.tsx');
   assert.doesNotMatch(completionBeat, /setSpot\(|requestSnap\(/);
   assert.match(completionBeat, /never rewrite a character's world position/);
-  assert.match(avatar, /spotId === 'idle'[\s\S]*a\.sit = 0;[\s\S]*a\.seatY = 0;/);
-  assert.match(avatar, /\? \{ x: root\.position\.x, z: root\.position\.z, rotY: a\.rotY, seatY: 0 \}/);
+  assert.match(avatar, /previousPose\.seatY > 0 && previousPose\.egress/);
+  assert.match(avatar, /a\.exitTarget = previousPose\.egress/);
+  assert.match(avatar, /snaps to the authored clear-side point before becoming upright/);
+  assert.match(avatar, /exitingSeat[\s\S]*approachRemaining > 0\.07 \? 1 : 0/);
   const arch = room.slice(room.indexOf('function buildGardenArch'), room.indexOf('function GardenPassage'));
   assert.doesNotMatch(arch, /v\.box\([^,]+,\s*-1,/);
   assert.match(garden, /const threshold = x >= 10 && z >= 0 && z <= 3/);
+  assert.match(garden, /function buildGardenGateway/);
+  assert.match(garden, /posts stay outside the route/);
   assert.match(fireplace, /onClick=\{openHearth\}/);
   assert.match(fireplace, /useMomentsSurfaceStore\.getState\(\)\.openHearth\(\)/);
   assert.match(layout, /Fredoka-SemiBold\.ttf/);
   assert.match(layout, /Nunito-Regular\.ttf/);
+  assert.match(hearth, /fireplace-keepsake\.webp/);
+  assert.match(hearth, /A little place for us/);
 });

@@ -47,7 +47,7 @@ import {
 import { requestMomentCameraFocus } from '@/scene/cameraState';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useSceneStore } from '@/state/sceneStore';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
 import { MomentNoteComposer } from './MomentNoteComposer';
 import { MomentConsequencePreview } from './MomentConsequencePreview';
 import { MomentFeelingBanner } from './MomentVignette';
@@ -69,8 +69,21 @@ function PrimaryButton({ label, onPress, disabled = false }: {
       onPress={onPress}
       style={({ pressed }) => [styles.primaryButton, disabled && styles.disabled, pressed && styles.pressed]}
     >
+      <View pointerEvents="none" style={styles.primaryHighlight} />
+      <Text style={styles.primaryHeart}>♥</Text>
       <Text style={styles.primaryButtonText}>{label}</Text>
     </Pressable>
+  );
+}
+
+function StepPill({ current, total }: { current: number; total: number }) {
+  return (
+    <View accessibilityLabel={`Step ${current} of ${total}`} style={styles.stepPill}>
+      {Array.from({ length: total }, (_, index) => (
+        <View key={index} style={[styles.stepDot, index < current && styles.stepDotOn]} />
+      ))}
+      <Text style={styles.stepText}>{current} of {total}</Text>
+    </View>
   );
 }
 
@@ -105,7 +118,7 @@ function CreationFlow({ onSent }: { onSent: () => void }) {
     const whatINeed = MOMENT_FEELINGS.filter((feeling) => ['garden', 'sofa', 'rest'].includes(feeling.type));
     return (
       <View>
-        <Text style={styles.progress}>1 of 2</Text>
+        <StepPill current={1} total={2} />
         <Text style={styles.pageTitle}>How do you feel right now?</Text>
         <View style={styles.bannerList}>
           <Text style={styles.feelingSection}>About us</Text>
@@ -137,7 +150,7 @@ function CreationFlow({ onSent }: { onSent: () => void }) {
   const canSend = destination !== 'fireplace' || intent != null;
   return (
     <View>
-      <Text style={styles.progress}>2 of 2</Text>
+      <StepPill current={2} total={2} />
       <Text style={styles.eyebrow}>{config.label}</Text>
       <Text style={styles.pageTitle}>Choose what you need</Text>
       {destination === 'fireplace' && (
@@ -249,6 +262,7 @@ function PinnedActionCard({ snapshot, onCollapse }: {
 
   return (
     <View accessibilityRole="summary" style={styles.pinnedAction}>
+      <View pointerEvents="none" style={styles.pinnedTape} />
       <Text style={styles.nextEyebrow}>Next for you</Text>
       <Text style={styles.nextTitle}>{title}</Text>
       {(kind === 'join_fireplace' || kind === 'join_table') && (
@@ -389,6 +403,18 @@ const OUTCOME_COPY: Record<string, string> = {
 function EmptyMoments({ snapshot, onNew }: { snapshot: MomentSnapshotV2 | null; onNew: () => void }) {
   return (
     <View>
+      <View style={styles.emptyKeepsake}>
+        <View style={styles.emptyFlower}>
+          <View style={[styles.emptyPetal, styles.emptyPetalTop]} />
+          <View style={[styles.emptyPetal, styles.emptyPetalLeft]} />
+          <View style={[styles.emptyPetal, styles.emptyPetalRight]} />
+          <View style={styles.emptyFlowerCenter} />
+        </View>
+        <View style={styles.emptyKeepsakeCopy}>
+          <Text style={styles.emptyKeepsakeTitle}>A small place to meet</Text>
+          <Text style={styles.emptyKeepsakeBody}>Choose a feeling and Hearth will give it a real place in your home.</Text>
+        </View>
+      </View>
       <Text style={styles.pageTitle}>Shared moments</Text>
       <PrimaryButton label="New moment" onPress={onNew} />
       {!!snapshot?.today_outcomes.length && (
@@ -540,6 +566,7 @@ export function MomentsController() {
           onAccessibilityAction={(event) => setSheetExpanded(event.nativeEvent.actionName === 'expand')}
           style={[styles.sheet, { height: height - expandedY }, sheetStyle]}
         >
+          <View pointerEvents="none" style={styles.sheetTopAccent} />
           <GestureDetector gesture={headerPan}>
             <Pressable
               accessibilityRole="button"
@@ -548,11 +575,12 @@ export function MomentsController() {
             >
               <View style={styles.handle} />
               <View style={[styles.header, expanded && styles.headerExpanded]}>
+                <View style={styles.headerMark}><Text style={styles.headerMarkText}>♥</Text></View>
                 <View style={styles.headerCopy}>
                   {expanded && <Text style={styles.headerEyebrow}>{snapshot?.active ? MOMENT_V2.destinations[snapshot.active.destination].label : 'Moments'}</Text>}
                   <Text numberOfLines={1} style={styles.headerTitle}>{snapshot?.active ? status.minimized : view === 'new' ? 'New moment' : 'Shared moments'}</Text>
                 </View>
-                {expanded && <View style={styles.headerSticker}><Text style={styles.headerStickerText}>♥</Text></View>}
+                {expanded && <View style={styles.headerSticker}><Text style={styles.headerStickerText}>✦</Text></View>}
               </View>
             </Pressable>
           </GestureDetector>
@@ -586,22 +614,29 @@ export function MomentsController() {
 const styles = StyleSheet.create({
   sheetRoot: { position: 'absolute', inset: 0, zIndex: 40 },
   scrim: { position: 'absolute', inset: 0, backgroundColor: '#2A1712' },
-  sheet: { position: 'absolute', top: 0, overflow: 'hidden', backgroundColor: editorial.paper, borderWidth: 1, borderColor: editorial.lineStrong, shadowColor: editorial.shadow, shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 15 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: editorial.lineStrong, alignSelf: 'center', marginTop: 6 },
-  header: { minHeight: 38, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, paddingHorizontal: 14 },
+  sheet: { position: 'absolute', top: 0, overflow: 'hidden', backgroundColor: hearthUi.shell, borderWidth: 1.5, borderColor: hearthUi.outline, shadowColor: hearthUi.shadow, shadowOpacity: 0.28, shadowRadius: 22, shadowOffset: { width: 0, height: 9 }, elevation: 15 },
+  sheetTopAccent: { position: 'absolute', top: 0, left: 20, right: 20, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: hearthUi.coralHighlight, opacity: 0.74 },
+  handle: { width: 38, height: 4, borderRadius: 2, backgroundColor: hearthUi.outline, alignSelf: 'center', marginTop: 7 },
+  header: { minHeight: 38, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderColor: hearthUi.hairline, paddingHorizontal: 12 },
   headerExpanded: { minHeight: 54 },
+  headerMark: { width: 32, height: 32, marginRight: 9, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: hearthUi.outline, backgroundColor: hearthUi.blush, transform: [{ rotate: '-2deg' }] },
+  headerMarkText: { color: hearthUi.coralDark, fontFamily: momentsTypography.heading, fontSize: 16, lineHeight: 20 },
   headerCopy: { flex: 1 },
   headerEyebrow: { color: editorial.clayDark, fontFamily: momentsTypography.bodyBold, fontSize: 10 },
   headerTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 18, marginTop: 1 },
-  headerSticker: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7C6C7', transform: [{ rotate: '7deg' }] },
-  headerStickerText: { color: '#B84B5C', fontFamily: momentsTypography.heading, fontSize: 18, lineHeight: 22 },
-  pinnedAction: { marginHorizontal: 12, marginTop: 10, padding: 13, borderRadius: 20, borderWidth: 2, borderColor: '#DFA27D', backgroundColor: '#FFF0CF' },
+  headerSticker: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: hearthUi.butter, transform: [{ rotate: '7deg' }] },
+  headerStickerText: { color: hearthUi.cocoa, fontFamily: momentsTypography.heading, fontSize: 16, lineHeight: 20 },
+  pinnedAction: { marginHorizontal: 12, marginTop: 12, padding: 14, paddingTop: 17, borderRadius: 22, borderWidth: 1.5, borderColor: '#DFA27D', backgroundColor: '#FFF0CF', shadowColor: hearthUi.shadow, shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  pinnedTape: { position: 'absolute', top: -5, alignSelf: 'center', width: 58, height: 15, backgroundColor: 'rgba(255, 244, 205, 0.9)', transform: [{ rotate: '2deg' }] },
   nextEyebrow: { color: editorial.clayDark, fontFamily: momentsTypography.bodyBold, fontSize: 11 },
   nextTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 18, lineHeight: 23, marginTop: 3 },
   sheetContent: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 42 },
-  progress: { color: editorial.inkSoft, fontFamily: momentsTypography.bodyBold, fontSize: 11, marginBottom: 8 },
+  stepPill: { alignSelf: 'flex-start', minHeight: 28, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: hearthUi.outline, backgroundColor: hearthUi.blush, marginBottom: 9 },
+  stepDot: { width: 7, height: 7, marginRight: 4, borderRadius: 4, borderWidth: 1, borderColor: hearthUi.coralDark, backgroundColor: hearthUi.shell },
+  stepDotOn: { backgroundColor: hearthUi.coral },
+  stepText: { color: hearthUi.cocoa, fontFamily: momentsTypography.bodyBold, fontSize: 10, marginLeft: 3 },
   eyebrow: { color: editorial.clayDark, fontFamily: momentsTypography.bodyBold, fontSize: 11, marginBottom: 5 },
   pageTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 26, lineHeight: 31 },
   body: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 14, lineHeight: 20, marginTop: 6 },
@@ -610,13 +645,15 @@ const styles = StyleSheet.create({
   optionList: { marginTop: 12, marginBottom: 12 },
   section: { marginTop: 16 },
   sectionLabel: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 12, lineHeight: 17, marginBottom: 5 },
-  actionRow: { minHeight: 58, justifyContent: 'center', borderWidth: 1, borderColor: editorial.lineStrong, borderRadius: 17, backgroundColor: editorial.paperStrong, paddingHorizontal: 13, paddingVertical: 9, marginBottom: 8 },
-  actionRowSelected: { backgroundColor: editorial.claySoft, borderLeftWidth: 3, borderLeftColor: editorial.clay },
+  actionRow: { minHeight: 60, justifyContent: 'center', borderWidth: 1, borderBottomWidth: 3, borderColor: hearthUi.outline, borderRadius: 19, backgroundColor: hearthUi.shellRaised, paddingHorizontal: 14, paddingVertical: 9, marginBottom: 9 },
+  actionRowSelected: { backgroundColor: hearthUi.blush, borderLeftWidth: 3, borderLeftColor: hearthUi.coralDark },
   actionTitle: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14, lineHeight: 19 },
   actionConsequence: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 12, lineHeight: 17, marginTop: 2 },
-  primaryButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: editorial.clay, marginTop: 10, paddingHorizontal: 14 },
+  primaryButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 1, borderBottomWidth: 4, borderColor: hearthUi.coralDark, backgroundColor: hearthUi.coral, marginTop: 11, paddingHorizontal: 14, overflow: 'hidden' },
+  primaryHighlight: { position: 'absolute', left: 12, right: 12, top: 4, height: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.52)' },
+  primaryHeart: { color: '#FFFFFF', fontFamily: momentsTypography.heading, fontSize: 13, marginRight: 7, marginTop: 1 },
   primaryButtonText: { color: '#FFFFFF', fontFamily: momentsTypography.bodyBold, fontSize: 14, textAlign: 'center' },
-  secondaryButton: { minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1, borderColor: editorial.lineStrong, backgroundColor: '#FFF9F2', marginTop: 8, paddingHorizontal: 14 },
+  secondaryButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 1.5, borderColor: hearthUi.outline, backgroundColor: hearthUi.shellRaised, marginTop: 8, paddingHorizontal: 14 },
   secondaryButtonText: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
   responseComposer: { paddingBottom: 8 },
   sentNote: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, paddingVertical: 12, marginTop: 12 },
@@ -631,6 +668,16 @@ const styles = StyleSheet.create({
   cancelSection: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, marginTop: 13, paddingTop: 8 },
   earlierSection: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, marginTop: 24, paddingTop: 14 },
   outcomeRow: { minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, paddingVertical: 10 },
+  emptyKeepsake: { minHeight: 92, flexDirection: 'row', alignItems: 'center', padding: 13, paddingRight: 15, marginBottom: 15, borderRadius: 24, borderWidth: 1.5, borderColor: hearthUi.outline, backgroundColor: hearthUi.sage, transform: [{ rotate: '-0.5deg' }] },
+  emptyFlower: { width: 54, height: 54, marginRight: 12, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.56)' },
+  emptyPetal: { position: 'absolute', width: 17, height: 24, borderRadius: 11, backgroundColor: hearthUi.coral },
+  emptyPetalTop: { left: 18, top: 5 },
+  emptyPetalLeft: { left: 10, top: 20, transform: [{ rotate: '-52deg' }] },
+  emptyPetalRight: { right: 10, top: 20, transform: [{ rotate: '52deg' }] },
+  emptyFlowerCenter: { position: 'absolute', left: 20, top: 23, width: 14, height: 14, borderRadius: 7, backgroundColor: hearthUi.butter },
+  emptyKeepsakeCopy: { flex: 1 },
+  emptyKeepsakeTitle: { color: hearthUi.cocoa, fontFamily: momentsTypography.heading, fontSize: 15, lineHeight: 19 },
+  emptyKeepsakeBody: { color: hearthUi.cocoaSoft, fontFamily: momentsTypography.body, fontSize: 11, lineHeight: 16, marginTop: 3 },
   error: { color: editorial.danger, fontSize: 13, lineHeight: 18, marginTop: 12 },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.48 },
