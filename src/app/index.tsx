@@ -5,6 +5,7 @@ import { CharacterButton } from '@/components/CharacterButton';
 import { DailyDrawing } from '@/components/DailyDrawing';
 import { DemoPanel } from '@/components/DemoPanel';
 import { HomeGrewCard } from '@/components/HomeGrewCard';
+import { GreenhouseButton } from '@/components/GreenhouseButton';
 import { MomentsController } from '@/components/MomentsController';
 import { FireplaceReconnectBubble } from '@/components/FireplaceReconnectBubble';
 import { HearthStatusCard } from '@/components/HearthStatusCard';
@@ -65,6 +66,7 @@ export default function HomeScreen() {
           {!settingsOpen && <DailyDrawing />}
           {!settingsOpen && <CharacterButton />}
           {!settingsOpen && <RitualsButton />}
+          {!settingsOpen && <GreenhouseButton />}
           {!settingsOpen && <HomeGrewCard />}
         </>
       )}
