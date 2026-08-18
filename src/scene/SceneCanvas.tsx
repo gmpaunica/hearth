@@ -3,21 +3,37 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 
+interface SceneCanvasProps {
+  children: ReactNode;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityActionLabel?: string;
+  onAccessibilityActivate?: (() => void) | null;
+}
+
 /** Native (iOS/Android) canvas host — expo-gl under the hood. */
-export function SceneCanvas({ children }: { children: ReactNode }) {
+export function SceneCanvas({
+  children,
+  accessibilityLabel = 'Shared Hearth home',
+  accessibilityHint = 'Open Moments to inspect and activate fireplace outcomes',
+  accessibilityActionLabel = 'Open Moments and fireplace outcomes',
+  onAccessibilityActivate = () => useMomentsSurfaceStore.getState().openMoments(),
+}: SceneCanvasProps) {
   return (
     <View
       style={styles.container}
       accessible
-      accessibilityRole="imagebutton"
-      accessibilityLabel="Shared Hearth home"
-      accessibilityHint="Open Moments to inspect and activate fireplace outcomes"
-      accessibilityActions={[{ name: 'activate', label: 'Open Moments and fireplace outcomes' }]}
-      onAccessibilityAction={(event) => {
-        if (event.nativeEvent.actionName === 'activate') {
-          useMomentsSurfaceStore.getState().openMoments();
-        }
-      }}
+      accessibilityRole={onAccessibilityActivate ? 'imagebutton' : 'image'}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityActions={onAccessibilityActivate
+        ? [{ name: 'activate', label: accessibilityActionLabel }]
+        : undefined}
+      onAccessibilityAction={onAccessibilityActivate
+        ? (event) => {
+            if (event.nativeEvent.actionName === 'activate') onAccessibilityActivate();
+          }
+        : undefined}
     >
       {/* flat = no tone mapping. With color management on and no tone curve,
           an authored hex color decodes to linear and re-encodes on output —
