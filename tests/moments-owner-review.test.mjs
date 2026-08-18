@@ -250,7 +250,8 @@ test('ending preserves avatar position, doorway owns one floor layer, and the re
   const store = read('src/state/momentV2Store.ts');
   const completionBeat = store.slice(store.indexOf('const beginNextCompletionBeat'), store.indexOf('const beginNextReactionBeat'));
   const avatar = read('src/scene/Avatar.tsx');
-  const room = read('src/scene/Room.tsx');
+  const room = read('src/scene/rooms/RoomComposition.tsx');
+  const garden = read('src/scene/rooms/Garden.tsx');
   const fireplace = read('src/scene/objects/Fireplace.tsx');
   const layout = read('src/app/_layout.tsx');
   assert.doesNotMatch(completionBeat, /setSpot\(|requestSnap\(/);
@@ -259,7 +260,7 @@ test('ending preserves avatar position, doorway owns one floor layer, and the re
   assert.match(avatar, /\? \{ x: root\.position\.x, z: root\.position\.z, rotY: a\.rotY, seatY: 0 \}/);
   const arch = room.slice(room.indexOf('function buildGardenArch'), room.indexOf('function GardenPassage'));
   assert.doesNotMatch(arch, /v\.box\([^,]+,\s*-1,/);
-  assert.match(room, /const threshold = x >= 10 && z >= 0 && z <= 3/);
+  assert.match(garden, /const threshold = x >= 10 && z >= 0 && z <= 3/);
   assert.match(fireplace, /onClick=\{openHearth\}/);
   assert.match(fireplace, /useMomentsSurfaceStore\.getState\(\)\.openHearth\(\)/);
   assert.match(layout, /Fredoka-SemiBold\.ttf/);

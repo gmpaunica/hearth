@@ -56,7 +56,7 @@ test('camera release uses subtle inertia without magnetic room snapping', () => 
 
 test('camera uses one close stable frame and keeps all rooms reachable', () => {
   const homeSource = read('src/scene/HomeScene.tsx');
-  const roomSource = read('src/scene/Room.tsx');
+  const roomSource = read('src/scene/rooms/Garden.tsx');
   const cameraSource = read('src/scene/cameraState.ts');
   assert.match(cameraSource, /centerX: 0/);
   assert.match(cameraSource, /centerZ: 0/);
@@ -112,8 +112,8 @@ test('camera uses one close stable frame and keeps all rooms reachable', () => {
 });
 
 test('expanded garden preserves open lawn for future relationship growth', () => {
-  const source = read('src/scene/Room.tsx');
-  assert.match(source, /open grass is part of the composition/);
+  const source = read('src/scene/rooms/Garden.tsx');
+  assert.match(source, /const stones:/);
   assert.doesNotMatch(source, /function buildHeartTopiary/);
   assert.doesNotMatch(source, /function buildPicnicNook/);
   assert.doesNotMatch(source, /const heartRows/);
@@ -122,7 +122,7 @@ test('expanded garden preserves open lawn for future relationship growth', () =>
 });
 
 test('garden spaces the pink tree, moved bench and animated koi pond into separate zones', () => {
-  const source = read('src/scene/Room.tsx');
+  const source = read('src/scene/rooms/Garden.tsx');
   const lockedSource = read('src/scene/LockedRoom.tsx');
   assert.match(source, /function KoiPond/);
   assert.match(source, /function buildKoiPond/);
@@ -720,7 +720,7 @@ test('DR1 stores smooth portrait sketches with a legacy fallback', () => {
 });
 
 test('global backdrop cannot depth-clip the garden or another room', () => {
-  const source = read('src/scene/Room.tsx');
+  const source = read('src/scene/rooms/LivingRoom.tsx');
   assert.match(source, /position=\{\[-12, 0\.4, -21\]\}/);
   assert.match(source, /renderOrder=\{-1000\}/);
   assert.match(source, /depthTest: false/);
@@ -761,9 +761,30 @@ test('rest-nook seats keep full avatar heads from intersecting', () => {
   assert.match(read('src/scene/objects/RestNook.tsx'), /v\.box\(0, 0, 0, 8, 1, 4/);
 });
 
+test('room features are isolated behind one integrator-owned composition module', () => {
+  const entry = read('src/scene/Room.tsx').trim();
+  const composition = read('src/scene/rooms/RoomComposition.tsx');
+  const garden = read('src/scene/rooms/Garden.tsx');
+  const bedroom = read('src/scene/rooms/Bedroom.tsx');
+  const living = read('src/scene/rooms/LivingRoom.tsx');
+
+  assert.equal(entry, "export { Room } from './rooms/RoomComposition';");
+  assert.match(composition, /import \{ Garden \} from '\.\/Garden'/);
+  assert.match(composition, /import \{ Bedroom \} from '\.\/Bedroom'/);
+  assert.match(composition, /import \{ LivingRoom, VoidBackdrop \} from '\.\/LivingRoom'/);
+  assert.match(garden, /export function Garden\(\)/);
+  assert.match(bedroom, /export function Bedroom\(\)/);
+  assert.match(living, /export function LivingRoom\(\)/);
+  assert.doesNotMatch(garden, /from '\.\/Bedroom'|from '\.\/LivingRoom'/);
+  assert.doesNotMatch(bedroom, /from '\.\/Garden'|from '\.\/LivingRoom'/);
+});
+
 test('dollhouse uses shared-wall rooms with the garden at the west doorway', () => {
   const homeSource = read('src/scene/HomeScene.tsx');
-  const roomSource = read('src/scene/Room.tsx');
+  const roomSource = read('src/scene/rooms/RoomComposition.tsx');
+  const gardenSource = read('src/scene/rooms/Garden.tsx');
+  const livingSource = read('src/scene/rooms/LivingRoom.tsx');
+  const bedroomSource = read('src/scene/rooms/Bedroom.tsx');
   const shellSource = read('src/scene/shell.ts');
   assert.doesNotMatch(roomSource, /RoomConnector|<Bridge/);
   assert.doesNotMatch(roomSource, /buildBedroomVestibule|buildBedroomArch/);
@@ -819,17 +840,17 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   assert.doesNotMatch(roomSource, /buildGardenPath/);
   assert.match(roomSource, /position=\{\[-4\.5, 0, 2\.25\]\}/);
   assert.doesNotMatch(roomSource.slice(roomSource.indexOf('function buildGardenArch'), roomSource.indexOf('function GardenPassage')), /v\.box\([^,]+,\s*-1,/);
-  assert.match(roomSource, /const threshold = x >= 10 && z >= 0 && z <= 3/);
-  assert.match(roomSource, /showRightEdge=\{false\}/);
-  assert.match(roomSource, /buildCornerShell\(v, -10, 9, -10, 8\)/);
-  assert.match(roomSource, /v\.remove\(-11, 0, 8, 1, 15, 1\)/);
+  assert.match(gardenSource, /const threshold = x >= 10 && z >= 0 && z <= 3/);
+  assert.match(gardenSource, /showRightEdge=\{false\}/);
+  assert.match(bedroomSource, /buildCornerShell\(v, -10, 9, -10, 8\)/);
+  assert.match(bedroomSource, /v\.remove\(-11, 0, 8, 1, 15, 1\)/);
   assert.match(
-    roomSource,
+    bedroomSource,
     /PlatformFx x0=\{-2\.75\} x1=\{2\.5\} z0=\{-2\.75\} z1=\{2\.25\}/,
   );
   assert.match(roomSource, /buildBedroomThreshold/);
-  assert.match(roomSource, /const bedroomSocket = ROOM_SOCKETS\.bedroom/);
-  assert.match(roomSource, /showFrontEdge=\{false\}/);
+  assert.match(livingSource, /const bedroomSocket = ROOM_SOCKETS\.bedroom/);
+  assert.match(bedroomSource, /showFrontEdge=\{false\}/);
   assert.doesNotMatch(homeSource, /Kitchen/);
   assert.match(homeSource, /position=\{\[-4\.28, 1\.2, 1\.08\]\} rotation=\{\[0, Math\.PI \/ 2, 0\]\}/);
   assert.match(homeSource, /Bookshelf position=\{\[-4\.18, 0, -2\.35\]\}/);
@@ -965,7 +986,7 @@ test('daily drawing is immediate and avatars walk briskly to random safe idle po
   assert.match(avatarSource, /a\.ambientWait = 5 \+ Math\.random\(\) \* 4/);
   assert.match(avatarSource, /planPath\(/);
   assert.match(avatarSource, /Math\.sin\(t \* WALK_CADENCE/);
-  assert.match(read('src/scene/Room.tsx'), /function Bedroom\(\)/);
+  assert.match(read('src/scene/rooms/Bedroom.tsx'), /function Bedroom\(\)/);
 
   const navigation = loadTsModule('src/scene/sceneNavigation.ts');
   let seed = 137;
