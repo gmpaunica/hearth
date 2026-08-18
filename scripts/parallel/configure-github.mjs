@@ -1,4 +1,4 @@
-import { loadPolicy, repoFromRemote, run } from './lib.mjs';
+import { loadPolicy, repoFromRemote } from './lib.mjs';
 import { assertGhAuth, gh, ghJson } from './github.mjs';
 
 const policy = loadPolicy();
@@ -40,12 +40,12 @@ const protection = {
   lock_branch: false,
   allow_fork_syncing: true,
 };
-run('gh', [
+gh([
   'api', '--method', 'PUT',
   `repos/${repository}/branches/${encodeURIComponent(policy.integration_branch)}/protection`,
   '--input', '-',
 ], { input: JSON.stringify(protection) });
-run('gh', [
+gh([
   'api', '--method', 'PATCH', `repos/${repository}`, '--input', '-',
 ], {
   input: JSON.stringify({
