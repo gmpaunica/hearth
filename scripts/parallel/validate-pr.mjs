@@ -58,8 +58,12 @@ async function main() {
     throw new Error('GITHUB_EVENT_PATH, GITHUB_TOKEN, and GITHUB_REPOSITORY are required.');
   }
   const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
-  const pullRequest = event.pull_request;
-  if (!pullRequest) throw new Error('This validator requires a pull_request event.');
+  const eventPullRequest = event.pull_request;
+  if (!eventPullRequest) throw new Error('This validator requires a pull_request event.');
+  const pullRequest = await githubRequest(
+    `/repos/${repository}/pulls/${eventPullRequest.number}`,
+    { token },
+  );
   const close = String(pullRequest.body ?? '').match(/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/i);
   if (!close) throw new Error('PR body must link its reservation with Closes #<claim>.');
   const claimNumber = Number.parseInt(close[1], 10);
