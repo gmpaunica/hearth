@@ -33,3 +33,5 @@ Deliver one bounded phone-client change without colliding with another Codex tab
 5. Mark the PR ready only when the requested feature and verification are complete. A ready PR joins the serialized integration queue.
 
 Workers never merge a PR, publish an EAS update, delete the feature branch, synchronize the canonical checkout, or deploy database work.
+
+On this workstation, invoke any direct GitHub CLI operation as `node scripts/parallel/gh.mjs <gh arguments>`. The wrapper uses the existing Git Credential Manager entry ephemerally and never copies a token into the worktree.

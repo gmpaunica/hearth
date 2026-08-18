@@ -1,7 +1,23 @@
+import { spawnSync } from 'node:child_process';
 import { run } from './lib.mjs';
 
+function githubEnvironment() {
+  if (process.env.GH_TOKEN || process.env.GITHUB_TOKEN) return process.env;
+  const credential = spawnSync('git', ['credential', 'fill'], {
+    encoding: 'utf8',
+    input: 'protocol=https\nhost=github.com\n\n',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  if (credential.error || credential.status !== 0) {
+    throw new Error('Git Credential Manager could not provide a GitHub credential.');
+  }
+  const token = credential.stdout.match(/^password=(.+)$/m)?.[1]?.trim();
+  if (!token) throw new Error('Git Credential Manager returned no GitHub token.');
+  return { ...process.env, GH_TOKEN: token };
+}
+
 export function gh(args, options = {}) {
-  return run('gh', args, options);
+  return run('gh', args, { ...options, env: options.env ?? githubEnvironment() });
 }
 
 export function ghJson(args, options = {}) {
