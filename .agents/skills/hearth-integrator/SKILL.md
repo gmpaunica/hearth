@@ -34,3 +34,5 @@ Process at most one ready PR per run. A pending merged SHA always takes priority
 7. Merge through GitHub with a merge commit. Record the returned SHA immediately and continue through the pending-publication workflow above.
 
 Rollback is a PR reverting the relevant merge commit. It follows the same gate, synthetic merge, GitHub merge, and EAS preview sequence.
+
+For direct GitHub CLI operations, use `node scripts/parallel/gh.mjs <gh arguments>` so the repository-scoped Git Credential Manager entry is supplied ephemerally without storing credentials in a worktree.

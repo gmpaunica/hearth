@@ -21,10 +21,12 @@
   validators, atomic integration state, idempotent preview publication, and
   synthetic merge validation are committed infrastructure. Merges and preview
   updates are serialized; native/database PRs require explicit authorization.
-- GitHub CLI is installed locally. Remote branch push, labels/protection, and
-  the five-minute Codex desktop task require completing `gh auth login` on this
-  workstation; until then the local system is ready but remote enforcement is
-  not active.
+- `app/integration` is pushed and protected with its required gate, PR-only
+  changes, admin enforcement, merge commits, and force-push/deletion disabled.
+  The six coordination labels are installed. GitHub helpers obtain the existing
+  repo-scoped Git Credential Manager token ephemerally; no token is copied into
+  worktrees. Creating the five-minute task in the Codex desktop UI remains the
+  one UI-only activation step.
 
 ## The vision (owner's intent)
 
