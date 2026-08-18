@@ -137,9 +137,12 @@ src/scene/            Everything inside the 3D canvas.
   SceneCanvas.tsx / .web.tsx   R3F <Canvas> host (native vs web); fixed ortho iso cam.
   HomeScene.tsx       Composes the world: CameraRig (framing+pan), Atmosphere, Room,
                       furniture objects (gated by progression), Avatars, effects.
-  Room.tsx            THE MULTI-ROOM WORLD. Global night void + LivingRoom + Bedroom +
-                      Garden platform components + plank Bridges; shaders (void,
-                      fire glow) + window/garden-door backdrops. Gated by progression.
+  Room.tsx            Compatibility export for the room composition.
+  rooms/
+    LivingRoom.tsx    Living-room shell, fixtures, doorway, and backdrop.
+    Bedroom.tsx       Bedroom shell and fixtures.
+    Garden.tsx        Garden shell, planting, pond, and garden fixtures.
+    RoomComposition.tsx  Small integrator-owned topology, void, bridges, and gates.
   shell.ts            Shared builders: paintBrickFloor, buildCornerShell, stripedRug,
                       and the room world OFFSETS (LIVING/BEDROOM/GARDEN_OFFSET).
   PlatformFx.tsx      Per-room blue plinth rim + soft glow + warm under-halo,
@@ -194,6 +197,10 @@ supabase/             SQL you run in the Supabase dashboard + the edge function.
 
 dev/                  Sandbox browser-QA tooling (see §10). Not shipped.
 scripts/live-test.mjs Node script exercising the backend directly.
+scripts/parallel/     Claims, scope/impact validation, cross-platform tests/lint/
+                      exports, synthetic merges, locking, state, and EAS retry.
+.codex/parallel-policy.json  Machine-readable worktree/integrator ownership policy.
+.agents/skills/       Repo-local $hearth-worker and $hearth-integrator workflows.
 docs/art-bible.md     The locked Style-F visual target and mandates.
 ```
 
@@ -235,9 +242,10 @@ overlap between ~7-wide rooms.
   Add a `NEWROOM_OFFSET`.
 - `PlatformFx.tsx` — `<PlatformFx x0 x1 z0 z1 />` draws that room's blue rim +
   warm halo from its floor's world extent. Render one per room.
-- `Room.tsx` — add a `<NewRoom>` component: `<group position={[...OFFSET]}>`
-  containing the shell VoxMesh, furniture, and `<PlatformFx>`. Gate it in `Room()`
-  on a `components.has('...')`, and add a `<Bridge from={...} to={...}>`.
+- `src/scene/rooms/NewRoom.tsx` — add a `<NewRoom>` component containing the
+  shell VoxMesh, furniture, and `<PlatformFx>`. The protected integrator updates
+  `RoomComposition.tsx` to gate it and connect shared topology after a worker
+  requests that composition change.
 - `spots.ts` — any signal seat in the new room is `OFFSET + local seat` (write
   the final world coords).
 - `homeProgress.ts` — add a `HomeComponent` + a `HOME_STAGES` entry so it unlocks.

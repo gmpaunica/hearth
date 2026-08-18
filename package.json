@@ -51,7 +51,13 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/parallel/run-tests.mjs",
+    "test:parallel": "node --test tests/parallel-system.test.mjs",
+    "lint:changed": "node scripts/parallel/changed-lint.mjs",
+    "export:all": "node scripts/parallel/export-all.mjs",
+    "check:skills": "node scripts/parallel/check-skills.mjs"
   },
   "private": true
 }

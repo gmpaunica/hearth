@@ -1,0 +1,4 @@
+# Codex copies only ignored files listed here into a new worktree.
+# Hearth intentionally copies none: credentials, signing material, .env files,
+# Supabase state, Expo state, and node_modules must stay checkout-local.
+# Run `npm ci` through the committed worktree setup action instead.

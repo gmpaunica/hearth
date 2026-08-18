@@ -7,6 +7,25 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
+## Parallel delivery system — 18 August 2026
+
+- `app/integration` is the protected phone staging trunk. Feature tabs use
+  isolated Codex worktrees and machine-readable GitHub issue reservations;
+  overlapping paths are owned by the lowest claim number.
+- `Room.tsx` is now a compatibility export. `LivingRoom.tsx`, `Bedroom.tsx`,
+  and `Garden.tsx` own their feature geometry while the small
+  `RoomComposition.tsx` topology remains integrator-owned. The behavior-
+  preserving split was exported and published in EAS group
+  `fae8a07c-ee0d-40fb-9628-f13b468948c3` for runtime `1.0.3`.
+- Repo policy, role hooks, `$hearth-worker`/`$hearth-integrator`, claim/CI
+  validators, atomic integration state, idempotent preview publication, and
+  synthetic merge validation are committed infrastructure. Merges and preview
+  updates are serialized; native/database PRs require explicit authorization.
+- GitHub CLI is installed locally. Remote branch push, labels/protection, and
+  the five-minute Codex desktop task require completing `gh auth login` on this
+  workstation; until then the local system is ready but remote enforcement is
+  not active.
+
 ## The vision (owner's intent)
 
 Hearth is a **two-person relationship app**. A couple shares one cozy voxel
@@ -56,7 +75,7 @@ and a large projected split heart owns mutual readiness. The centered 48-pixel
 dock keeps home controls visible, response confirmations are action-specific
 scrapbook postcards, and Fredoka/Nunito give Moments the requested warm bubbly
 voice. Backend contracts remain unchanged from deployed migration
-`20260817120000`. The canonical phone client passes TypeScript, 61 tests,
+`20260817120000`. The canonical phone client passes TypeScript, 74 tests,
 Android/iOS/web export, changed-file lint with zero errors, and 20 real-touch
 sheet cycles at 390×844. Update group
 `726847ac-2fab-4344-95b9-f6e1e842151a` is verified latest on `preview` for
@@ -127,7 +146,9 @@ owner review. Do not start voice notes; microphone support requires a new APK.
   drag/pinch reaches the garden at the west doorway and bedroom through the
   back arch. `src/scene/shell.ts` owns stable sockets and offsets,
   `PlatformFx.tsx` supplies warm plinth trim/contact shadow/halo, and modular
-  `LivingRoom`/`Bedroom`/`Garden` builders remain in `Room.tsx`.
+  `LivingRoom`/`Bedroom`/`Garden` builders live in isolated files under
+  `src/scene/rooms/`; `RoomComposition.tsx` owns only shared topology and
+  progression gating, while `Room.tsx` remains a compatibility export.
 - **`PREVIEW_UNLOCK_ALL`** (in `homeProgress.ts`) is currently **`true`**: the
   whole home is unlocked from day 0 so every room is visible immediately while
   testing (a fresh couple would otherwise wait to d21/d30). Flip it to `false`

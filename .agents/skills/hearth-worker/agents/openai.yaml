@@ -1,0 +1,6 @@
+interface:
+  display_name: "Hearth Worker"
+  short_description: "Claim and deliver an isolated Hearth feature"
+  default_prompt: "Use $hearth-worker to claim, implement, verify, and open a Hearth feature PR."
+policy:
+  allow_implicit_invocation: true
