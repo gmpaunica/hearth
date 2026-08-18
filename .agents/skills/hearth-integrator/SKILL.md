@@ -20,7 +20,7 @@ Process at most one ready PR per run. A pending merged SHA always takes priority
 1. If state is `awaiting_merge`, query the recorded PR. When it is merged, record its merge SHA with `node scripts/parallel/integrator-state.mjs merged --sha <sha>`; otherwise do not process another PR.
 2. Fetch `origin/app/integration`, fast-forward the clean canonical checkout, and verify `HEAD` is exactly the pending SHA and its tree matches `tested_tree`.
 3. Run `node scripts/parallel/preview-update.mjs --sha <sha> --pr <number> --message <description>`. It checks for an existing `[sha:<sha>]` update before publishing and verifies the result is newest on `preview`.
-4. Comment on the PR with merge SHA and EAS group. Remove `preview-pending`, delete the remote feature branch, then clear state with `node scripts/parallel/integrator-state.mjs clear --sha <sha>`.
+4. Comment on the PR with merge SHA and EAS group. Explicitly close the linked claim issue as completed (a PR into the non-default `app/integration` branch does not make `Closes #...` do this automatically). Remove `preview-pending`, delete the remote feature branch, then clear state with `node scripts/parallel/integrator-state.mjs clear --sha <sha>`.
 5. If publication fails or verification is ambiguous, leave state and branch intact, label the PR `preview-pending`, and exit. Never advance the queue.
 
 ## Integrate one ready PR
