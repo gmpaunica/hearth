@@ -2,27 +2,32 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect } from 'react';
 import * as THREE from 'three';
 
-import { useAuthStore } from '@/state/authStore';
 import { useHomeProgress } from '@/state/homeProgress';
-import { avatarPresets } from '@/theme/hearth';
+import { useAvatarStore } from '@/state/avatarStore';
+import { appearanceToAvatarColors } from '@/state/avatarAppearance';
 import { Atmosphere } from './Atmosphere';
-import { camState } from './cameraState';
+import { HOME_CAMERA_FRAME, camState, publishFocusedRoom } from './cameraState';
 import { Avatar } from './Avatar';
-import { PixelPass } from './PixelPass';
+import { HOME_ART_RESOLUTION, PixelPass } from './PixelPass';
 import { Rain } from './Rain';
 import { ReconcileHeart } from './ReconcileHeart';
+import { WorldAnchorProjector } from './WorldAnchorProjector';
+import { MomentSceneDetails } from './MomentSceneDetails';
 import { Room } from './Room';
 import { Sparkles } from './Sparkles';
-import { Bench } from './objects/Bench';
+import { clampCameraOffset, nearestRoom, ROOM_STOPS, type RoomId } from './roomNavigation';
 import { Bookshelf } from './objects/Bookshelf';
-import { Easel } from './objects/Easel';
 import { Fireplace } from './objects/Fireplace';
+import { FireplaceOutcomes } from './objects/FireplaceOutcomes';
 import { Plant } from './objects/Plant';
 import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
+import { Easel } from './objects/Easel';
 
-const LOOK_AT_Y = 1.45;
+// Frame the floor slightly above screen centre so the detailed home occupies
+// the visual field beneath the quiet header instead of sitting low in empty sky.
+const LOOK_AT_Y = 0.2;
 
 /**
  * Fixed isometric camera (45° azimuth, ~30° elevation). The framing (centre +
@@ -30,19 +35,66 @@ const LOOK_AT_Y = 1.45;
  * view can widen once there are neighbouring rooms to reveal.
  */
 function CameraRig() {
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const cam = state.camera as THREE.OrthographicCamera;
-    const base = Math.min(state.size.width / camState.viewW, state.size.height / camState.viewH);
-    const zoom = base * camState.zoomMul;
-    if (Math.abs(cam.zoom - zoom) > 0.3) {
-      cam.zoom = zoom;
-      cam.updateProjectionMatrix();
-    }
-    camState.zoom = cam.zoom;
     // Eye stays a fixed diagonal offset from the target, so recentring on the
     // frame centre preserves the exact isometric angle. The drag-pan offset
     // slides both eye and target together so the home moves under the camera.
+    if (!camState.dragging && camState.focusTarget) {
+      camState.offX = THREE.MathUtils.damp(camState.offX, camState.focusTarget.x, 4.8, delta);
+      camState.offZ = THREE.MathUtils.damp(camState.offZ, camState.focusTarget.z, 4.8, delta);
+      if (Math.hypot(
+        camState.offX - camState.focusTarget.x,
+        camState.offZ - camState.focusTarget.z,
+      ) < 0.025) {
+        camState.offX = camState.focusTarget.x;
+        camState.offZ = camState.focusTarget.z;
+        camState.focusTarget = null;
+      }
+    } else if (!camState.dragging && (camState.velocityX !== 0 || camState.velocityZ !== 0)) {
+      const next = clampCameraOffset(
+        camState.offX + camState.velocityX * delta,
+        camState.offZ + camState.velocityZ * delta,
+        camState.zoomMul,
+      );
+      camState.offX = next.x;
+      camState.offZ = next.z;
+      const decay = Math.exp(-5.2 * delta);
+      camState.velocityX *= decay;
+      camState.velocityZ *= decay;
+      if (Math.hypot(camState.velocityX, camState.velocityZ) < 0.015) {
+        camState.velocityX = 0;
+        camState.velocityZ = 0;
+      }
+    }
     const { offX, offZ, centerX, centerZ } = camState;
+    const nearest = nearestRoom(offX, offZ);
+    // Define the orthographic frustum directly in world units. Deriving zoom
+    // from native surface pixels produced a narrower-than-requested view on the
+    // phone, placing the garden corner on the bezel despite the nominal margin.
+    const aspect = Math.max(state.size.width / Math.max(state.size.height, 1), 0.01);
+    const frameAspect = camState.viewW / camState.viewH;
+    const fittedW = aspect >= frameAspect ? camState.viewH * aspect : camState.viewW;
+    const fittedH = aspect >= frameAspect ? camState.viewH : camState.viewW / aspect;
+    const halfW = fittedW / 2;
+    const halfH = fittedH / 2;
+    const frustumChanged =
+      Math.abs(cam.left + halfW) > 0.01 ||
+      Math.abs(cam.right - halfW) > 0.01 ||
+      Math.abs(cam.top - halfH) > 0.01 ||
+      Math.abs(cam.bottom + halfH) > 0.01 ||
+      Math.abs(cam.zoom - camState.zoomMul) > 0.001;
+    if (frustumChanged) {
+      cam.left = -halfW;
+      cam.right = halfW;
+      cam.top = halfH;
+      cam.bottom = -halfH;
+      cam.zoom = camState.zoomMul;
+      cam.updateProjectionMatrix();
+    }
+    // Effective CSS pixels per world unit, used only to translate drag distance.
+    camState.zoom = (state.size.width / fittedW) * camState.zoomMul;
+    publishFocusedRoom(nearest.distance <= 3.1 ? nearest.stop.id : null);
     cam.position.set(12 + centerX + offX, 9.8, 12 + centerZ + offZ);
     cam.lookAt(centerX + offX, LOOK_AT_Y, centerZ + offZ);
   });
@@ -50,63 +102,59 @@ function CameraRig() {
 }
 
 /** Everything inside the Canvas: the shared voxel home. */
-export function HomeScene() {
+export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) {
   // The home fills in as the relationship grows (see homeProgress). Day 0 is
   // just the room and the fire; the rest arrives at milestones.
   const { components } = useHomeProgress();
+  const avatarA = useAvatarStore((s) => s.appearances.a);
+  const avatarB = useAvatarStore((s) => s.appearances.b);
 
-  // Character colour is tied to *who you are*, not "self vs partner", so the
-  // same person looks the same on both phones. member_a always wears preset a,
-  // member_b preset b. Slot 'a' is always the local player's position.
-  const userId = useAuthStore((s) => s.userId);
-  const memberA = useAuthStore((s) => s.couple?.member_a ?? null);
-  const iAmA = !!userId && userId === memberA;
-  const selfColors = iAmA ? avatarPresets.a : avatarPresets.b;
-  const partnerColors = iAmA ? avatarPresets.b : avatarPresets.a;
-  // Once there are neighbouring rooms, zoom the default view out a little so
-  // they peek in at the screen edges (a clear cue to drag) and widen the pan
-  // reach so you can scroll all the way to them. Snug on the living room until.
-  const hasBedroom = components.has('bed');
-  const hasGarden = components.has('garden');
+  // Scene identity is global, not device-relative: member A is always the red
+  // A avatar and member B is always the green B avatar on both phones.
+  // Keep the living room dominant while the neighbouring room shells peek at
+  // the edges. Free pan and pinch remain available whether rooms are locked or
+  // furnished, so progression stays visible from day one.
   useEffect(() => {
-    const multi = hasBedroom || hasGarden;
-    camState.centerX = 0;
-    camState.centerZ = 0;
-    camState.viewW = multi ? 13.5 : 8.2;
-    camState.viewH = multi ? 9.5 : 8.0;
-    camState.limit = multi ? 7.6 : 1.8;
-  }, [hasBedroom, hasGarden]);
+    const initialFocus = ROOM_STOPS[initialRoom];
+    camState.offX = initialFocus.x;
+    camState.offZ = initialFocus.z;
+    camState.velocityX = 0;
+    camState.velocityZ = 0;
+    camState.focusTarget = null;
+    camState.zoomMul = 1;
+    camState.centerX = HOME_CAMERA_FRAME.centerX;
+    camState.centerZ = HOME_CAMERA_FRAME.centerZ;
+    // This fixed overview includes the complete rectangular garden at the
+    // living-room position, so it cannot appear as a clipped triangle.
+    camState.viewW = HOME_CAMERA_FRAME.viewW;
+    camState.viewH = HOME_CAMERA_FRAME.viewH;
+  }, [initialRoom]);
   return (
     <>
       <CameraRig />
       <Atmosphere />
       <Room />
-      {components.has('fireplace') && <Fireplace position={[-2.6, 0, -3.25]} />}
-      {/* Cosy reading couch on the right, paired with the sofa, clear of the table. */}
-      {components.has('restnook') && <RestNook position={[3.0, 0, -1.5]} />}
-      {/* Daily-drawing frame on the left wall above the bench (faces the room). */}
+      {components.has('fireplace') && <Fireplace position={[-3.2, 0, -3.85]} />}
+      {components.has('fireplace') && <FireplaceOutcomes />}
+      {/* Tucked away from the dining and doorway zones; the coral sofa stays primary. */}
+      {components.has('restnook') && <RestNook position={[-3.15, 0, 3.2]} />}
+      {components.has('sofa') && <Sofa position={[-0.4, 0, -3.95]} />}
+      {components.has('table') && <TableSet position={[-0.35, 0, 0.5]} />}
+      {components.has('bookshelf') && <Bookshelf position={[-4.18, 0, -2.35]} />}
       {components.has('easel') && (
-        <group position={[-3.28, 1.35, 0.2]} rotation={[0, Math.PI / 2, 0]}>
+        <group position={[-4.28, 1.2, 1.08]} rotation={[0, Math.PI / 2, 0]}>
           <Easel position={[0, 0, 0]} />
         </group>
       )}
-      {components.has('sofa') && <Sofa position={[0.2, 0, -3.25]} />}
-      {components.has('table') && <TableSet position={[0.6, 0, 0.6]} />}
-      {components.has('bench') && <Bench position={[-3.0, 0, 0.15]} />}
-      {components.has('bookshelf') && <Bookshelf position={[-3.0, 0, -1.55]} />}
-      {/* Palm blades reach ~0.9 units — keep pots clear of walls/doors/edges. */}
-      {components.has('plants') && (
-        <>
-          <Plant position={[-0.45, 0, -2.8]} phase={0} scale={0.9} />
-          <Plant position={[2.9, 0, 1.4]} phase={2.1} scale={0.85} />
-        </>
-      )}
+      {components.has('plants') && <Plant position={[4.25, 0, 0.7]} phase={2.1} scale={0.4} />}
       <Rain />
       <Sparkles />
+      <MomentSceneDetails />
       <ReconcileHeart />
-      <Avatar avatar="a" colors={selfColors} />
-      <Avatar avatar="b" colors={partnerColors} />
-      <PixelPass />
+      <WorldAnchorProjector />
+      <Avatar avatar="a" colors={appearanceToAvatarColors(avatarA)} />
+      <Avatar avatar="b" colors={appearanceToAvatarColors(avatarB)} />
+      <PixelPass resolution={HOME_ART_RESOLUTION} />
     </>
   );
 }

@@ -3,7 +3,9 @@
 > **Read this first every session.** It's the single source of truth: the
 > vision, what works, how to make + ship changes, and the backlog. Keep it
 > current. Companion docs: `PRODUCTION_PLAN.md` (roadmap), `AGENTS.md` (use the
-> exact Expo v57 docs), `dev/README.md` (browser verification).
+> exact Expo v57 docs), `EXPERIENCE_ROADMAP.md` (approved experience direction
+> and one-feature-at-a-time review queue), `dev/README.md` (browser
+> verification).
 
 ## The vision (owner's intent)
 
@@ -15,14 +17,16 @@ comfort, table = talk, garden = space, rest = overwhelmed). Your partner gets a
 gentle nudge, responds softly, and the fireplace path resolves in a warm
 reconciliation glow (a heart pops). Low-pressure, non-blaming.
 
-**FUNCTIONAL FIRST.** The on-screen look is *not* final; polish graphics at the
-very end. Don't spend effort on the visual style now (owner's explicit call).
+**EXPERIENCE FIRST, ONE COMPLETE LOOP AT A TIME.** Functionality alone is not
+enough: each important action needs understandable buildup, mutual
+participation, and visible aftermath. Improve the interface where it makes the
+current interaction warmer and clearer, while avoiding unrelated visual or
+feature expansion during an active review gate.
 
 **Where it's going (build the systems now; 2D art via Higgsfield later):**
 - **Customizable characters** — hair, face, simple stuff first; clothing/
   unlockables later. Also makes identity obvious.
-- **A garden**, unlocking ~1 month in, holding **memories / seeds**. (The left
-  green doorway is where the garden will go.)
+- **The garden**, unlocking ~1 month in, will eventually hold **memories / seeds**.
 - **An expandable / bigger house** with a **bedroom + bed** and a tasteful
   **"feeling romantic"** signal; **bigger / more couches**; more furniture.
 - **Daily drawing ritual** ✅ built (see below) — owner's favourite.
@@ -42,36 +46,88 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 4. **A shared thing you tend daily** — the home grows; the **daily drawing**
    gives a reason to open the app on good days, not just hard ones.
 
+## Current owner-directed priority
+
+The current owner-authorized gate is **Moments 1.0.3 — Owner Review**, revised
+18 August. Moment endings now release avatars in place; the garden threshold no
+longer flickers; the real fireplace replaces the floating orb as the current
+status/Today surface; difficult Fireplace Moments temporarily show **tending**;
+and a large projected split heart owns mutual readiness. The centered 48-pixel
+dock keeps home controls visible, response confirmations are action-specific
+scrapbook postcards, and Fredoka/Nunito give Moments the requested warm bubbly
+voice. Backend contracts remain unchanged from deployed migration
+`20260817120000`. The canonical phone client passes TypeScript, 61 tests,
+Android/iOS/web export, changed-file lint with zero errors, and 20 real-touch
+sheet cycles at 390×844. Update group
+`726847ac-2fab-4344-95b9-f6e1e842151a` is verified latest on `preview` for
+runtime `1.0.3`; its locally generated Android fingerprint remains exactly the
+installed versionCode 7 hash `24a442c968109b1b090e222da541456e2390372a`.
+Run the two-open and alternating-author two-phone smoke gates, then stop for
+owner review. Do not start voice notes; microphone support requires a new APK.
+
 ## Current state (what works, on real Android devices)
 
 - Expo 57 / RN 0.86 / react-three-fiber. Supabase backend. Shipped as an
   Android EAS "preview" APK on two phones; **over-the-air updates** live.
 - **Onboarding** (intro + name), **pairing** (anon auth, 6-char code, full-home
   guard, "Start over" exit on the waiting screen).
-- **Signals + realtime**: leave a signal → your character walks there → partner
-  sees a card → responds; every answer has an "Okay" exit; fireplace "Sit
-  beside them" → reconciliation prompt → "We're okay now" glows + a **heart
-  pops** on both. Character colour is tied to identity (same on both phones).
-  Opening the app snaps to current state (no replayed walk). Foreground
-  re-sync. A **thought bubble** shows a meaningful icon per signal.
+- **Moments 1.0.3 Owner Review**: **How do you feel right now?** divides six
+  detailed 40×18 run-length mosaics into **About us** and **What I need**. One
+  continuously mounted sheet follows the thumb between a measured expanded
+  position and centered 48-pixel dock, including top-of-list scroll handoff,
+  flick/midpoint settling, Android Back, and accessibility actions. The dock no
+  longer covers the wardrobe and has no minimize chevron. Response previews are
+  destination/action-specific 2D postcards with no avatar names or generic pair
+  render. Fredoka headings, Nunito copy, pastel paper, tape, and heart stickers
+  replace the sharper editorial treatment.
+- **Spatial consequences**: partner action, readiness, and drawing events play
+  exactly once in pixel bubbles at seven projected world anchors without camera
+  theft. Settings/background delivery queues; cold launch hydrates current
+  hearts, actions, and Today props without replay. Positive non-Romantic endings
+  dock, focus, play the fast fullscreen pixel heart, and restore the camera.
+  Romantic uses two small bed-side hearts. Negative paths show none.
+- **Fireplace and Rest**: The real fireplace is tappable and opens its compact
+  current-state/Today card; there is no notebook or history surface. Fireplace
+  readiness is controlled only through the large speech-bubble heart above the
+  fire, with stable member-A-left/member-B-right halves and immutable ready/
+  reverse events. Moment endings stand each avatar at the live position before
+  natural movement resumes instead of snapping to canned idle coordinates.
+  Rest sends a validated real 12×12 doodle, duck/frog/dancing-toast visitor, or
+  non-contact hug-wave; all have previews, scene consequences, bubbles, and
+  durable Today representations.
+- **Daily ritual fire**: the server home-day state remains **steady** before 7
+  PM with no sketches, **low** afterward, **warming** with one contribution,
+  and **glowing** with both. The physical fireplace consumes that ritual state
+  outside Moments. A difficult active Fireplace Moment temporarily presents
+  **tending** in both the flame and status card, rising as heart halves fill,
+  then returns to the unchanged ritual state. Only the current user's missing
+  sketch gets a private reminder; no blame, streak, failure, or score is stored.
 - **Push notifications**: WORKING (Firebase/FCM set up). Edge Function
   `notify-signal` + DB trigger → the NOTIFICATIONS copy to the partner.
 - **Living home**: starts sparse, fills in on a milestone ladder (sofa d3,
   table d7, shelves/plants d14, **bedroom+bed d21**, **garden d30**); signals
   gated to unlocked places; "your home grew" card; drag-to-pan + pinch-to-zoom.
-- **Multi-room home** ✅ (the big rework): the home is now a **cluster of
-  floating corner-room dioramas** laid out on one screen-horizontal line and
-  **panned between** (drag left/right). Each room is its own two-wall shell —
-  interior partition walls always occlude in a fixed iso view, so rooms are
-  separate platforms connected by little **plank bridges**, the proven pattern
-  for cozy-home apps. The home *grows by adding rooms*: **living room** (default
-  view) → a **bedroom** appears to the right at d21 → a **garden** to the left at
-  d30. Architecture: `src/scene/shell.ts` (shared corner-shell + rug builders +
-  `*_OFFSET`s), `PlatformFx.tsx` (per-room blue rim + warm halo), and modular
-  `LivingRoom`/`Bedroom`/`Garden` in `Room.tsx`. Pan reach widens once other
-  rooms exist. **New rooms slot in by adding an offset + a builder** — no rewrite.
-  The default view zooms out just enough that the neighbouring rooms **peek in at
-  the edges** (with the bridges) so it's obvious you can drag to them.
+- **Approved visual system**: the whole app now follows the owner’s warm Memory
+  Garden target—ivory/peach atmosphere, terracotta and cocoa architecture,
+  muted sage foliage, blush blossoms, amber window light, and editorial paper
+  UI. Voxel faces use baked directional color and contact occlusion; the shared
+  360-art-pixel pass adds a restrained warm grade, highlight lift, daylight
+  veil, and vignette without smoothing edges. Cool/rain modes remain cohesive.
+- **Reference-sheet characters**: one shared 26-cell coarse renderer now powers
+  Home, Wardrobe, thumbnails, and the development Character Lab. Member A
+  defaults to the coral sweater/long auburn waves; member B defaults to the
+  olive hoodie/chocolate crop. Faces use warm cocoa ink, compact tapered skin
+  volumes, profile eyes/noses, closed shaded hair from all five validation
+  directions, chunky separated footwear, and non-overlapping arm/clothing
+  cells. Wardrobe full looks preserve skin, hair, face, and accessories. Fixed
+  preview materials cannot inherit the previous room mood tint.
+- **Multi-room home** ✅: living room, bedroom, and garden now read as one
+  connected dollhouse with real shared-wall thresholds rather than remote
+  platforms joined by bridges. The living room is the default close frame;
+  drag/pinch reaches the garden at the west doorway and bedroom through the
+  back arch. `src/scene/shell.ts` owns stable sockets and offsets,
+  `PlatformFx.tsx` supplies warm plinth trim/contact shadow/halo, and modular
+  `LivingRoom`/`Bedroom`/`Garden` builders remain in `Room.tsx`.
 - **`PREVIEW_UNLOCK_ALL`** (in `homeProgress.ts`) is currently **`true`**: the
   whole home is unlocked from day 0 so every room is visible immediately while
   testing (a fresh couple would otherwise wait to d21/d30). Flip it to `false`
@@ -80,14 +136,29 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
   it → your partner "Come close" → you sit together as a **heart pops over the
   bed** (the reconcile heart is spot-aware — fire *or* bed). Consent-aware
   responses ("Just hold me", "Not tonight"). Needs `romantic.sql` (below).
-- **Garden** is now a real explorable platform (grass, hedges, trees, flower
-  beds, pond, bench) — the "I need some space" signal seats on its bench.
-- **Daily drawing** ✅: 32×32 pixel note, one per person per day (upserts,
-  resets daily UTC). Envelope button (top-left) / "Your partner drew you
-  something" banner / tap the wall frame → the panel ("From them" / "Yours",
-  paint + Send once). Shows on an **easel/wall frame** in the room as voxels.
+- **Garden (composition not approved)** currently remains a dense destination:
+  layered soil/plinth, irregular
+  hedges, flowering borders, branching stone paths, heart topiary, large cherry
+  tree with reduced-motion-safe falling petals, olive tree, picnic nook,
+  lanterns, keepsake plinth, rose bushes, animated koi pond with shimmer, and
+  the existing space-signal bench. Per 9 August feedback, the next map gate must
+  enlarge/simplify this space and defer the large cherry tree and koi pond until
+  the expandable-garden stage.
+- **Daily drawing** ✅: high-resolution portrait pixel note, one per person per
+  server home day (upserts). Pencil satellite / spatial drawing bubble / tap the
+  wall frame → the panel ("From them" / "Yours",
+  paint + Send once). Opening the partner's actual drawing persists a local,
+  per-person/per-day read receipt, so the banner and badge stay dismissed after
+  restarting the app without exposing read activity to the partner. Shows on an
+  **easel/wall frame** in the room as voxels.
+- **Header:** **Day N of being together** now shares HEARTH's font family,
+  colour, weight, and uppercase treatment.
 - **Settings**: notifications toggle, privacy note, sign out, unpair.
-- **Accessibility**: reduce-motion softens glow/hops.
+- **UI**: onboarding, pairing, signals, drawing, settings, wardrobe, and
+  Character Lab share ivory paper surfaces, cocoa serif hierarchy, terracotta
+  actions, sage/gold accents, and warm restrained shadows.
+- **Accessibility**: reduce-motion softens glow/hops and stops optional shimmer
+  and falling-petal motion while keeping each state visually legible.
 
 ## How to continue (dev workflow) — IMPORTANT
 
@@ -124,7 +195,7 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 
 ## Backlog
 
-### Next up — multi-room polish
+### Parked — multi-room polish
 - **Pan clamp is a square** (`camState.limit` ±box), so you can drag into empty
   void at the diagonal corners. Clamp to a band along the room row (the
   screen-right axis) so panning feels rail-guided between rooms.
@@ -135,8 +206,12 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
   path, memories/seeds) can hold more; general voxel build-out still welcome.
 
 ### Open / smaller
-- **Deeper response consequences** — "ask to talk later" etc. do nothing
-  visible yet. Make every response leave a trace.
+- **Moments 1.0.3 physical release gate** — install versionCode 7 on both test
+  phones, open once to download update group
+  `a75cf0c3-ceba-4f6b-96f0-bf4400eff7a5`, fully close and open again, alternate
+  authors across all six destinations, and record the two-account smoke matrix
+  before owner review. No Android/portable phone is connected to this
+  workstation, so this remains an owner/device gate.
 - **Live-sync staleness** — mitigated (foreground re-hydrate); verify on device.
 - **Literal kiss** on reconcile (currently heart + hops) if the heart isn't
   enough.
@@ -148,6 +223,14 @@ very end. Don't spend effort on the visual style now (owner's explicit call).
 - Google Play release (Phase 9).
 
 ## History (recent, newest first)
+Character reference correction (canonical coral/olive identities, 26-cell
+proportions, tapered faces, five-angle hair closure, fixed Wardrobe palette,
+clear idle and sofa placement; Android/iOS preview group
+`b0b69342-1154-4009-a606-f1f2213c0e73`, runtime `1.0.0`, verified latest) →
+Memory Garden visual overhaul (ivory/peach atmosphere, baked voxel shading,
+golden rays/glow, connected architectural detail, dense cherry-tree garden,
+upgraded furniture, editorial UI and close room framing; preview group
+`7b433a70-b32e-4125-af29-c66131ea8bfe`) →
 Multi-room home (floating living/bedroom/garden platforms panned between +
 bridges; living-room cleanup: partition removed, drawing frame moved, doorway
 plant + stacked paintings removed, rest couch relocated; garden is now a real

@@ -2,7 +2,7 @@
   "expo": {
     "name": "hearth",
     "slug": "hearth",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hearth",
@@ -11,7 +11,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/8d2d87bc-75fc-42c2-b838-bd81286c5557"
+      "url": "https://u.expo.dev/8d2d87bc-75fc-42c2-b838-bd81286c5557",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "ios": {
       "icon": "./assets/expo.icon",
@@ -42,7 +44,26 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./assets/avatars/generated/hearth-avatar-rigged.glb"
+          ]
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

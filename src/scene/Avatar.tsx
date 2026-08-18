@@ -1,13 +1,27 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import * as THREE from 'three';
 
+import { CharacterRenderer } from '@/character/CharacterRenderer';
+import type { CharacterColors } from '@/character/characterTypes';
 import type { SignalType } from '@/copy';
-import { useSignalStore } from '@/state/signalStore';
+import { consequenceFor } from '@/moments/consequenceCatalog';
+import { useHomeProgress } from '@/state/homeProgress';
+import { useMomentV2Store } from '@/state/momentV2Store';
 import { useSceneStore, type AvatarKey } from '@/state/sceneStore';
 import { atmo } from './atmoState';
+import {
+  AVATAR_HIP_Y,
+  AVATAR_TORSO_HEIGHT,
+} from './ReferenceAvatarFigure';
+import {
+  nearestWalkablePoint,
+  planPath,
+  randomLivingPoint,
+  type GroundPoint,
+} from './sceneNavigation';
 import { SPOTS } from './spots';
-import { Vox, voxelMaterial } from './voxel';
+import { Vox } from './voxel';
 
 // A tiny 5×5 icon per signal so a glance across the room reads the *feeling*:
 // heart = wants to reconnect / affection, "…" = wants to talk, leaf = needs
@@ -38,15 +52,32 @@ function iconGeometry(type: SignalType): THREE.BufferGeometry {
   return g;
 }
 
-export interface AvatarColors {
-  skin: string;
-  hair: string;
-  outfit: string;
-  accent: string;
+const WALK_SPEED = 1.05;
+const AMBIENT_SPEED = 0.72;
+const WALK_CADENCE = 10.2;
+const TABLE_ACTIVITY_CHANCE = 0.3;
+
+interface MotionTarget extends GroundPoint {
+  rotY: number;
+  seatY: number;
 }
 
-const S = 0.09; // avatar voxel size (total height ≈ 1.35 world units)
-const HIP_Y = 3 * S; // legs are 3 voxels tall
+function chooseAmbientTarget(
+  avatar: AvatarKey,
+  current: GroundPoint,
+  tableAvailable: boolean,
+): MotionTarget {
+  const chair = SPOTS.table[avatar];
+  if (
+    tableAvailable &&
+    Math.random() < TABLE_ACTIVITY_CHANCE &&
+    Math.hypot(chair.x - current.x, chair.z - current.z) > 0.8
+  ) {
+    return { ...chair };
+  }
+  const point = randomLivingPoint(Math.random, current);
+  return { ...point, rotY: Math.random() * Math.PI * 2, seatY: 0 };
+}
 
 /** Shortest-path exponential approach for angles. */
 function dampAngle(current: number, target: number, lambda: number, dt: number) {
@@ -55,90 +86,46 @@ function dampAngle(current: number, target: number, lambda: number, dt: number) 
   return current + diff * (1 - Math.exp(-lambda * dt));
 }
 
-function buildLeg(colors: AvatarColors) {
-  const v = new Vox();
-  v.box(0, 0, 0, 2, 3, 2, colors.accent);
-  v.box(0, 0, 0, 2, 1, 2, '#4a3222'); // shoes
-  const g = v.build(S, 0.04);
-  g.translate(-S, -3 * S, -S); // pivot at hip (top center)
-  return g;
-}
-
-function buildTorso(colors: AvatarColors) {
-  const v = new Vox();
-  // Narrow body under the big head (hero F: head reads much wider than body).
-  v.box(0, 0, 0, 5, 5, 4, colors.outfit);
-  v.box(0, 4, 0, 5, 1, 4, colors.accent); // collar/scarf band under the chin
-  const g = v.build(S, 0.04);
-  g.translate(-2.5 * S, 0, -2 * S);
-  return g;
-}
-
-function buildArm(colors: AvatarColors) {
-  const v = new Vox();
-  v.box(0, 0, 0, 2, 4, 2, colors.outfit);
-  v.box(0, 0, 0, 2, 1, 2, colors.skin); // hands
-  const g = v.build(S, 0.04);
-  g.translate(-S, -4 * S, -S); // pivot at shoulder
-  return g;
-}
-
-function buildHead(colors: AvatarColors) {
-  const v = new Vox();
-  // Big cute head: 8 wide, 7 tall, 7 deep (front is +z).
-  v.box(0, 0, 0, 8, 7, 7, colors.skin);
-  // Hero-F hair: a flat solid slab over the top 3 rows with a straight fringe
-  // across the forehead, plus the full back of the head.
-  v.box(0, 4, 0, 8, 3, 7, colors.hair);
-  v.box(0, 0, 0, 8, 7, 2, colors.hair);
-  // Eyes, blush, small mouth on the front face.
-  v.set(2, 2, 6, '#2a1c12');
-  v.set(5, 2, 6, '#2a1c12');
-  v.set(1, 1, 6, '#f0a08a');
-  v.set(6, 1, 6, '#f0a08a');
-  v.set(3, 1, 6, '#d9997b');
-  v.set(4, 1, 6, '#d9997b');
-  const g = v.build(S, 0.03);
-  g.translate(-4 * S, 0, -3.5 * S);
-  return g;
-}
-
 /**
  * Big-headed voxel person: breathing idle, walking between spots with a
  * little leg scissor, and a standing/seated pose blend. Same animation
  * contract as before — only the look changed.
  */
-export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarColors }) {
+export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: CharacterColors }) {
   const rootRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
-  const torsoRef = useRef<THREE.Mesh>(null);
-  const headRef = useRef<THREE.Mesh>(null);
-  const legsRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const hipsRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
 
   const anim = useRef({
     rotY: SPOTS.idle[avatar].rotY,
     sit: 0,
+    seatY: 0,
+    seating: false,
     phase: avatar === 'a' ? 0 : 1.7,
     seenSnap: 0,
+    ambientTarget: null as MotionTarget | null,
+    ambientArrived: false,
+    ambientWait: 2,
+    path: [] as GroundPoint[],
+    pathIndex: 0,
+    goalKey: '',
   });
 
-  // Rebuild the body when colors change: identity (who is member_a/member_b)
-  // loads a beat after first render, and freezing the first-render colors was
-  // exactly the "same person is a different colour on each phone" bug.
-  const parts = useMemo(
-    () => ({
-      leg: buildLeg(colors),
-      torso: buildTorso(colors),
-      arm: buildArm(colors),
-      head: buildHead(colors),
-    }),
-    [colors]
-  );
-
   // Show a thought bubble while this character has an open signal.
-  const signalType = useSignalStore((s) =>
-    (avatar === 'a' ? s.mySignal?.type : s.partnerSignal?.type) ?? null,
-  );
+  const signalType = useMomentV2Store((s) => {
+    if (!s.ctx) return null;
+    const userId = avatar === s.ctx.myAvatar ? s.ctx.userId : s.ctx.partnerId;
+    if (!userId) return null;
+    const active = s.snapshot?.active;
+    return active?.author_id === userId ? active.destination : null;
+  });
+  const tableAvailable = useHomeProgress().components.has('table');
   const bubbleRef = useRef<THREE.Group>(null);
 
   useFrame((state, rawDelta) => {
@@ -151,7 +138,26 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
 
     const scene = useSceneStore.getState();
     const spotId = scene.spots[avatar];
-    const pose = SPOTS[spotId][avatar];
+    const basePose = SPOTS[spotId][avatar];
+    const actionEvent = [...scene.momentActionEvents]
+      .reverse()
+      .find((event) => {
+        const actor = event.actor_id === useMomentV2Store.getState().ctx?.userId
+          ? useMomentV2Store.getState().ctx?.myAvatar
+          : useMomentV2Store.getState().ctx?.partnerAvatar;
+        return actor === avatar;
+      });
+    const action = consequenceFor(scene.liveMomentAction?.actor === avatar
+      ? scene.liveMomentAction.actionId
+      : actionEvent?.canonical_action);
+    const pose = action?.destination === 'fireplace' && spotId === 'fireplace'
+      ? {
+        ...basePose,
+        x: basePose.x + (action.id === 'listen_by_fire' ? (avatar === 'a' ? -0.12 : 0.12) : 0),
+        z: basePose.z + (action.id === 'talk_by_fire' ? 0.14 : 0),
+        rotY: basePose.rotY + (action.id === 'listen_by_fire' ? (avatar === 'a' ? 0.22 : -0.22) : 0),
+      }
+      : basePose;
 
     // Stay hidden until the saved state has loaded (first snap): the app then
     // opens with everyone already in place — no flash of "standing in the
@@ -165,24 +171,217 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
       root.position.set(pose.x, 0, pose.z);
       a.rotY = pose.rotY;
       a.sit = pose.seatY > 0 ? 1 : 0;
+      a.seatY = pose.seatY;
+      a.seating = pose.seatY > 0;
+      a.ambientTarget = null;
+      a.ambientArrived = false;
+      a.ambientWait = 2;
+      a.path = [];
+      a.pathIndex = 0;
+      a.goalKey = '';
     }
 
-    root.position.x = THREE.MathUtils.damp(root.position.x, pose.x, 3.2, dt);
-    root.position.z = THREE.MathUtils.damp(root.position.z, pose.z, 3.2, dt);
-    const dx = pose.x - root.position.x;
-    const dz = pose.z - root.position.z;
-    const dist = Math.hypot(dx, dz);
-    const moving = dist > 0.09;
+    // Reduced motion means immediate poses and static characters: no travel,
+    // idle wandering, breathing, bubble bob, or seated interpolation.
+    if (atmo.reduceMotion) {
+      root.visible = true;
+      if (spotId === 'idle') {
+        // Releasing a Moment stands the character exactly where the shared
+        // scene left them. Reduced motion removes travel; it must not turn the
+        // release into a teleport to the canned idle coordinates.
+        a.sit = 0;
+        a.seatY = 0;
+      } else {
+        root.position.set(pose.x, 0, pose.z);
+        a.rotY = pose.rotY;
+        a.sit = pose.seatY > 0 ? 1 : 0;
+        a.seatY = pose.seatY;
+      }
+      root.rotation.y = a.rotY;
+      a.ambientTarget = null;
+      a.path = [];
+      body.position.y = a.sit * (a.seatY - AVATAR_HIP_Y + 0.06);
+      if (bubbleRef.current) {
+        bubbleRef.current.position.y = 1.62;
+        bubbleRef.current.rotation.y = Math.PI / 4 - a.rotY;
+      }
+      if (leftLegRef.current) leftLegRef.current.rotation.x = -a.sit * 0.55;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = -a.sit * 0.55;
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -a.sit * 0.18;
+        leftArmRef.current.rotation.z = 0.07 + a.sit * 0.06;
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = -a.sit * 0.18;
+        rightArmRef.current.rotation.z = -0.07 - a.sit * 0.06;
+      }
+      if (torsoRef.current) torsoRef.current.scale.set(1, 1, 1);
+      if (headRef.current) {
+        headRef.current.position.y = AVATAR_TORSO_HEIGHT;
+        headRef.current.rotation.z = 0;
+      }
+      if (action?.pose === 'holdObject') {
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -0.9;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = -0.9;
+      } else if (action?.pose === 'hug') {
+        if (leftArmRef.current) { leftArmRef.current.rotation.x = -1.25; leftArmRef.current.rotation.z = -0.62; }
+        if (rightArmRef.current) { rightArmRef.current.rotation.x = -1.25; rightArmRef.current.rotation.z = 0.62; }
+      } else if (action?.pose === 'holdHands') {
+        if (leftArmRef.current) leftArmRef.current.rotation.z = -0.42;
+        if (rightArmRef.current) rightArmRef.current.rotation.z = 0.42;
+      } else if (action?.pose === 'wave' && rightArmRef.current) {
+        rightArmRef.current.rotation.z = -2.3;
+      }
+      return;
+    }
 
-    const targetRot = moving ? Math.atan2(dx, dz) : pose.rotY;
-    a.rotY = dampAngle(a.rotY, targetRot, moving ? 8 : 4.5, dt);
+    const ambientAllowed = spotId === 'idle' && !signalType;
+    if (!ambientAllowed) {
+      a.ambientTarget = null;
+      a.ambientArrived = false;
+      a.ambientWait = 2;
+    } else if (a.ambientTarget && a.ambientArrived) {
+      a.ambientWait -= dt;
+      if (a.ambientWait <= 0) {
+        a.ambientTarget = chooseAmbientTarget(
+          avatar,
+          { x: root.position.x, z: root.position.z },
+          tableAvailable,
+        );
+        a.ambientArrived = false;
+      }
+    } else {
+      if (!a.ambientTarget) {
+        a.ambientWait -= dt;
+      }
+      if (!a.ambientTarget && a.ambientWait <= 0) {
+        a.ambientTarget = chooseAmbientTarget(
+          avatar,
+          { x: root.position.x, z: root.position.z },
+          tableAvailable,
+        );
+        a.ambientArrived = false;
+      }
+    }
+
+    const destination = a.ambientTarget ?? (
+      ambientAllowed
+        ? { x: root.position.x, z: root.position.z, rotY: a.rotY, seatY: 0 }
+        : pose
+    );
+    const seatedDestination = destination.seatY > 0;
+    const approach = seatedDestination
+      ? nearestWalkablePoint(destination)
+      : destination;
+    const targetX = approach.x;
+    const targetZ = approach.z;
+    const speed = a.ambientTarget ? AMBIENT_SPEED : WALK_SPEED;
+    const goalKey = [
+      targetX.toFixed(3),
+      targetZ.toFixed(3),
+      destination.x.toFixed(3),
+      destination.z.toFixed(3),
+    ].join(',');
+    if (goalKey !== a.goalKey) {
+      a.goalKey = goalKey;
+      a.seating = false;
+      a.path = planPath(
+        { x: root.position.x, z: root.position.z },
+        { x: targetX, z: targetZ },
+      );
+      a.pathIndex = 0;
+    }
+
+    let waypoint = a.path[a.pathIndex] ?? approach;
+    let dx = waypoint.x - root.position.x;
+    let dz = waypoint.z - root.position.z;
+    let waypointDistance = Math.hypot(dx, dz);
+    if (waypointDistance < 0.045 && a.pathIndex < a.path.length - 1) {
+      a.pathIndex++;
+      waypoint = a.path[a.pathIndex];
+      dx = waypoint.x - root.position.x;
+      dz = waypoint.z - root.position.z;
+      waypointDistance = Math.hypot(dx, dz);
+    }
+    const approachRemainingBefore = Math.hypot(
+      targetX - root.position.x,
+      targetZ - root.position.z,
+    );
+    const destinationRemainingBefore = Math.hypot(
+      destination.x - root.position.x,
+      destination.z - root.position.z,
+    );
+    if (
+      seatedDestination &&
+      approachRemainingBefore < 0.08 &&
+      !a.ambientArrived
+    ) {
+      a.seating = true;
+    }
+    const standingUp =
+      a.sit > 0.12 &&
+      destinationRemainingBefore > 0.12 &&
+      !a.seating;
+    const settlingIntoSeat =
+      seatedDestination &&
+      a.seating &&
+      !a.ambientArrived;
+    const walking =
+      !a.ambientArrived &&
+      !standingUp &&
+      !settlingIntoSeat &&
+      destinationRemainingBefore > 0.055 &&
+      approachRemainingBefore > 0.055;
+    const step = walking ? Math.min(speed * dt, waypointDistance) : 0;
+    if (step > 0 && waypointDistance > 0.0001) {
+      root.position.x += (dx / waypointDistance) * step;
+      root.position.z += (dz / waypointDistance) * step;
+    }
+    if (standingUp) {
+      root.position.x = THREE.MathUtils.damp(root.position.x, waypoint.x, 4.8, dt);
+      root.position.z = THREE.MathUtils.damp(root.position.z, waypoint.z, 4.8, dt);
+    }
+    if (settlingIntoSeat) {
+      root.position.x = THREE.MathUtils.damp(root.position.x, destination.x, 4.8, dt);
+      root.position.z = THREE.MathUtils.damp(root.position.z, destination.z, 4.8, dt);
+    }
+    const approachRemaining = Math.hypot(
+      targetX - root.position.x,
+      targetZ - root.position.z,
+    );
+    const destinationRemaining = Math.hypot(
+      destination.x - root.position.x,
+      destination.z - root.position.z,
+    );
+
+    const targetRot = walking
+      ? Math.atan2(dx, dz)
+      : seatedDestination || !ambientAllowed || a.ambientArrived
+        ? destination.rotY
+        : a.rotY;
+    a.rotY = dampAngle(a.rotY, targetRot, walking ? 4.5 : 5.5, dt);
     root.rotation.y = a.rotY;
 
-    const sitTarget = !moving && pose.seatY > 0 ? 1 : 0;
+    const sitTarget =
+      seatedDestination && (settlingIntoSeat || destinationRemaining < 0.1) ? 1 : 0;
     a.sit = THREE.MathUtils.damp(a.sit, sitTarget, 5, dt);
+    a.seatY = THREE.MathUtils.damp(
+      a.seatY,
+      seatedDestination ? destination.seatY : 0,
+      5,
+      dt,
+    );
+
+    const activityComplete = seatedDestination
+      ? destinationRemaining < 0.045 && a.sit > 0.82
+      : approachRemaining < 0.055;
+    if (a.ambientTarget && !a.ambientArrived && activityComplete) {
+      a.ambientArrived = true;
+      a.ambientWait = 5 + Math.random() * 4;
+    }
 
     // Hips land just above the seat surface.
-    const bob = moving ? Math.abs(Math.sin(t * 9 + a.phase)) * 0.04 : 0;
+    const bob = walking ? Math.abs(Math.sin(t * WALK_CADENCE + a.phase)) * 0.04 : 0;
     // Reconciliation: a happy little double-hop as the glow begins (skipped
     // under reduce-motion — the warm glow itself still lands).
     let hop = 0;
@@ -193,7 +392,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
         hop = 0.34 * Math.abs(Math.sin((age / 1.3) * Math.PI * 3)) * (1 - age / 1.3);
       }
     }
-    body.position.y = a.sit * (pose.seatY - HIP_Y + 0.06) + bob + hop;
+    body.position.y = a.sit * (a.seatY - AVATAR_HIP_Y + 0.06) + bob + hop;
 
     // Thought bubble: gentle bob, always turned toward the isometric camera.
     if (bubbleRef.current) {
@@ -201,13 +400,39 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
       bubbleRef.current.rotation.y = Math.PI / 4 - a.rotY;
     }
 
-    if (legsRef.current) {
-      legsRef.current.rotation.x = -a.sit * 1.22;
-      const swing = moving ? Math.sin(t * 9 + a.phase) * 0.5 : 0;
-      const [l, r] = legsRef.current.children as THREE.Object3D[];
-      if (l && r) {
-        l.rotation.x = swing;
-        r.rotation.x = -swing;
+    const swing = walking ? Math.sin(t * WALK_CADENCE + a.phase) * 0.42 : 0;
+    if (leftLegRef.current) {
+      // These compact reference legs read best as a gentle dangle. Rotating
+      // them almost horizontal hid both shoes inside deep cushions.
+      leftLegRef.current.rotation.x = -a.sit * 0.55 + swing;
+    }
+    if (rightLegRef.current) {
+      rightLegRef.current.rotation.x = -a.sit * 0.55 - swing;
+    }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = -a.sit * 0.18 - swing * 0.42;
+      leftArmRef.current.rotation.z = 0.07 + a.sit * 0.06;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = -a.sit * 0.18 + swing * 0.42;
+      rightArmRef.current.rotation.z = -0.07 - a.sit * 0.06;
+    }
+
+    // The same catalog pose used by the miniature preview lands on the real
+    // actor after travel. These overrides remain subtle enough to preserve the
+    // walk/seating rig while making listen, hug, gift and hand-holding distinct.
+    if (!walking && action) {
+      if (action.pose === 'holdObject') {
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -0.9;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = -0.9;
+      } else if (action.pose === 'hug') {
+        if (leftArmRef.current) { leftArmRef.current.rotation.x = -1.25; leftArmRef.current.rotation.z = -0.62; }
+        if (rightArmRef.current) { rightArmRef.current.rotation.x = -1.25; rightArmRef.current.rotation.z = 0.62; }
+      } else if (action.pose === 'holdHands') {
+        if (leftArmRef.current) leftArmRef.current.rotation.z = -0.42;
+        if (rightArmRef.current) rightArmRef.current.rotation.z = 0.42;
+      } else if (action.pose === 'wave' && rightArmRef.current) {
+        rightArmRef.current.rotation.z = -2.3;
       }
     }
 
@@ -217,7 +442,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
       torsoRef.current.scale.set(1, breath, 1);
     }
     if (headRef.current) {
-      headRef.current.position.y = 8 * S + Math.sin(t * 1.9 + a.phase) * 0.01;
+      headRef.current.position.y = AVATAR_TORSO_HEIGHT + Math.sin(t * 1.9 + a.phase) * 0.01;
       headRef.current.rotation.z = Math.sin(t * 0.5 + a.phase * 3) * 0.04;
     }
   });
@@ -231,14 +456,18 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: AvatarCo
       visible={false}
     >
       <group ref={bodyRef}>
-        <group ref={legsRef} position={[0, HIP_Y, 0]}>
-          <mesh geometry={parts.leg} material={voxelMaterial} position={[-S, 0, 0]} />
-          <mesh geometry={parts.leg} material={voxelMaterial} position={[S, 0, 0]} />
-        </group>
-        <mesh ref={torsoRef} geometry={parts.torso} material={voxelMaterial} position={[0, HIP_Y, 0]} />
-        <mesh geometry={parts.arm} material={voxelMaterial} position={[-3.5 * S, 8 * S, 0]} rotation={[0, 0, 0.08]} />
-        <mesh geometry={parts.arm} material={voxelMaterial} position={[3.5 * S, 8 * S, 0]} rotation={[0, 0, -0.08]} />
-        <mesh ref={headRef} geometry={parts.head} material={voxelMaterial} position={[0, 8 * S, 0]} />
+        <CharacterRenderer
+          colors={colors}
+          rigRefs={{
+            hips: hipsRef,
+            torso: torsoRef,
+            head: headRef,
+            leftArm: leftArmRef,
+            rightArm: rightArmRef,
+            leftLeg: leftLegRef,
+            rightLeg: rightLegRef,
+          }}
+        />
         {signalType && (
           <group ref={bubbleRef} position={[0, 1.62, 0]}>
             {/* Cream speech bubble with a little tail and a meaningful icon. */}

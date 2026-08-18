@@ -15,7 +15,6 @@ export type HomeComponent =
   | 'easel'
   | 'sofa'
   | 'table'
-  | 'bench'
   | 'bookshelf'
   | 'plants'
   | 'bed'
@@ -34,20 +33,17 @@ export interface HomeStage {
   signals: SignalType[];
 }
 
-// While testing on a brand-new couple you'd otherwise wait weeks to see the
-// bedroom (d21) and garden (d30). With this on, the whole home is unlocked from
-// day 0 so every room is visible immediately. Flip to false to restore the
-// milestone pacing below (the "your home grows over time" experience).
+// Editing mode keeps the full home available from day 0. Flip this to false
+// when the milestone pacing is ready for real relationship-aged homes.
 export const PREVIEW_UNLOCK_ALL = true;
 
-// The milestone ladder. Tunable — change the numbers or add rows freely.
-// Day 0 is intentionally sparse ("quite empty except the essentials"); the
-// garden opens at a month, per the product vision.
+// The milestone ladder remains the source of truth for production pacing.
+// Editing mode above currently makes every row available immediately.
 export const HOME_STAGES: HomeStage[] = [
   {
     atDays: 0,
     title: 'Moving in',
-    blurb: 'Your home begins — a fire to gather by, and a little couch to rest on.',
+    blurb: 'Your home begins — a fire to gather by, a daily canvas, and a little place to rest.',
     components: ['fireplace', 'restnook', 'easel'],
     signals: ['fireplace', 'rest'],
   },
@@ -69,14 +65,14 @@ export const HOME_STAGES: HomeStage[] = [
     atDays: 14,
     title: 'Signs of life',
     blurb: 'Shelves and plants — the room feels lived-in now.',
-    components: ['bookshelf', 'bench', 'plants'],
+    components: ['bookshelf', 'plants'],
     signals: [],
   },
   {
     atDays: 21,
     title: 'Growing closer',
     blurb: 'A bedroom nook, with a bed — and a soft way to say you feel close.',
-    components: ['bed'],
+    components: ['bed', 'easel'],
     signals: ['romantic'],
   },
   {

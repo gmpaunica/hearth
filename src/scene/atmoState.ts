@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { AtmosphereMode } from '@/state/sceneStore';
+import type { MomentDestination } from '@/lib/db';
 
 // Mutable, frame-damped atmosphere values shared between scene components
 // without causing React re-renders. Atmosphere.tsx writes these every frame;
@@ -29,7 +30,9 @@ export interface AtmoPreset {
   gardenLight: string;
 }
 
-export const PRESETS: Record<AtmosphereMode, AtmoPreset> = {
+export type VisualAtmosphereMode = AtmosphereMode | MomentDestination;
+
+export const PRESETS: Record<VisualAtmosphereMode, AtmoPreset> = {
   warm: {
     tint: '#fff3e2',
     bg: '#1a2340',
@@ -54,7 +57,55 @@ export const PRESETS: Record<AtmosphereMode, AtmoPreset> = {
     outsideSky: '#131c30',
     gardenLight: '#26402c',
   },
+  fireplace: {
+    tint: '#b7bfd0',
+    bg: '#555f70',
+    fire: 0.32,
+    rain: 0.52,
+    outsideSky: '#59697b',
+    gardenLight: '#526555',
+  },
+  garden: {
+    tint: '#bec8c3',
+    bg: '#77848c',
+    fire: 0.32,
+    rain: 0.62,
+    outsideSky: '#687984',
+    gardenLight: '#506856',
+  },
+  sofa: {
+    tint: '#ffe1bd',
+    bg: '#a87969',
+    fire: 0.72,
+    rain: 0,
+    outsideSky: '#9b6d69',
+    gardenLight: '#697352',
+  },
+  table: {
+    tint: '#c5cbd8',
+    bg: '#697080',
+    fire: 0.38,
+    rain: 0.42,
+    outsideSky: '#606b7d',
+    gardenLight: '#526451',
+  },
+  rest: {
+    tint: '#d9d0c8',
+    bg: '#7b7477',
+    fire: 0.3,
+    rain: 0,
+    outsideSky: '#74747c',
+    gardenLight: '#5b6954',
+  },
+  romantic: {
+    tint: '#e9c4c9',
+    bg: '#493c62',
+    fire: 0.5,
+    rain: 0,
+    outsideSky: '#514369',
+    gardenLight: '#4d5b4e',
+  },
 };
 
 /** Duration of the reconciliation golden pulse, in seconds. */
-export const GLOW_DURATION = 4.5;
+export const GLOW_DURATION = 2.5;

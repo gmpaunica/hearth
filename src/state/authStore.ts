@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { Couple } from '@/lib/db';
+import { clearLocalNotifications } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -182,9 +183,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     set({ busy: true, error: null });
     try {
-      await supabase.auth.signOut();
-    } catch {
-      // Even if the network call fails, drop local state and start fresh.
+      const { error: prepareError } = await supabase.rpc('prepare_sign_out');
+      if (prepareError) throw prepareError;
+      await clearLocalNotifications();
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) throw signOutError;
+    } catch (error) {
+      set({ busy: false, error: messageOf(error) });
+      return;
     }
     // Clear everything, then re-init: with anonymous auth this mints a brand
     // new identity, landing the user back at the create/join gate.
@@ -205,6 +211,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { error } = await supabase.rpc('leave_couple');
       if (error) throw error;
+      await clearLocalNotifications();
       const { userId } = get();
       set({
         couple: null,

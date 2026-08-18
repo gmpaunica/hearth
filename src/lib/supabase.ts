@@ -6,6 +6,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
 
@@ -28,11 +29,55 @@ const memoryStore = () => {
   };
 };
 
-const storage = typeof window === 'undefined' ? memoryStore() : AsyncStorage;
+const isWebBrowser = Platform.OS === 'web' && typeof window !== 'undefined';
+
+// A Chrome tab is a separate Hearth player while it is open. AsyncStorage's
+// web implementation uses localStorage, which made every tab share the same
+// anonymous Supabase user; the second tab was therefore trying to join its own
+// home. sessionStorage keeps reloads stable but gives a newly opened tab its
+// own identity. A per-tab storage key also isolates Supabase Auth's internal
+// BroadcastChannel, which would otherwise copy sign-in events between tabs.
+const webAuth = (() => {
+  if (!isWebBrowser) return null;
+  try {
+    const session = window.sessionStorage;
+    const tabKeyName = 'hearth.auth.tab-key';
+    let tabKey = session.getItem(tabKeyName);
+    if (!tabKey) {
+      tabKey = globalThis.crypto?.randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      session.setItem(tabKeyName, tabKey);
+    }
+    return {
+      storageKey: `hearth-auth-${tabKey}`,
+      storage: {
+        getItem: (key: string) => Promise.resolve(session.getItem(key)),
+        setItem: (key: string, value: string) => {
+          session.setItem(key, value);
+          return Promise.resolve();
+        },
+        removeItem: (key: string) => {
+          session.removeItem(key);
+          return Promise.resolve();
+        },
+      },
+    };
+  } catch {
+    // Restricted browser storage (or static rendering) still gets an isolated
+    // in-memory session for this page rather than falling back to localStorage.
+    return {
+      storageKey: `hearth-auth-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      storage: memoryStore(),
+    };
+  }
+})();
+
+const storage = webAuth?.storage ?? (typeof window === 'undefined' ? memoryStore() : AsyncStorage);
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage,
+    ...(webAuth ? { storageKey: webAuth.storageKey } : {}),
     autoRefreshToken: true,
     persistSession: true,
     // No OAuth redirects here — anonymous sign-in only, so never try to parse a

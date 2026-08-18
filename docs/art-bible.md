@@ -1,52 +1,57 @@
-# Hearth — Art Bible (v1)
+# Hearth — Art Bible (v2)
 
-The vertical slice: **one warm evening in the shared room, ending in a fireplace
-reconciliation.** Everything below serves that scene. Nothing ships that
-contradicts this document.
+The product world is a **sun-washed shared cottage and memory garden**, with the
+fireplace reconciliation remaining its hero emotional interaction. The owner’s
+Memory Garden reference supplied on 8 August 2026 is the approved whole-app
+visual target. Everything below serves that world.
 
 ## Visual style
 
-Cozy isometric **voxel diorama** — Tuber Simulator / Crossy Road lineage, but
-warmer and quieter. Chunky, readable silhouettes; zero realism ambitions.
-The room floats in a deep night-blue void like a lit dollhouse — the world is
-small on purpose: it's *theirs*.
+Cozy isometric **voxel storybook diorama** — handcrafted, dense, warm, and
+quiet. Chunky readable silhouettes sit inside layered architecture, collected
+interior details, flowering paths, water, lanterns, and sculptural foliage.
+Zero realism ambitions. The connected home rests in ivory/peach atmospheric
+haze like a cherished miniature rather than floating in outer space.
 
 ## Color palette
 
 | Role | Hex | Use |
 |---|---|---|
-| Night void | `#1a2340` | App background, sky |
-| Cream wall | `#f0dcbc` | Walls, window frames |
-| Honey wood | `#cd9a60` / `#c08b52` | Floor planks (alternating) |
-| Brick ember | `#bf5a40` / `#a84a34` | Fireplace courses |
-| Coral | `#d05f48` | Sofa, accents of affection |
+| Ivory haze | `#fff1db` / `#f4cbb0` | App atmosphere and distance |
+| Cream wall | `#efd8bd` / `#e6c8ab` | Plaster walls and panels |
+| Terracotta | `#c9875f` / `#9d4f39` | Floors, coping, architecture |
+| Cocoa wood | `#75452f` / `#9b6041` | Furniture, frames, plinth trim |
+| Blush | `#e9869b` / `#f5b2bc` | Blossoms, textiles, affection |
 | Flame gold | `#ff9b3d` → `#ffe08a` | Fire, lamps, the reconciliation glow |
-| Leaf | `#59a04c` / `#478540` | Plants, garden |
-| Heart red | `#d0564a` | The pixel heart motif — used sparingly |
+| Sage/olive | `#71804f` / `#557440` | Plants, hedges, garden |
+| Terracotta red | `#bd5133` | UI actions and sparse heart motifs |
 
-Rule: warm hues dominate interiors; cool hues exist only *outside* the windows.
-Mood shifts are a **global tint**, never per-object recolors.
+Rule: warm hues dominate. Cool and rain modes stay within a muted editorial
+slate/sage family. Mood shifts are a **global tint and atmosphere**, never
+per-object blame or destructive recoloring.
 
 ## Lighting direction
 
-No dynamic lights. Shading is baked per voxel face (top 1.0, camera-facing
-0.78–0.86, away 0.55–0.62, bottom 0.42) with ±3% per-voxel dither. Light
-"sources" (fire, lamps, moon) are self-colored bright voxels plus decal pools.
+No dynamic lights. Shading is baked per voxel face with warm directional color,
+deterministic variation, and per-corner contact occlusion. Light "sources"
+(fire, windows, lanterns, sun) are self-colored bright voxels plus translucent
+or additive decal pools. Color-matched depth fog separates room layers.
 Atmosphere = tint presets: **warm** (near-white), **cool** (blue-gray),
 **rain** (darker blue-gray), **reconciliation** (gold push above white).
 
 ## Material language
 
-One material family: flat unlit vertex color. No gloss, no PBR, no gradients
-inside a face. Texture richness comes from voxel patterning (brick courses,
+One geometry material family: flat unlit vertex color. No gloss, no PBR, no
+photographic textures. Texture richness comes from voxel patterning (brick courses,
 plank alternation, book spines), never from image textures on geometry.
 Generated images appear only as *flat framed art* in the world (paintings,
 window sky, garden view) and in UI.
 
 ## Environment architecture
 
-Corner diorama: two walls (back, left), open front/right, on a dark wood
-plinth. Grid: 0.25 world units per voxel. Room ~5.4 × 6.75 units. Every
+Connected corner-room diorama: living room, bedroom, and garden share real
+architectural thresholds on layered cocoa/terracotta plinths. Structural grid:
+0.25 world units per voxel, with finer environmental detail where useful. Every
 emotional signal spot is a physical place: fireplace+rug, sofa, table+chairs,
 garden bench+door, bedroom doorway. Diagonal sight-line from camera to the
 fireplace must never be blocked.
@@ -60,18 +65,19 @@ partners always same proportions — nobody is "bigger" in the relationship.
 
 ## UI style
 
-Dark warm glass panels (`rgba(24,15,11,0.82)`) with 1px `rgba(255,200,150,0.18)`
-borders, 14–18px radii; text cream `#f5e6d8`, dim `#b9a291`, accent amber
-`#e8a35c`. Emotional copy is always set in quotes, italic, verbatim from
-`src/copy`. Generated illustration appears in UI as small warm vignettes
-(onboarding, memory cards), never full-screen photo art.
+Translucent ivory paper panels with cocoa serif hierarchy, terracotta actions,
+sage/gold secondary accents, fine warm borders, and restrained shadows. Panels
+remain rounded and friendly without feeling like a dark game HUD. Emotional
+copy stays verbatim from `src/copy`. The same system applies to onboarding,
+pairing, signals, settings, drawing, wardrobe, and Character Lab.
 
 ## Camera & post
 
 Fixed orthographic isometric: position (12, 9.8, 12), 45° azimuth, ~30°
-elevation, responsive zoom fitting the whole diorama. No camera motion except
-a possible 90° room-rotation later. No post-processing — the "bloom" of the
-reconciliation is faked by tint overshoot + sparkles.
+elevation. Default framing is close enough for furniture and garden details to
+read on a phone; drag and pinch reveal the connected outer rooms. One lightweight
+nearest-neighbour finishing pass may add art-pixel-aligned highlight glow,
+golden daylight, warm grading, and a restrained vignette without smoothing edges.
 
 ## Animation style
 
@@ -83,10 +89,10 @@ joins → sits beside; both confirm → gold pulse + sparkles.
 
 ## Hero visual target
 
-One Higgsfield-generated image (see asset list) of the ideal frame: both
-characters seated at the glowing fireplace, warm room, night window, gold
-motes. Every visual pass is screenshotted and compared against it; fix the
-five largest gaps before adding anything new.
+The owner’s Memory Garden frame is the whole-app style target: amber-windowed
+terracotta cottage, dense sage garden, sculptural pink blossom tree, stone path,
+wood bench, small keepsakes, ivory-to-peach haze, and elegant editorial paper UI.
+The fireplace moment remains the interaction target inside that same world.
 
 ---
 
@@ -96,10 +102,10 @@ Estimates include selection waste (≈2 candidates kept per 3–4 generated).
 
 | # | Asset | Used where | Gens (est.) |
 |---|---|---|---|
-| 1 | **Hero visual target** — ideal fireplace-reconciliation frame | Art direction reference only | 8 |
+| 1 | **Hero visual target** — approved Memory Garden cottage frame | Art direction reference only | 8 |
 | 2 | App icon (cozy hearth motif, voxel style) | Icon, adaptive icon | 12 |
 | 3 | Splash screen art | Expo splash | 6 |
-| 4 | Night-sky painting (moon + stars, flat naive style) | Window backdrop quad | 3 |
+| 4 | Peach daylight painting (sun + distant garden, flat naive style) | Window backdrop quad | 3 |
 | 5 | Garden view painting | Garden door backdrop quad | 4 |
 | 6 | 3 wall paintings (heart motif, landscape, botanical) | Framed art voxels/quads | 6 |
 | 7 | Onboarding illustrations ×3 (meet the home / signals / garden) | Welcome flow | 12 |

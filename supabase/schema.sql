@@ -12,6 +12,7 @@ create table if not exists public.profiles (
   id           uuid primary key references auth.users (id) on delete cascade,
   display_name text,
   avatar_key   text check (avatar_key in ('a', 'b')),
+  avatar_config jsonb not null default '{}'::jsonb,
   push_token   text,
   created_at   timestamptz not null default now()
 );
@@ -132,7 +133,11 @@ create policy profiles_select on public.profiles for select using (
 drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles for insert with check (id = auth.uid());
 drop policy if exists profiles_update on public.profiles;
-create policy profiles_update on public.profiles for update using (id = auth.uid());
+create policy profiles_update on public.profiles for update to authenticated
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
+grant update (display_name, avatar_config) on public.profiles to authenticated;
+grant select on public.profiles to authenticated;
 
 -- couples: read/update only couples you belong to (pairing goes via RPCs).
 drop policy if exists couples_select on public.couples;
@@ -168,7 +173,7 @@ create policy responses_insert on public.responses for insert with check (
 do $$
 declare t text;
 begin
-  foreach t in array array['signals', 'responses', 'couples'] loop
+  foreach t in array array['signals', 'responses', 'couples', 'profiles'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t

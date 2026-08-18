@@ -4,6 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NOTIFICATIONS_KEY = 'hearth.notificationsEnabled';
 const ACK_STAGE_KEY = 'hearth.ackStage';
+const DRAWING_SEEN_KEY = 'hearth.drawingSeen';
+const MUSIC_ENABLED_KEY = 'hearth.musicEnabled';
+const MUSIC_VOLUME_KEY = 'hearth.musicVolume';
+
+export type MusicVolumePreset = 'quiet' | 'gentle' | 'full';
+
+const isMusicVolumePreset = (value: string | null): value is MusicVolumePreset =>
+  value === 'quiet' || value === 'gentle' || value === 'full';
 
 /** Whether the user wants signal push notifications. Defaults to on. */
 export async function getNotificationsEnabled(): Promise<boolean> {
@@ -43,5 +51,74 @@ export async function setAckStage(coupleId: string, stage: number): Promise<void
     await AsyncStorage.setItem(`${ACK_STAGE_KEY}.${coupleId}`, String(stage));
   } catch {
     // Non-fatal: the moment may simply reappear next launch.
+  }
+}
+
+/** Whether the local device should play Hearth's ambient music. Defaults to on. */
+export async function getMusicEnabled(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(MUSIC_ENABLED_KEY);
+    return value !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+export async function setMusicEnabledPref(enabled: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(MUSIC_ENABLED_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Non-fatal: the default (on) applies next launch.
+  }
+}
+
+/** The saved low-volume mix level for this device. */
+export async function getMusicVolume(): Promise<MusicVolumePreset> {
+  try {
+    const value = await AsyncStorage.getItem(MUSIC_VOLUME_KEY);
+    return isMusicVolumePreset(value) ? value : 'gentle';
+  } catch {
+    return 'gentle';
+  }
+}
+
+export async function setMusicVolumePref(volume: MusicVolumePreset): Promise<void> {
+  try {
+    await AsyncStorage.setItem(MUSIC_VOLUME_KEY, volume);
+  } catch {
+    // Non-fatal: the gentle default applies next launch.
+  }
+}
+
+/**
+ * The last partner drawing this signed-in person actually viewed, scoped to a
+ * couple and UTC day. Keeping this local avoids turning read state into partner
+ * surveillance while ensuring the unread badge stays dismissed after reload.
+ */
+export async function getSeenDrawing(
+  coupleId: string,
+  userId: string,
+  day: string,
+): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(`${DRAWING_SEEN_KEY}.${coupleId}.${userId}.${day}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function setSeenDrawing(
+  coupleId: string,
+  userId: string,
+  day: string,
+  fingerprint: string,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      `${DRAWING_SEEN_KEY}.${coupleId}.${userId}.${day}`,
+      fingerprint,
+    );
+  } catch {
+    // Non-fatal: the drawing may appear unread again after a restart.
   }
 }

@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.expo.dev/
 dist/
 web-build/
 expo-env.d.ts
@@ -32,6 +33,21 @@ yarn-error.*
 
 # local env files
 .env*.local
+
+# generated and machine-local state
+/tmp/
+/supabase/.temp/
+/skills-lock.json
+
+# Third-party agent packages are installed locally. Keep only Hearth's
+# repository-owned coordination skills under version control.
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/hearth-worker/
+!/.agents/skills/hearth-worker/**
+!/.agents/skills/hearth-integrator/
+!/.agents/skills/hearth-integrator/**
 
 # typescript
 *.tsbuildinfo

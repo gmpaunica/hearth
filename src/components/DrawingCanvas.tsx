@@ -1,76 +1,183 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type GestureResponderEvent,
-  PanResponder,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { GRID, PALETTE, useDrawingStore } from '@/state/drawingStore';
-import { ui } from '@/theme/hearth';
+import { PORTRAIT_HEIGHT, PORTRAIT_WIDTH } from '@/state/drawingCodec';
+import { type DrawingPoint } from '@/state/drawingStroke';
+import { PALETTE, useDrawingStore } from '@/state/drawingStore';
+import { editorial } from '@/theme/hearth';
 import { PixelArt } from './PixelArt';
 
-const CANVAS = 280; // px
+const COLOR_NAMES = ['Amber', 'Coral', 'Pink', 'Sky', 'Sage', 'Butter', 'Cream', 'Ink'];
+const BRUSHES = [
+  { label: 'Extra fine', radius: 0.5, dot: 3 },
+  { label: 'Fine', radius: 1.25, dot: 5 },
+  { label: 'Medium', radius: 2.5, dot: 8 },
+  { label: 'Bold', radius: 4.5, dot: 12 },
+] as const;
 
-/** Finger-paint pixel canvas for your daily drawing. */
-export function DrawingCanvas() {
-  const myGrid = useDrawingStore((s) => s.myGrid);
-  const setPixel = useDrawingStore((s) => s.setPixel);
-  const clearMine = useDrawingStore((s) => s.clearMine);
+type DrawingCanvasProps = {
+  width: number;
+  onDrawingActiveChange?: (active: boolean) => void;
+};
+
+/** A portrait raster canvas with one store update per animation frame. */
+export function DrawingCanvas({ width, onDrawingActiveChange }: DrawingCanvasProps) {
+  const height = (width * PORTRAIT_HEIGHT) / PORTRAIT_WIDTH;
+  const myGrid = useDrawingStore((state) => state.myGrid);
+  const continueStroke = useDrawingStore((state) => state.continueStroke);
+  const finishStroke = useDrawingStore((state) => state.finishStroke);
+  const clearMine = useDrawingStore((state) => state.clearMine);
 
   const [color, setColor] = useState(0); // palette index; -1 = eraser
-  const colorRef = useRef(color);
-  colorRef.current = color;
+  const [brushIndex, setBrushIndex] = useState(0);
+  const queuedPoints = useRef<DrawingPoint[]>([]);
+  const frame = useRef<number | null>(null);
+  const drawingActive = useRef(false);
+  const brush = BRUSHES[brushIndex];
 
-  // Paint using coordinates relative to the touch overlay (a single full-size
-  // view), so a touch anywhere maps to the right cell.
-  const paintAt = (e: GestureResponderEvent) => {
-    const cell = CANVAS / GRID;
-    const cx = Math.floor(e.nativeEvent.locationX / cell);
-    const cy = Math.floor(e.nativeEvent.locationY / cell);
-    if (cx < 0 || cx >= GRID || cy < 0 || cy >= GRID) return;
-    setPixel(cy * GRID + cx, colorRef.current < 0 ? '.' : String(colorRef.current));
-  };
+  const beginDrawing = useCallback(() => {
+    if (drawingActive.current) return;
+    drawingActive.current = true;
+    onDrawingActiveChange?.(true);
+  }, [onDrawingActiveChange]);
 
-  const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: paintAt,
-        onPanResponderMove: paintAt,
-      }),
-    // paintAt reads live values via refs/store; create once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+  const endDrawing = useCallback(() => {
+    if (!drawingActive.current) return;
+    drawingActive.current = false;
+    onDrawingActiveChange?.(false);
+  }, [onDrawingActiveChange]);
+
+  const flushFrame = useCallback(() => {
+    frame.current = null;
+    const points = queuedPoints.current;
+    queuedPoints.current = [];
+    if (points.length > 0) {
+      continueStroke(points, color < 0 ? '.' : String(color), brush.radius);
+    }
+  }, [brush.radius, color, continueStroke]);
+
+  const queuePoint = useCallback(
+    (event: GestureResponderEvent) => {
+      const { locationX, locationY } = event.nativeEvent;
+      queuedPoints.current.push({
+        x: Math.max(0, Math.min(PORTRAIT_WIDTH - 1, (locationX / width) * PORTRAIT_WIDTH)),
+        y: Math.max(
+          0,
+          Math.min(PORTRAIT_HEIGHT - 1, (locationY / height) * PORTRAIT_HEIGHT),
+        ),
+      });
+      if (frame.current === null) frame.current = requestAnimationFrame(flushFrame);
+    },
+    [flushFrame, height, width],
+  );
+
+  const grantResponder = useCallback(
+    (event: GestureResponderEvent) => {
+      beginDrawing();
+      queuePoint(event);
+    },
+    [beginDrawing, queuePoint],
+  );
+
+  const finish = useCallback(() => {
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    flushFrame();
+    finishStroke();
+    endDrawing();
+  }, [endDrawing, finishStroke, flushFrame]);
+
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      if (drawingActive.current) onDrawingActiveChange?.(false);
+    },
+    [onDrawingActiveChange],
   );
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.canvasBox}>
-        <PixelArt grid={myGrid} size={CANVAS} />
-        {/* Single transparent surface captures all touches → correct coords. */}
-        <View style={StyleSheet.absoluteFill} {...responder.panHandlers} />
+      <View style={[styles.canvasBox, { width, height }]}>
+        <PixelArt grid={myGrid} width={width} height={height} borderRadius={18} />
+        <View
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel="Sketch canvas"
+          onTouchStart={beginDrawing}
+          onTouchEnd={endDrawing}
+          onTouchCancel={endDrawing}
+          onStartShouldSetResponderCapture={() => true}
+          onMoveShouldSetResponderCapture={() => true}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderGrant={grantResponder}
+          onResponderMove={queuePoint}
+          onResponderRelease={finish}
+          onResponderTerminate={finish}
+        />
+      </View>
+
+      <View style={styles.brushes} accessibilityRole="radiogroup">
+        {BRUSHES.map((preset, index) => (
+          <Pressable
+            key={preset.label}
+            onPress={() => setBrushIndex(index)}
+            style={[styles.brush, brushIndex === index && styles.brushOn]}
+            accessibilityRole="radio"
+            accessibilityLabel={`${preset.label} brush`}
+            accessibilityState={{ selected: brushIndex === index }}
+          >
+            <View
+              style={[
+                styles.brushDot,
+                { width: preset.dot, height: preset.dot, borderRadius: preset.dot / 2 },
+              ]}
+            />
+            <Text style={[styles.brushText, brushIndex === index && styles.brushTextOn]}>
+              {preset.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <View style={styles.palette}>
-        {PALETTE.map((c, i) => (
+        {PALETTE.map((swatch, index) => (
           <Pressable
-            key={c}
-            onPress={() => setColor(i)}
-            style={[styles.swatch, { backgroundColor: c }, color === i && styles.swatchOn]}
+            key={swatch}
+            onPress={() => setColor(index)}
+            style={[
+              styles.swatch,
+              { backgroundColor: swatch },
+              color === index && styles.swatchOn,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`${COLOR_NAMES[index]} pencil`}
+            accessibilityState={{ selected: color === index }}
           />
         ))}
         <Pressable
           onPress={() => setColor(-1)}
-          style={[styles.swatch, styles.eraser, color === -1 && styles.swatchOn]}
+          style={[styles.tool, styles.eraser, color === -1 && styles.swatchOn]}
+          accessibilityRole="button"
+          accessibilityLabel={`Eraser, ${brush.label.toLowerCase()} size`}
+          accessibilityState={{ selected: color === -1 }}
         >
-          <Text style={styles.eraserText}>⌫</Text>
+          <Text style={styles.eraserText}>Eraser</Text>
         </Pressable>
-        <Pressable onPress={clearMine} style={styles.clear}>
+        <Pressable
+          onPress={clearMine}
+          style={styles.clear}
+          accessibilityRole="button"
+          accessibilityLabel="Clear sketch"
+        >
           <Text style={styles.clearText}>Clear</Text>
         </Pressable>
       </View>
@@ -79,21 +186,50 @@ export function DrawingCanvas() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 12 },
+  wrap: { alignItems: 'center', gap: 9 },
   canvasBox: {
-    width: CANVAS,
-    height: CANVAS,
-    borderRadius: 14,
+    borderRadius: 19,
     borderWidth: 1,
-    borderColor: ui.overlayBorder,
+    borderColor: editorial.lineStrong,
     overflow: 'hidden',
+    shadowColor: editorial.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
+  brushes: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  brush: {
+    minHeight: 33,
+    flex: 1,
+    maxWidth: 88,
+    paddingHorizontal: 5,
+    borderRadius: 13,
+    backgroundColor: editorial.paperTint,
+    borderWidth: 1,
+    borderColor: editorial.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  brushOn: { backgroundColor: editorial.claySoft, borderColor: editorial.clay },
+  brushDot: { backgroundColor: editorial.ink },
+  brushText: { color: editorial.inkSoft, fontSize: 8, fontWeight: '700' },
+  brushTextOn: { color: editorial.clayDark },
   palette: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 7,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 4,
   },
   swatch: {
     width: 30,
@@ -102,16 +238,35 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  swatchOn: { borderColor: ui.text },
-  eraser: { backgroundColor: ui.chipBg, alignItems: 'center', justifyContent: 'center' },
-  eraserText: { color: ui.text, fontSize: 14 },
-  clear: {
-    paddingHorizontal: 12,
+  swatchOn: {
+    borderColor: editorial.ink,
+    shadowColor: editorial.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tool: {
     height: 30,
+    paddingHorizontal: 10,
     borderRadius: 15,
-    backgroundColor: ui.chipBg,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  eraser: {
+    backgroundColor: editorial.paperTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clearText: { color: ui.textDim, fontSize: 13 },
+  eraserText: { color: editorial.ink, fontSize: 10, fontWeight: '700' },
+  clear: {
+    paddingHorizontal: 11,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: editorial.paperTint,
+    borderColor: editorial.line,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearText: { color: editorial.inkSoft, fontSize: 11, fontWeight: '700' },
 });

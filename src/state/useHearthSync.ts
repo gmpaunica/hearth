@@ -2,26 +2,31 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import type { DrawingRow, ResponseRow, SignalRow } from '@/lib/db';
+import type { DrawingRow } from '@/lib/db';
 import { onNotificationTap, registerPushToken } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { avatarIdentityFor } from './avatarIdentity';
 import { useAuthStore } from './authStore';
 import { useDrawingStore } from './drawingStore';
-import { useSignalStore } from './signalStore';
+import { useDailyRitualStore } from './dailyRitualStore';
+import { useMomentV2Store } from './momentV2Store';
+import { useMomentsSurfaceStore } from './momentsSurfaceStore';
+import { useAvatarStore } from './avatarStore';
 
 /**
  * The app's realtime spine. Mounted once at the root, it:
  *   1. signs in + loads the couple (Phase 4),
  *   2. watches the couple row so a waiting host advances the moment their
  *      partner joins,
- *   3. once paired, hydrates the current open signals and streams live
- *      signal/response changes into the signalStore (Phase 5).
+ *   3. once paired, hydrates the one typed v2 moment and streams public
+ *      session/presence/completion changes into the moment store.
  * The scene reacts purely through the store — no scene code changes here.
  */
 export function useHearthSync() {
   const init = useAuthStore((s) => s.init);
   const refreshCouple = useAuthStore((s) => s.refreshCouple);
   const coupleId = useAuthStore((s) => s.couple?.id ?? null);
+  const memberA = useAuthStore((s) => s.couple?.member_a ?? null);
   const memberB = useAuthStore((s) => s.couple?.member_b ?? null);
   const userId = useAuthStore((s) => s.userId);
   const partnerId = useAuthStore((s) => s.partnerId);
@@ -34,11 +39,26 @@ export function useHearthSync() {
   // Register this device for push once signed in (native only; no-ops on web).
   useEffect(() => {
     if (!userId) return;
-    void registerPushToken(userId);
+    let cancelled = false;
+    void registerPushToken(userId).catch((error) => {
+      if (!cancelled) console.warn('[hearth] push registration failed:', error);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
-  // Tapping a signal notification deep-links straight into the room.
-  useEffect(() => onNotificationTap(() => router.navigate('/')), []);
+  // Reject a notification left by a previous anonymous identity or home.
+  useEffect(
+    () => onNotificationTap(({ url, recipientUserId, coupleId: notificationCoupleId }) => {
+      const auth = useAuthStore.getState();
+      if (
+        recipientUserId === auth.userId &&
+        notificationCoupleId === auth.couple?.id
+      ) router.navigate(url as never);
+    }),
+    [],
+  );
 
   // Watch the couple row for membership changes: a partner joining (waiting →
   // paired) or leaving/unpairing (paired → waiting or gone).
@@ -62,68 +82,96 @@ export function useHearthSync() {
     };
   }, [coupleId, memberB, refreshCouple]);
 
-  // Once both members are present, sync signals + responses live.
+  // Once both members are present, sync the single v2 moment live. Realtime
+  // refreshes data only; it never expands the Moments surface.
   useEffect(() => {
-    const store = useSignalStore.getState();
-    if (!coupleId || !userId || !memberB) {
+    const store = useMomentV2Store.getState();
+    if (!coupleId || !userId || !memberA || !memberB) {
       store.reset();
       useDrawingStore.getState().reset();
+      useDailyRitualStore.getState().reset();
+      useAvatarStore.getState().reset();
       return;
     }
-    store.setContext({ coupleId, userId, partnerId });
-    // Daily drawings: load today's, and stream fresh ones from the partner.
-    void useDrawingStore.getState().load();
-
-    // Late-join: reflect the current unresolved state, not just live deltas.
-    const hydrateNow = async () => {
-      const { data: signals } = await supabase
-        .from('signals')
-        .select('*')
-        .eq('couple_id', coupleId)
-        .is('resolved_at', null)
-        .order('created_at', { ascending: true });
-      const rows = (signals ?? []) as SignalRow[];
-      let responses: ResponseRow[] = [];
-      if (rows.length) {
-        const { data: resp } = await supabase
-          .from('responses')
-          .select('*')
-          .in(
-            'signal_id',
-            rows.map((r) => r.id),
-          );
-        responses = (resp ?? []) as ResponseRow[];
-      }
-      useSignalStore.getState().hydrate(rows, responses);
+    if (partnerId) void useAvatarStore.getState().load(userId, memberA, partnerId);
+    const context = {
+      coupleId,
+      userId,
+      partnerId: partnerId ?? memberB,
+      ...avatarIdentityFor(userId, memberA),
     };
-    void hydrateNow();
+    // The server home day hydrates before the daily drawing query so both
+    // phones use the same date across timezone and DST boundaries.
+    void useDailyRitualStore.getState().refresh()
+      .then(() => useDrawingStore.getState().load());
+
+    const hydrateNow = (snapScene = false) => useMomentV2Store.getState().refresh(snapScene);
+    let cancelled = false;
+    void store.setContext(context).then(() => {
+      if (!cancelled) void hydrateNow(true);
+    });
 
     // Realtime events missed while backgrounded leave the room stale ("they're
     // at the fire" when they aren't). Re-fetch truth whenever the app returns
     // to the foreground.
+    useMomentsSurfaceStore.getState().setAppVisible(AppState.currentState === 'active');
     const appState = AppState.addEventListener('change', (s) => {
+      useMomentsSurfaceStore.getState().setAppVisible(s === 'active');
       if (s === 'active') {
         void refreshCouple();
-        void hydrateNow();
-        void useDrawingStore.getState().load();
+        void hydrateNow(false);
+        void useDailyRitualStore.getState().refresh()
+          .then(() => useDrawingStore.getState().load())
+          .then(() => useMomentV2Store.getState().resumePlayback());
       }
     });
 
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let postSubscribeHydrate: ReturnType<typeof setTimeout> | null = null;
+    const queueHydrate = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => void hydrateNow(false), 60);
+    };
     const channel = supabase
-      .channel(`signals:${coupleId}`)
+      .channel(`moments-v2:${coupleId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'signals', filter: `couple_id=eq.${coupleId}` },
-        (payload) => useSignalStore.getState().ingestSignal(payload.new as SignalRow),
+        queueHydrate,
       )
       .on(
-        // responses carry no couple_id; RLS ensures we only receive our own
-        // couple's rows, and the store ignores any that don't match.
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'responses' },
-        (payload) => useSignalStore.getState().ingestResponse(payload.new as ResponseRow),
+        { event: '*', schema: 'public', table: 'signal_presence' },
+        queueHydrate,
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'moment_sessions', filter: `couple_id=eq.${coupleId}` },
+        queueHydrate,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'moment_completion_events', filter: `couple_id=eq.${coupleId}` },
+        queueHydrate,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'moment_action_events', filter: `couple_id=eq.${coupleId}` },
+        queueHydrate,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'moment_readiness_events', filter: `couple_id=eq.${coupleId}` },
+        queueHydrate,
+      )
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        // The initial fetch can finish before every postgres_changes binding is
+        // live. Re-read once just after subscription so a signal or need sent
+        // during that narrow pairing window cannot disappear between the two.
+        if (postSubscribeHydrate) clearTimeout(postSubscribeHydrate);
+        postSubscribeHydrate = setTimeout(() => void hydrateNow(false), 350);
+      });
 
     // Drawings live in their own channel so that, if a couple hasn't run
     // drawings.sql yet, a failed subscription can't take signal sync down too.
@@ -136,10 +184,23 @@ export function useHearthSync() {
       )
       .subscribe();
 
+    const profileChannel = supabase
+      .channel(`profiles:${coupleId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload) => useAvatarStore.getState().ingest(payload.new as { id: string; avatar_config: unknown }),
+      )
+      .subscribe();
+
     return () => {
+      cancelled = true;
       appState.remove();
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (postSubscribeHydrate) clearTimeout(postSubscribeHydrate);
       void supabase.removeChannel(channel);
       void supabase.removeChannel(drawingChannel);
+      void supabase.removeChannel(profileChannel);
     };
-  }, [coupleId, userId, memberB, partnerId, refreshCouple]);
+  }, [coupleId, userId, memberA, memberB, partnerId, refreshCouple]);
 }

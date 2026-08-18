@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import { useAuthStore } from '@/state/authStore';
-import { ui } from '@/theme/hearth';
+import { editorial } from '@/theme/hearth';
 
 /**
  * The full-screen gate shown until two people share a home. It sits above the
@@ -37,7 +37,7 @@ export function Pairing() {
       <View style={styles.card}>
         {phase === 'loading' && (
           <View style={styles.centered}>
-            <ActivityIndicator color={ui.accent} />
+            <ActivityIndicator color={editorial.clay} />
             <Text style={styles.dim}>Lighting the hearth…</Text>
           </View>
         )}
@@ -62,7 +62,7 @@ export function Pairing() {
               <Text style={styles.code}>{couple.invite_code}</Text>
             </View>
             <View style={styles.waitRow}>
-              <ActivityIndicator color={ui.accent} size="small" />
+              <ActivityIndicator color={editorial.clay} size="small" />
               <Text style={styles.dim}>Waiting for them to arrive…</Text>
             </View>
             {/* Always a way back out — e.g. if you created a home by mistake. */}
@@ -80,7 +80,7 @@ export function Pairing() {
             </Text>
             <Pressable style={styles.primary} onPress={createHome} disabled={busy}>
               {busy ? (
-                <ActivityIndicator color={ui.text} />
+                <ActivityIndicator color={editorial.onAccent} />
               ) : (
                 <Text style={styles.primaryText}>Create a home</Text>
               )}
@@ -105,7 +105,7 @@ export function Pairing() {
               value={code}
               onChangeText={(t) => setCode(t.toUpperCase())}
               placeholder="ABC123"
-              placeholderTextColor={ui.textDim}
+              placeholderTextColor={editorial.inkFaint}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={6}
@@ -117,7 +117,7 @@ export function Pairing() {
               disabled={busy || code.trim().length === 0}
             >
               {busy ? (
-                <ActivityIndicator color={ui.text} />
+                <ActivityIndicator color={editorial.onAccent} />
               ) : (
                 <Text style={styles.primaryText}>Join home</Text>
               )}
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(12, 8, 20, 0.62)',
+    backgroundColor: editorial.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -152,53 +152,78 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: ui.overlayBg,
-    borderColor: ui.overlayBorder,
+    backgroundColor: editorial.paper,
+    borderColor: editorial.lineStrong,
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 30,
+    paddingHorizontal: 26,
+    paddingVertical: 28,
+    shadowColor: editorial.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
-  centered: { alignItems: 'center', gap: 12 },
-  title: { color: ui.text, fontSize: 20, textAlign: 'center' },
-  body: { color: ui.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  dim: { color: ui.textDim, fontSize: 13 },
+  centered: { alignItems: 'center', gap: 14 },
+  title: {
+    color: editorial.ink,
+    fontFamily: 'serif',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  body: { color: editorial.inkSoft, fontSize: 14, textAlign: 'center', lineHeight: 21 },
+  dim: { color: editorial.inkSoft, fontSize: 13 },
   primary: {
     marginTop: 6,
-    backgroundColor: ui.chipActiveBg,
-    borderRadius: 16,
+    backgroundColor: editorial.clay,
+    borderColor: editorial.clayDark,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 18,
     paddingVertical: 13,
     paddingHorizontal: 22,
     alignSelf: 'stretch',
     alignItems: 'center',
     minHeight: 48,
     justifyContent: 'center',
+    shadowColor: editorial.clayDark,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  primaryText: { color: ui.text, fontSize: 16, letterSpacing: 0.3 },
+  primaryText: {
+    color: editorial.onAccent,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
   secondary: { paddingVertical: 10, paddingHorizontal: 16 },
-  secondaryText: { color: ui.accent, fontSize: 14 },
+  secondaryText: { color: editorial.clay, fontSize: 14, fontWeight: '700' },
   input: {
     alignSelf: 'stretch',
-    backgroundColor: ui.chipBg,
-    borderColor: ui.overlayBorder,
+    backgroundColor: editorial.paperTint,
+    borderColor: editorial.lineStrong,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 17,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    color: ui.text,
+    color: editorial.ink,
     fontSize: 22,
     letterSpacing: 8,
     textAlign: 'center',
   },
   codeBox: {
     marginVertical: 4,
-    backgroundColor: ui.chipBg,
-    borderColor: ui.accentSoft,
+    backgroundColor: editorial.paperTint,
+    borderColor: editorial.lineStrong,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 28,
   },
-  code: { color: ui.accent, fontSize: 34, letterSpacing: 10, fontWeight: '600' },
+  code: { color: editorial.clay, fontSize: 34, letterSpacing: 10, fontWeight: '700' },
   waitRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  err: { color: ui.danger, fontSize: 13, textAlign: 'center', marginTop: 4 },
+  err: { color: editorial.danger, fontSize: 13, textAlign: 'center', marginTop: 4 },
 });

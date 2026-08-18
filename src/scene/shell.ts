@@ -1,20 +1,46 @@
 import { room } from '@/theme/hearth';
+import { ROOM_STOPS } from './roomNavigation';
 import { Vox } from './voxel';
 
-// Shared builders for the floating room "platforms". Each room is its own
-// two-wall corner shell (back = ‑z, left = ‑x, both open toward the +x/+z
-// camera), so no interior wall ever occludes another room. Rooms are placed at
-// world offsets and panned between (see HomeScene).
+// Shared builders for the connected dollhouse modules. Each room keeps the
+// fixed-isometric two-wall shell (back = -z, left = -x), while fixed sockets
+// align its floor with the living-room hub.
 
 export const S = 0.25;
 
-// World offsets of the floating rooms. They sit on one screen-horizontal line
-// (a drag left/right pans between them): screen-right is world (+x,‑z), so the
-// bedroom is offset that way and the garden the opposite way. Same magnitude of
-// x and z keeps every room at the same screen depth (a clean row).
+/** Enlarged central island bounds, in voxel coordinates. */
+export const LIVING_BOUNDS = {
+  floorX0: -17,
+  floorX1: 20,
+  floorZ0: -17,
+  floorZ1: 16,
+  wallX: -18,
+  wallZ: -18,
+} as const;
+
+/**
+ * Stable connection points in the living shell's voxel grid. Future rooms
+ * should attach through one of these sockets instead of adding an improvised
+ * connector in open floor space.
+ */
+export const ROOM_SOCKETS = {
+  bedroom: { wall: 'back', start: 11, width: 6 },
+  garden: { wall: 'left', start: 9, width: 5 },
+} as const;
+
+// World origins of the connected modules. The bedroom meets the living back
+// wall directly; the garden sits west of the living room beyond a wooden path.
 export const LIVING_OFFSET: readonly [number, number, number] = [0, 0, 0];
-export const BEDROOM_OFFSET: readonly [number, number, number] = [6.6, 0, -6.6];
-export const GARDEN_OFFSET: readonly [number, number, number] = [-6.9, 0, 6.9];
+export const BEDROOM_OFFSET: readonly [number, number, number] = [
+  ROOM_STOPS.bedroom.x,
+  0,
+  ROOM_STOPS.bedroom.z,
+];
+export const GARDEN_OFFSET: readonly [number, number, number] = [
+  -7.5,
+  0,
+  2.5,
+];
 
 /** Golden running-bond brick floor over the voxel range [x0..x1] × [z0..z1]. */
 export function paintBrickFloor(v: Vox, x0: number, x1: number, z0: number, z1: number) {

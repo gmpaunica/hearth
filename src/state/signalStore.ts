@@ -1,324 +1,449 @@
 import { create } from 'zustand';
 
-import { RECONCILIATION, SIGNALS, type SignalType } from '@/copy';
-import type { ResponseRow, SignalRow } from '@/lib/db';
+import type {
+  FireplacePathwayId,
+  FireplaceReadiness,
+  InteractionSnapshot,
+} from '@/lib/db';
+import type { SignalType } from '@/copy';
+import { reconcileReturnNotifications } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import { useSceneStore } from './sceneStore';
+import {
+  buildInteractionThreads,
+  currentThreadForUser,
+  isOpenThread,
+  outcomeThreads,
+  sortInteractionThreads,
+  threadNeedsAction,
+  type InteractionThread,
+} from './interactionModel';
+import {
+  liveCompletionTransitions,
+  type LiveCompletionTransition,
+} from './completionTransition';
+import { useMomentsSurfaceStore } from './momentsSurfaceStore';
+import { useSceneStore, type AvatarKey } from './sceneStore';
 
-export interface ActiveSignal {
-  /** DB row id, when this signal is backed by Supabase (absent for dev sims). */
-  id?: string;
-  type: SignalType;
-  createdAt: number;
-  /** The response the other person chose, once given. */
-  response?: string;
-}
+export type { InteractionThread } from './interactionModel';
 
-/** Responses that physically bring the responder to the signal's spot. */
-const JOIN_RESPONSES: Partial<Record<SignalType, string>> = {
-  fireplace: SIGNALS.fireplace.responses[0], // 'Sit beside them'
-  sofa: SIGNALS.sofa.responses[0], // 'Sit with them'
-  table: SIGNALS.table.responses[0], // "I'm ready"
-  romantic: SIGNALS.romantic.responses[0], // 'Come close'
-};
-
-/** Identity + couple context, set by the realtime sync once paired. */
-interface SyncContext {
+export interface SyncContext {
   coupleId: string;
   userId: string;
   partnerId: string | null;
+  myAvatar: AvatarKey;
+  partnerAvatar: AvatarKey;
+}
+
+export interface StartInteractionInput {
+  type: SignalType;
+  pathway?: FireplacePathwayId;
+  sentence?: string;
+  returnAt?: Date | null;
+  connectToSignalId?: string | null;
+}
+
+export interface RespondInteractionInput {
+  action: string;
+  returnAt?: Date | null;
 }
 
 interface SignalFlowState {
-  /** Signal I left for my partner (avatar a). */
-  mySignal: ActiveSignal | null;
-  /** Signal my partner left for me (avatar b). */
-  partnerSignal: ActiveSignal | null;
-  /** True while the fireplace reconciliation prompt is open. */
-  reconciling: boolean;
-  /** Live sync context, or null when offline / not yet paired. */
+  threads: InteractionThread[];
+  focusedId: string | null;
+  outcomeFilter: FireplacePathwayId | null;
   ctx: SyncContext | null;
+  loading: boolean;
+  busyAction: string | null;
+  error: string | null;
+  liveCompletion: LiveCompletionTransition | null;
 
-  sendSignal: (type: SignalType) => void;
-  cancelMySignal: () => void;
-  /** I answer my partner's signal. */
-  respondToPartner: (choice: string) => void;
-  chooseReconciliation: (choice: string) => void;
-
-  // ── Realtime plumbing (driven by useHearthSync) ──────────────────────────
   setContext: (ctx: SyncContext | null) => void;
-  /** Replace local state from a fresh fetch of the couple's open signals. */
-  hydrate: (signals: SignalRow[], responses: ResponseRow[]) => void;
-  ingestSignal: (row: SignalRow) => void;
-  ingestResponse: (row: ResponseRow) => void;
+  hydrate: (snapshot: InteractionSnapshot, snapScene?: boolean) => void;
+  refresh: (snapScene?: boolean) => Promise<void>;
+  focus: (signalId: string) => void;
+  focusOutcome: (pathway: FireplacePathwayId) => void;
+  clearOutcomeFilter: () => void;
+  clearError: () => void;
+  startInteraction: (input: StartInteractionInput) => Promise<boolean>;
+  moveToInteraction: (signalId: string) => Promise<boolean>;
+  leaveInteraction: (signalId: string) => Promise<boolean>;
+  returnToFireplace: (signalId: string) => Promise<boolean>;
+  respondToInteraction: (
+    signalId: string,
+    input: RespondInteractionInput,
+  ) => Promise<boolean>;
+  continueFireplace: (signalId: string) => Promise<boolean>;
+  setReadiness: (
+    signalId: string,
+    readiness: FireplaceReadiness,
+  ) => Promise<boolean>;
+  rescheduleReturn: (signalId: string, returnAt: Date) => Promise<boolean>;
+  setFireplaceSentence: (signalId: string, sentence: string | null) => Promise<boolean>;
+  redactSentence: (signalId: string) => Promise<boolean>;
+  closeAuthoredInteraction: (signalId: string) => Promise<boolean>;
+  answerRelatedSettlement: (
+    signalId: string,
+    completedSignalId: string,
+    settled: boolean,
+  ) => Promise<boolean>;
   reset: () => void;
-
-  // ── Dev-only partner simulation (offline visual QA) ──────────────────────
-  simulatePartnerSignal: (type: SignalType) => void;
-  simulatePartnerResponse: (choice: string) => void;
 }
 
-const scene = () => useSceneStore.getState();
+let newestRefresh = 0;
+let newestAppliedRefresh = 0;
+let completionContextKey: string | null = null;
+let completionBeatTimer: ReturnType<typeof setTimeout> | null = null;
+const seenCompletionIds = new Set<string>();
+const completionQueue: LiveCompletionTransition[] = [];
 
-/**
- * Fire a Supabase write without blocking the UI. Supabase query builders are
- * lazy thenables — the request is only sent when `.then()`/`await` runs — so a
- * bare `supabase.from(...).insert(...)` never hits the network. Adopting it
- * with `Promise.resolve` executes it and lets us surface any error.
- */
-function fire(pending: PromiseLike<unknown>): void {
-  Promise.resolve(pending).then(
-    (res) => {
-      const error = (res as { error?: unknown } | null)?.error;
-      if (error) console.warn('[hearth] Supabase write failed:', error);
-    },
-    (err) => console.warn('[hearth] Supabase write threw:', err),
+function messageOf(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return 'Something changed before that action finished. Please try again.';
+}
+
+function deviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+function projectScene(
+  threads: InteractionThread[],
+  ctx: SyncContext | null,
+  snapScene: boolean,
+): void {
+  if (!ctx) return;
+  const mine = currentThreadForUser(threads, ctx.userId);
+  const partner = ctx.partnerId
+    ? currentThreadForUser(threads, ctx.partnerId)
+    : null;
+  const scene = useSceneStore.getState();
+  scene.setSpot(ctx.myAvatar, mine?.thread.type ?? 'idle');
+  scene.setSpot(ctx.partnerAvatar, partner?.thread.type ?? 'idle');
+  const newestLocation = [mine, partner]
+    .filter((location): location is NonNullable<typeof location> => location != null)
+    .sort((left, right) => right.at - left.at)[0] ?? null;
+  scene.setInteractionSpot(newestLocation?.thread.type ?? null);
+  scene.setFireplaceWaiting(
+    newestLocation?.thread.type === 'fireplace' &&
+      newestLocation.thread.session?.phase !== 'completed',
   );
+  if (snapScene) scene.requestSnap();
+  void reconcileReturnNotifications(threads, ctx.userId);
 }
 
-/** Apply the scene reaction when a join-type response lands on `spot`. */
-function reactToJoin(actor: 'a' | 'b', type: SignalType, choice: string): boolean {
-  if (JOIN_RESPONSES[type] !== choice) return false;
-  scene().setSpot(actor, type);
-  return true;
+function normalizeSnapshot(value: unknown): InteractionSnapshot {
+  const source = value && typeof value === 'object' ? value as Partial<InteractionSnapshot> : {};
+  return {
+    signals: Array.isArray(source.signals) ? source.signals : [],
+    groups: Array.isArray(source.groups) ? source.groups : [],
+    presence: Array.isArray(source.presence) ? source.presence : [],
+    sessions: Array.isArray(source.sessions) ? source.sessions : [],
+    participants: Array.isArray(source.participants) ? source.participants : [],
+    legacy_state: Array.isArray(source.legacy_state) ? source.legacy_state : [],
+    legacy_responses: Array.isArray(source.legacy_responses)
+      ? source.legacy_responses
+      : [],
+  };
 }
 
-/**
- * The shared payoff once both people are together at a signal's spot. Fireplace
- * opens the reconciliation prompt; the bedroom's "Come close" lands the warm
- * glow + heart pop right there (a soft, tasteful romantic moment). Returns true
- * when it opened the reconciliation prompt (fireplace only).
- */
-function celebrateJoin(type: SignalType): boolean {
-  if (type === 'fireplace') return true;
-  if (type === 'romantic') scene().triggerGlow('romantic');
-  return false;
+async function invoke(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<{ data: unknown; error: unknown }> {
+  const result = await supabase.rpc(name, args);
+  return { data: result.data, error: result.error };
 }
 
-export const useSignalStore = create<SignalFlowState>((set, get) => ({
-  mySignal: null,
-  partnerSignal: null,
-  reconciling: false,
-  ctx: null,
-
-  sendSignal: (type) => {
-    // Optimistic: the avatar walks immediately; the DB insert confirms via
-    // realtime (matched back by id). Works offline as a pure-local signal.
-    set({ mySignal: { type, createdAt: Date.now() } });
-    scene().setSpot('a', type);
-
+export const useSignalStore = create<SignalFlowState>((set, get) => {
+  const beginNextCompletionBeat = () => {
+    if (completionBeatTimer || completionQueue.length === 0) return;
+    const transition = completionQueue.shift()!;
+    set({ liveCompletion: transition });
+    const scene = useSceneStore.getState();
     const { ctx } = get();
-    if (!ctx) return;
-    void supabase
-      .from('signals')
-      .insert({ couple_id: ctx.coupleId, from_user: ctx.userId, type })
-      .select()
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        const cur = get().mySignal;
-        // Attach the real id so responses can reference it.
-        if (cur && !cur.id && cur.type === type) set({ mySignal: { ...cur, id: data.id } });
-      });
-  },
-
-  cancelMySignal: () => {
-    const { mySignal, ctx } = get();
-    set({ mySignal: null });
-    scene().setSpot('a', 'idle');
-    if (ctx && mySignal?.id) {
-      fire(
-        supabase
-          .from('signals')
-          .update({ resolved_at: new Date().toISOString() })
-          .eq('id', mySignal.id),
-      );
+    if (ctx) {
+      scene.setSpot(ctx.myAvatar, 'fireplace');
+      scene.setSpot(ctx.partnerAvatar, 'fireplace');
+      scene.setInteractionSpot('fireplace');
+      scene.requestSnap();
     }
-  },
-
-  respondToPartner: (choice) => {
-    const { partnerSignal, ctx } = get();
-    if (!partnerSignal) return;
-    set({ partnerSignal: { ...partnerSignal, response: choice } });
-    if (reactToJoin('a', partnerSignal.type, choice) && celebrateJoin(partnerSignal.type)) {
-      set({ reconciling: true });
-    }
-    if (ctx && partnerSignal.id) {
-      fire(
-        supabase.from('responses').insert({
-          signal_id: partnerSignal.id,
-          from_user: ctx.userId,
-          choice,
-        }),
-      );
-    }
-  },
-
-  chooseReconciliation: (choice) => {
-    // Choices come verbatim from RECONCILIATION.choices (index order).
-    const { mySignal, partnerSignal, ctx } = get();
-    // Whoever is reconciling holds the shared fireplace signal on exactly one
-    // side (originator → mySignal, responder → partnerSignal).
-    const signalId = mySignal?.id ?? partnerSignal?.id;
-
-    // Tell the partner which way we chose so their scene mirrors ours — a glow
-    // for both, or both moving to the table. Rides the same responses channel
-    // as every other answer; RLS confines it to our couple.
-    const notifyPartner = () => {
-      if (ctx && signalId) {
-        fire(
-          supabase
-            .from('responses')
-            .insert({ signal_id: signalId, from_user: ctx.userId, choice }),
-        );
+    scene.setFireplaceWaiting(false);
+    scene.triggerGlow('fireplace');
+    const duration = scene.reduceMotion ? 1250 : 2500;
+    completionBeatTimer = setTimeout(() => {
+      completionBeatTimer = null;
+      const state = get();
+      if (completionQueue.length > 0) {
+        beginNextCompletionBeat();
+      } else {
+        set({ liveCompletion: null });
+        projectScene(state.threads, state.ctx, false);
       }
-    };
-    const resolveBoth = () => {
+    }, duration);
+  };
+
+  const applySnapshot = (snapshot: InteractionSnapshot, snapScene = false) => {
+    const threads = buildInteractionThreads(snapshot);
+    const { ctx, focusedId, outcomeFilter, threads: previous } = get();
+    const contextKey = ctx ? `${ctx.coupleId}:${ctx.userId}` : null;
+    const isBaseline = contextKey !== null && completionContextKey !== contextKey;
+    if (isBaseline) {
+      completionContextKey = contextKey;
+      seenCompletionIds.clear();
+      for (const thread of threads) {
+        if (thread.session?.phase === 'completed') seenCompletionIds.add(thread.id);
+      }
+    }
+    const transitions = liveCompletionTransitions(
+      previous,
+      threads,
+      seenCompletionIds,
+      isBaseline || contextKey === null,
+    );
+    for (const transition of transitions) {
+      seenCompletionIds.add(transition.signalId);
+      completionQueue.push(transition);
+    }
+    const sorted = ctx ? sortInteractionThreads(threads, ctx.userId) : threads;
+    const matchingOutcome = outcomeFilter
+      ? outcomeThreads(threads, outcomeFilter)[0]
+      : null;
+    const nextFocused = matchingOutcome?.id
+      ?? (focusedId && threads.some((thread) => thread.id === focusedId)
+        ? focusedId
+        : sorted[0]?.id ?? null);
+    set({ threads, focusedId: nextFocused, loading: false, error: null });
+    if (transitions.length > 0) beginNextCompletionBeat();
+    else if (!completionBeatTimer) projectScene(threads, ctx, snapScene);
+  };
+
+  const mutate = async (
+    busyAction: string,
+    rpc: string,
+    args: Record<string, unknown>,
+    focusId?: string,
+  ): Promise<{ ok: boolean; data: unknown }> => {
+    set({ busyAction, error: null });
+    try {
+      const { data, error } = await invoke(rpc, args);
+      if (error) throw error;
+      if (focusId) set({ focusedId: focusId, outcomeFilter: null });
+      await get().refresh(false);
+      set({ busyAction: null });
+      return { ok: true, data };
+    } catch (error) {
+      set({ busyAction: null, error: messageOf(error) });
+      return { ok: false, data: null };
+    }
+  };
+
+  return {
+    threads: [],
+    focusedId: null,
+    outcomeFilter: null,
+    ctx: null,
+    loading: false,
+    busyAction: null,
+    error: null,
+    liveCompletion: null,
+
+    setContext: (ctx) => {
+      newestRefresh += 1;
+      newestAppliedRefresh = newestRefresh;
+      const previous = get().ctx;
+      const changed =
+        previous?.coupleId !== ctx?.coupleId || previous?.userId !== ctx?.userId;
+      if (changed) {
+        completionContextKey = null;
+        seenCompletionIds.clear();
+        completionQueue.length = 0;
+        if (completionBeatTimer) clearTimeout(completionBeatTimer);
+        completionBeatTimer = null;
+        set({ liveCompletion: null });
+      }
+      set({ ctx });
+    },
+
+    hydrate: (snapshot, snapScene = false) => applySnapshot(snapshot, snapScene),
+
+    refresh: async (snapScene = false) => {
+      const { ctx } = get();
       if (!ctx) return;
-      const ids = [mySignal?.id, partnerSignal?.id].filter(Boolean) as string[];
-      if (ids.length) {
-        fire(
-          supabase
-            .from('signals')
-            .update({ resolved_at: new Date().toISOString() })
-            .in('id', ids),
-        );
-      }
-    };
-    if (choice === "We're okay now") {
-      scene().triggerGlow();
-      notifyPartner();
-      resolveBoth();
-      set({ reconciling: false, mySignal: null, partnerSignal: null });
-      // Both stay seated together in the warmth.
-    } else if (choice === 'We should talk first') {
-      scene().setSpot('a', 'table');
-      scene().setSpot('b', 'table');
-      notifyPartner();
-      resolveBoth();
-      set({ reconciling: false, mySignal: null, partnerSignal: null });
-    } else {
-      // 'I need more time' — step back; the signal stays open, partner unaffected.
-      scene().setSpot('a', 'idle');
-      set({ reconciling: false });
-    }
-  },
-
-  setContext: (ctx) => set({ ctx }),
-
-  hydrate: (signals, responses) => {
-    const { ctx } = get();
-    if (!ctx) return;
-    const byId = new Map(signals.map((s) => [s.id, s] as const));
-    const mine = signals.filter((s) => s.from_user === ctx.userId).at(-1) ?? null;
-    const theirs = signals.filter((s) => s.from_user !== ctx.userId).at(-1) ?? null;
-
-    const asActive = (row: SignalRow | null): ActiveSignal | null =>
-      row ? { id: row.id, type: row.type, createdAt: Date.parse(row.created_at) } : null;
-
-    const mySignal = asActive(mine);
-    const partnerSignal = asActive(theirs);
-
-    // Fold in any responses to those two open signals.
-    for (const r of responses) {
-      const sig = byId.get(r.signal_id);
-      if (!sig) continue;
-      if (mySignal && sig.id === mySignal.id && r.from_user !== ctx.userId) {
-        mySignal.response = r.choice;
-      }
-      if (partnerSignal && sig.id === partnerSignal.id) {
-        partnerSignal.response = r.choice;
-      }
-    }
-
-    set({ mySignal, partnerSignal });
-    if (mySignal) scene().setSpot('a', mySignal.type);
-    if (partnerSignal) scene().setSpot('b', partnerSignal.type);
-    // This is a load of current state, not a live move — jump there, don't walk.
-    scene().requestSnap();
-  },
-
-  ingestSignal: (row) => {
-    const { ctx } = get();
-    if (!ctx) return;
-    if (row.resolved_at) {
-      // A signal closed — clear whichever side it belonged to.
-      const { mySignal, partnerSignal } = get();
-      if (mySignal?.id === row.id) {
-        set({ mySignal: null });
-        scene().setSpot('a', 'idle');
-      }
-      if (partnerSignal?.id === row.id) {
-        set({ partnerSignal: null });
-        scene().setSpot('b', 'idle');
-      }
-      return;
-    }
-    if (row.from_user === ctx.userId) {
-      // Echo of my own insert; reconcile the optimistic row with its id.
-      const cur = get().mySignal;
-      if (!cur || cur.id !== row.id) {
-        set({ mySignal: { id: row.id, type: row.type, createdAt: Date.parse(row.created_at) } });
-        scene().setSpot('a', row.type);
-      }
-    } else {
-      set({
-        partnerSignal: { id: row.id, type: row.type, createdAt: Date.parse(row.created_at) },
+      const requestId = ++newestRefresh;
+      set({ loading: get().threads.length === 0, error: null });
+      const { data, error } = await invoke('get_interaction_snapshot', {
+        p_couple_id: ctx.coupleId,
       });
-      scene().setSpot('b', row.type);
-    }
-  },
-
-  ingestResponse: (row) => {
-    const { ctx, mySignal, partnerSignal, reconciling } = get();
-    if (!ctx) return;
-
-    // The partner's reconciliation decision — mirror it so the fireplace moment
-    // lands on both screens at once, not just on whoever tapped the choice.
-    if (
-      reconciling &&
-      row.from_user !== ctx.userId &&
-      (RECONCILIATION.choices as readonly string[]).includes(row.choice)
-    ) {
-      if (row.choice === "We're okay now") {
-        scene().triggerGlow();
-        set({ reconciling: false, mySignal: null, partnerSignal: null });
-      } else if (row.choice === 'We should talk first') {
-        scene().setSpot('a', 'table');
-        scene().setSpot('b', 'table');
-        set({ reconciling: false, mySignal: null, partnerSignal: null });
+      if (requestId < newestAppliedRefresh) return;
+      newestAppliedRefresh = requestId;
+      if (error) {
+        set({ loading: false, error: messageOf(error) });
+        return;
       }
-      // 'I need more time' is never broadcast (the signal stays open).
-      return;
-    }
+      applySnapshot(normalizeSnapshot(data), snapScene);
+    },
 
-    // Partner answered the signal I left.
-    if (mySignal?.id === row.signal_id && row.from_user !== ctx.userId) {
-      set({ mySignal: { ...mySignal, response: row.choice } });
-      if (reactToJoin('b', mySignal.type, row.choice) && celebrateJoin(mySignal.type)) {
-        set({ reconciling: true });
+    focus: (focusedId) => set({ focusedId, outcomeFilter: null }),
+
+    focusOutcome: (outcomeFilter) => {
+      const first = outcomeThreads(get().threads, outcomeFilter)[0];
+      set({ outcomeFilter, focusedId: first?.id ?? get().focusedId });
+    },
+
+    clearOutcomeFilter: () => set({ outcomeFilter: null }),
+    clearError: () => set({ error: null }),
+
+    startInteraction: async (input) => {
+      const ctx = get().ctx;
+      if (!ctx) return false;
+      if (get().busyAction) return false;
+      set({ busyAction: 'start', error: null });
+      try {
+        const { data, error } = await invoke('start_interaction', {
+          p_type: input.type,
+          p_pathway: input.pathway ?? null,
+          p_timezone: deviceTimezone(),
+          p_sentence: input.sentence?.trim() || null,
+          p_return_at: input.returnAt?.toISOString() ?? null,
+          p_connect_to_signal_id: input.connectToSignalId ?? null,
+        });
+        if (error) throw error;
+        const signalId = typeof data === 'string' ? data : null;
+        set({ focusedId: signalId, outcomeFilter: null });
+        await get().refresh(false);
+        set({ busyAction: null });
+        return true;
+      } catch (error) {
+        set({ error: messageOf(error), busyAction: null });
+        return false;
       }
-    }
-    // Echo of my own answer to the partner's signal.
-    if (partnerSignal?.id === row.signal_id && row.from_user === ctx.userId) {
-      set({ partnerSignal: { ...partnerSignal, response: row.choice } });
-    }
-  },
+    },
 
-  reset: () =>
-    set({ mySignal: null, partnerSignal: null, reconciling: false, ctx: null }),
+    moveToInteraction: async (signalId) =>
+      (await mutate('move', 'move_to_interaction', { p_signal_id: signalId }, signalId)).ok,
 
-  simulatePartnerSignal: (type) => {
-    set({ partnerSignal: { type, createdAt: Date.now() } });
-    scene().setSpot('b', type);
-  },
+    leaveInteraction: async (signalId) =>
+      (await mutate('leave', 'leave_interaction', { p_signal_id: signalId })).ok,
 
-  simulatePartnerResponse: (choice) => {
-    const { mySignal } = get();
-    if (!mySignal) return;
-    set({ mySignal: { ...mySignal, response: choice } });
-    if (reactToJoin('b', mySignal.type, choice) && celebrateJoin(mySignal.type)) {
-      set({ reconciling: true });
-    }
-  },
-}));
+    returnToFireplace: async (signalId) =>
+      (await mutate('return', 'return_to_fireplace', { p_signal_id: signalId }, signalId)).ok,
+
+    respondToInteraction: async (signalId, input) =>
+      (await mutate(
+        'respond',
+        'respond_to_interaction',
+        {
+          p_signal_id: signalId,
+          p_action: input.action,
+          p_return_at: input.returnAt?.toISOString() ?? null,
+        },
+        signalId,
+      )).ok,
+
+    continueFireplace: async (signalId) =>
+      (await mutate('continue', 'complete_fireplace_action', { p_signal_id: signalId }, signalId)).ok,
+
+    setReadiness: async (signalId, readiness) =>
+      (await mutate(
+        'readiness',
+        'set_fireplace_readiness',
+        { p_signal_id: signalId, p_readiness: readiness },
+        signalId,
+      )).ok,
+
+    rescheduleReturn: async (signalId, returnAt) =>
+      (await mutate(
+        'reschedule',
+        'reschedule_fireplace_return',
+        { p_signal_id: signalId, p_return_at: returnAt.toISOString() },
+        signalId,
+      )).ok,
+
+    setFireplaceSentence: async (signalId, sentence) =>
+      (await mutate(
+        'sentence',
+        'set_fireplace_sentence',
+        { p_signal_id: signalId, p_sentence: sentence?.trim() || null },
+        signalId,
+      )).ok,
+
+    redactSentence: async (signalId) =>
+      (await mutate('redact', 'redact_fireplace_sentence', { p_signal_id: signalId }, signalId)).ok,
+
+    closeAuthoredInteraction: async (signalId) =>
+      (await mutate('close', 'close_authored_interaction', { p_signal_id: signalId })).ok,
+
+    answerRelatedSettlement: async (signalId, completedSignalId, settled) =>
+      (await mutate(
+        'related',
+        'answer_related_settlement',
+        {
+          p_signal_id: signalId,
+          p_completed_signal_id: completedSignalId,
+          p_settled: settled,
+        },
+        signalId,
+      )).ok,
+
+    reset: () => {
+      newestRefresh += 1;
+      newestAppliedRefresh = newestRefresh;
+      completionContextKey = null;
+      seenCompletionIds.clear();
+      completionQueue.length = 0;
+      if (completionBeatTimer) clearTimeout(completionBeatTimer);
+      completionBeatTimer = null;
+      set({
+        threads: [],
+        focusedId: null,
+        outcomeFilter: null,
+        ctx: null,
+        loading: false,
+        busyAction: null,
+        error: null,
+        liveCompletion: null,
+      });
+      const scene = useSceneStore.getState();
+      scene.setFireplaceWaiting(false);
+      scene.setInteractionSpot(null);
+      useMomentsSurfaceStore.getState().minimize();
+      void reconcileReturnNotifications([], '');
+    },
+  };
+});
+
+export const selectSortedThreads = (state: SignalFlowState): InteractionThread[] =>
+  state.ctx
+    ? sortInteractionThreads(state.threads, state.ctx.userId)
+    : state.threads;
+
+export const selectFocusedThread = (state: SignalFlowState): InteractionThread | null =>
+  state.threads.find((thread) => thread.id === state.focusedId) ?? null;
+
+export const selectStableFocusedThread = (state: SignalFlowState): InteractionThread | null => {
+  const sorted = selectSortedThreads(state);
+  return sorted.find((thread) => thread.id === state.focusedId) ?? sorted[0] ?? null;
+};
+
+export const selectOpenMomentCount = (state: SignalFlowState): number =>
+  state.threads.filter(isOpenThread).length;
+
+export const selectNeedsActionCount = (state: SignalFlowState): number =>
+  state.ctx
+    ? state.threads.filter((thread) => threadNeedsAction(thread, state.ctx!.userId)).length
+    : 0;
+
+export const selectCurrentUserPresence = (state: SignalFlowState): InteractionThread | null =>
+  state.ctx ? currentThreadForUser(state.threads, state.ctx.userId)?.thread ?? null : null;
+
+export const selectLiveCompletionTransition = (
+  state: SignalFlowState,
+): LiveCompletionTransition | null => state.liveCompletion;
+
+export const selectHasInteractions = (state: SignalFlowState): boolean =>
+  state.threads.length > 0;

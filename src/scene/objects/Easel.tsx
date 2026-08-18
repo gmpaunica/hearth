@@ -1,38 +1,72 @@
 import { type ThreeEvent } from '@react-three/fiber';
 import { useMemo } from 'react';
 
-import { GRID, PALETTE, useDrawingStore } from '@/state/drawingStore';
+import { drawingFallback } from '@/state/drawingCodec';
+import { PALETTE, useDrawingStore } from '@/state/drawingStore';
 import { VoxMesh } from '../VoxMesh';
 import { Vox, voxelMaterial } from '../voxel';
 
 const WOOD = '#8a5a33';
-const S = 0.11; // frame voxel size
-const FW = 12; // frame width/height in voxels
+const WOOD_DARK = '#5f3925';
+const WOOD_LIGHT = '#b57945';
+const LINER = '#d4a65d';
+const S = 0.125;
+const FW = 16;
 
-// A flat framed canvas that hangs on the wall, facing the camera (+z).
+// A layered gallery frame that hangs on the wall, facing the camera (+z).
 function buildFrame(v: Vox) {
-  v.box(1, 1, 0, FW - 2, FW - 2, 1, '#efe6d6'); // cream canvas backing
-  v.box(0, 0, 1, FW, 1, 1, WOOD); // bottom rail
-  v.box(0, FW - 1, 1, FW, 1, 1, WOOD); // top rail
-  v.box(0, 0, 1, 1, FW, 1, WOOD); // left rail
-  v.box(FW - 1, 0, 1, 1, FW, 1, WOOD); // right rail
+  // Dark backing and a warm mat give even sparse daily drawings presence.
+  v.box(0, 0, 0, FW, FW, 1, WOOD_DARK);
+  v.box(1, 1, 1, FW - 2, FW - 2, 1, '#f2e5cf');
+
+  // Alternating moulding catches the deterministic directional shading.
+  v.box(0, 0, 1, FW, 1, 1, WOOD_DARK);
+  v.box(0, FW - 1, 1, FW, 1, 1, WOOD_LIGHT);
+  v.box(0, 0, 1, 1, FW, 1, WOOD_DARK);
+  v.box(FW - 1, 0, 1, 1, FW, 1, WOOD);
+  for (let i = 1; i < FW - 1; i++) {
+    v.set(i, 0, 2, i % 2 === 0 ? WOOD : WOOD_LIGHT);
+    v.set(i, FW - 1, 2, i % 2 === 0 ? WOOD_LIGHT : WOOD);
+  }
+
+  // Golden liner and four brass pins frame the inset picture area.
+  for (let i = 1; i < FW - 1; i++) {
+    v.set(i, 1, 2, LINER);
+    v.set(i, FW - 2, 2, LINER);
+    v.set(1, i, 2, LINER);
+    v.set(FW - 2, i, 2, LINER);
+  }
+  for (const [x, y] of [
+    [0, 0],
+    [FW - 1, 0],
+    [0, FW - 1],
+    [FW - 1, FW - 1],
+  ] as const) {
+    v.set(x, y, 2, '#e4bf75');
+  }
+
+  // A tiny heart crest echoes the home's collected keepsakes.
+  v.set(FW / 2 - 1, FW, 1, '#c96b5b');
+  v.set(FW / 2, FW, 1, '#c96b5b');
+  v.set(FW / 2 - 1, FW + 1, 1, WOOD_LIGHT);
 }
 
 function usePictureGeometry(grid: string | null) {
   return useMemo(() => {
     if (!grid) return null;
+    const raster = drawingFallback(grid);
     const v = new Vox();
     let any = false;
-    for (let i = 0; i < GRID * GRID; i++) {
-      const ch = grid[i];
+    for (let i = 0; i < raster.width * raster.height; i++) {
+      const ch = raster.pixels[i];
       if (!ch || ch === '.') continue;
       const color = PALETTE[Number(ch)];
       if (!color) continue;
       any = true;
-      v.set(i % GRID, GRID - 1 - Math.floor(i / GRID), 0, color);
+      v.set(i % raster.width, raster.height - 1 - Math.floor(i / raster.width), 0, color);
     }
-    // Fit the GRID-wide picture into the (FW-2)-voxel canvas.
-    return any ? v.build(((FW - 2) * S) / GRID, 0) : null;
+    // Leave a two-voxel mat around the drawing inside the layered frame.
+    return any ? v.build(((FW - 4) * S) / raster.width, 0) : null;
   }, [grid]);
 }
 
@@ -57,7 +91,7 @@ export function Easel({ position }: { position: [number, number, number] }) {
         <mesh
           geometry={picture}
           material={voxelMaterial}
-          position={[1 * S, 1 * S, 1.02 * S]}
+          position={[2 * S, 2 * S, 2.02 * S]}
         />
       )}
     </group>

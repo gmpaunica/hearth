@@ -1,12 +1,10 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { SIGNALS, type SignalType } from '@/copy';
 import { useSceneStore, type AtmosphereMode, type AvatarKey, type SpotId } from '@/state/sceneStore';
-import { useSignalStore } from '@/state/signalStore';
-import { ui } from '@/theme/hearth';
-
-const SIGNAL_TYPES = Object.keys(SIGNALS) as SignalType[];
+import { useMomentV2Store } from '@/state/momentV2Store';
+import { editorial } from '@/theme/hearth';
 
 const ATMOSPHERES: { id: AtmosphereMode; label: string }[] = [
   { id: 'warm', label: 'Warm' },
@@ -73,21 +71,29 @@ export function DemoPanel() {
   const atmosphere = useSceneStore((s) => s.atmosphere);
   const setAtmosphere = useSceneStore((s) => s.setAtmosphere);
   const triggerGlow = useSceneStore((s) => s.triggerGlow);
-  const mySignal = useSignalStore((s) => s.mySignal);
-  const simulatePartnerSignal = useSignalStore((s) => s.simulatePartnerSignal);
-  const simulatePartnerResponse = useSignalStore((s) => s.simulatePartnerResponse);
+  const interactionActive = useMomentV2Store((s) => s.snapshot?.active != null);
 
   if (!__DEV__) return null;
 
   return (
     <>
-      <Pressable style={styles.fab} onPress={() => setOpen((v) => !v)} hitSlop={8}>
+      <Pressable
+        style={[styles.fab, interactionActive && !open && styles.fabHidden]}
+        onPress={() => setOpen((v) => !v)}
+        hitSlop={8}
+      >
         <Text style={styles.fabText}>{open ? '×' : '⚙'}</Text>
       </Pressable>
 
       {open && (
         <View style={styles.panel}>
           <ScrollView bounces={false}>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Character QA</Text>
+              <View style={styles.row}>
+                <Chip label="Open Character Lab" onPress={() => router.push('/character-lab' as never)} />
+              </View>
+            </View>
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Atmosphere</Text>
               <View style={styles.row}>
@@ -102,24 +108,6 @@ export function DemoPanel() {
                 <Chip label="✨ Reconcile" onPress={triggerGlow} />
               </View>
             </View>
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Partner sends (sim)</Text>
-              <View style={styles.row}>
-                {SIGNAL_TYPES.map((t) => (
-                  <Chip key={t} label={SIGNALS[t].label} onPress={() => simulatePartnerSignal(t)} />
-                ))}
-              </View>
-            </View>
-            {mySignal && !mySignal.response && (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Partner answers (sim)</Text>
-                <View style={styles.row}>
-                  {SIGNALS[mySignal.type].responses.map((r) => (
-                    <Chip key={r} label={r} onPress={() => simulatePartnerResponse(r)} />
-                  ))}
-                </View>
-              </View>
-            )}
             <AvatarRow avatar="a" name="Avatar A (you)" />
             <AvatarRow avatar="b" name="Avatar B (partner)" />
           </ScrollView>
@@ -137,41 +125,55 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: ui.overlayBg,
-    borderColor: ui.overlayBorder,
+    backgroundColor: editorial.paper,
+    borderColor: editorial.lineStrong,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: editorial.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  fabText: { color: ui.accent, fontSize: 20, lineHeight: 22 },
+  fabText: { color: editorial.clay, fontSize: 20, lineHeight: 22 },
+  fabHidden: { display: 'none' },
   panel: {
     position: 'absolute',
     left: 14,
     right: 74,
     bottom: 24,
     maxHeight: 260,
-    backgroundColor: ui.overlayBg,
-    borderColor: ui.overlayBorder,
+    backgroundColor: editorial.paper,
+    borderColor: editorial.lineStrong,
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 12,
+    shadowColor: editorial.shadow,
+    shadowOpacity: 0.17,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 7,
   },
   section: { marginBottom: 8 },
   sectionLabel: {
-    color: ui.textDim,
+    color: editorial.clay,
     fontSize: 11,
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 6,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
-    backgroundColor: ui.chipBg,
+    backgroundColor: editorial.paperTint,
+    borderColor: editorial.line,
+    borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  chipActive: { backgroundColor: ui.chipActiveBg },
-  chipText: { color: ui.textDim, fontSize: 13 },
-  chipTextActive: { color: ui.text },
+  chipActive: { backgroundColor: editorial.clay },
+  chipText: { color: editorial.inkSoft, fontSize: 13 },
+  chipTextActive: { color: editorial.onAccent, fontWeight: '700' },
 });

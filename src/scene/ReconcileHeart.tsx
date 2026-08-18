@@ -7,73 +7,55 @@ import { atmo } from './atmoState';
 import { SPOTS } from './spots';
 import { Vox } from './voxel';
 
-// A chunky 7×7 heart, built once.
-const HEART = [
-  '0110110',
-  '1111111',
-  '1111111',
-  '1111111',
-  '0111110',
-  '0011100',
-  '0001000',
-];
+const HEART = ['11011', '11111', '11111', '01110', '00100'] as const;
+const heartMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true });
 
-const heartMaterial = new THREE.MeshBasicMaterial({ vertexColors: true });
-
-/**
- * A big heart that pops above the pair when they reconcile — the unmistakable
- * "you made up" beat. Rises and fades over ~2s. Under reduce-motion it simply
- * fades in and out without the bouncy pop.
- */
+/** Romantic endings use two small hearts beside the pair/bed. Every other
+ * positive ending is handled by the fast fullscreen UI-layer heart. */
 export function ReconcileHeart() {
   const ref = useRef<THREE.Group>(null);
   const geometry = useMemo(() => {
     const v = new Vox();
-    HEART.forEach((row, y) => {
-      [...row].forEach((c, x) => {
-        if (c === '1') v.set(x, HEART.length - 1 - y, 0, '#ef5f7a');
-      });
-    });
-    const g = v.build(0.09, 0);
-    g.translate(-3.5 * 0.09, 0, 0);
-    return g;
+    HEART.forEach((row, y) => [...row].forEach((cell, x) => {
+      if (cell === '1') v.set(x, HEART.length - 1 - y, 0, '#ef6f82');
+    }));
+    const built = v.build(0.065, 0);
+    built.translate(-2.5 * 0.065, 0, 0);
+    return built;
   }, []);
 
   useFrame(() => {
-    const g = ref.current;
-    if (!g) return;
-    const { glowStartedAt: startedAt, glowSpot } = useSceneStore.getState();
-    const DUR = 2.2;
-    let show = false;
-    if (startedAt != null) {
-      const age = (Date.now() - startedAt) / 1000;
-      if (age < DUR) {
-        show = true;
-        const x = age / DUR;
-        // Pop in with an overshoot, then hold; rise slowly; fade near the end.
-        const pop = atmo.reduceMotion
-          ? Math.min(1, x * 6)
-          : Math.min(1, x * 5) * (1 + 0.25 * Math.max(0, 1 - x * 5));
-        const s = 0.9 * pop;
-        g.scale.setScalar(s);
-        // Centre the heart over whichever pair of seats glowed (fire or bed).
-        const a = SPOTS[glowSpot].a;
-        const b = SPOTS[glowSpot].b;
-        g.position.x = (a.x + b.x) / 2;
-        g.position.z = (a.z + b.z) / 2;
-        g.position.y = 2.15 + x * 0.5;
-        const fade = x > 0.7 ? 1 - (x - 0.7) / 0.3 : 1;
-        heartMaterial.opacity = fade;
-        heartMaterial.transparent = true;
-      }
-    }
-    g.visible = show;
+    const group = ref.current;
+    if (!group) return;
+    const { liveMomentAction, momentPayoff } = useSceneStore.getState();
+    const positiveAction = liveMomentAction?.destination === 'romantic'
+      && (liveMomentAction.actionId === 'come_close' || liveMomentAction.actionId === 'send_affection');
+    const positiveEnding = momentPayoff?.destination === 'romantic'
+      && (momentPayoff.kind === 'heart' || momentPayoff.kind === 'mutual_heart');
+    const eligible = positiveAction || positiveEnding;
+    const duration = atmo.reduceMotion ? 0.5 : 0.8;
+    const startedAt = positiveAction ? liveMomentAction.startedAt : momentPayoff?.startedAt;
+    const age = eligible && startedAt ? (Date.now() - startedAt) / 1000 : duration;
+    const visible = eligible && age < duration;
+    group.visible = visible;
+    if (!visible) return;
+    const progress = age / duration;
+    const pop = atmo.reduceMotion ? 1 : Math.min(1, progress * 5) * (1 + 0.15 * Math.max(0, 1 - progress * 5));
+    group.scale.setScalar(0.85 * pop);
+    const a = SPOTS.romantic.a;
+    const b = SPOTS.romantic.b;
+    group.position.set(
+      (a.x + b.x) / 2,
+      1.55 + (atmo.reduceMotion ? 0 : progress * 0.12),
+      (a.z + b.z) / 2,
+    );
+    heartMaterial.opacity = atmo.reduceMotion || progress < 0.7 ? 1 : 1 - (progress - 0.7) / 0.3;
   });
 
-  // Positioned each frame over the glowing pair of seats (see useFrame).
   return (
-    <group ref={ref} position={[-1.6, 2.15, -1.85]} visible={false}>
-      <mesh geometry={geometry} material={heartMaterial} />
+    <group ref={ref} visible={false}>
+      <mesh geometry={geometry} material={heartMaterial} position={[-0.55, 0, 0]} />
+      <mesh geometry={geometry} material={heartMaterial} position={[0.55, 0.08, 0]} />
     </group>
   );
 }

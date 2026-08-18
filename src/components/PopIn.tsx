@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, type StyleProp, type ViewStyle } from 'react-native';
 
 /**
- * Bubbly entrance for cards and sheets: a soft spring from 85% scale with a
- * fade. Respects reduce-motion (fades only, no scale). Drop-in replacement for
- * a styled <View>.
+ * Gentle entrance for cards and sheets: a restrained spring with a fade.
+ * Respects reduce-motion (fades only, no scale). Drop-in replacement for a
+ * styled <View>.
  */
 export function PopIn({
   style,
@@ -13,19 +13,29 @@ export function PopIn({
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }) {
-  const v = useRef(new Animated.Value(0)).current;
-  const scaleOk = useRef(true);
+  const [v] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
-      scaleOk.current = !on;
+    let active = true;
+    let animation: Animated.CompositeAnimation | undefined;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
+      if (!active) return;
+      if (reduceMotion) {
+        v.setValue(1);
+        return;
+      }
+      animation = Animated.spring(v, {
+        toValue: 1,
+        friction: 9,
+        tension: 78,
+        useNativeDriver: true,
+      });
+      animation.start();
     });
-    Animated.spring(v, {
-      toValue: 1,
-      friction: 6,
-      tension: 90,
-      useNativeDriver: true,
-    }).start();
+    return () => {
+      active = false;
+      animation?.stop();
+    };
   }, [v]);
 
   return (
@@ -36,9 +46,7 @@ export function PopIn({
           opacity: v,
           transform: [
             {
-              scale: scaleOk.current
-                ? v.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] })
-                : 1,
+              scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }),
             },
           ],
         },

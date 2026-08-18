@@ -1,11 +1,24 @@
 import { Canvas } from '@react-three/fiber/native';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 
 /** Native (iOS/Android) canvas host — expo-gl under the hood. */
 export function SceneCanvas({ children }: { children: ReactNode }) {
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="imagebutton"
+      accessibilityLabel="Shared Hearth home"
+      accessibilityHint="Open Moments to inspect and activate fireplace outcomes"
+      accessibilityActions={[{ name: 'activate', label: 'Open Moments and fireplace outcomes' }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'activate') {
+          useMomentsSurfaceStore.getState().openMoments();
+        }
+      }}
+    >
       {/* flat = no tone mapping. With color management on and no tone curve,
           an authored hex color decodes to linear and re-encodes on output —
           an exact round-trip, so the art shows exactly as written (hero F). */}
@@ -22,5 +35,5 @@ export function SceneCanvas({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a2340' },
+  container: { flex: 1, backgroundColor: '#f3e5d2' },
 });
