@@ -24,6 +24,7 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 import { Easel } from './objects/Easel';
+import { GardenGreenhousePortal } from './objects/GardenGreenhousePortal';
 
 // Frame the floor slightly above screen centre so the detailed home occupies
 // the visual field beneath the quiet header instead of sitting low in empty sky.
@@ -134,6 +135,7 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
       <CameraRig />
       <Atmosphere />
       <Room />
+      {components.has('garden') && <GardenGreenhousePortal />}
       {components.has('fireplace') && <Fireplace position={[-3.2, 0, -3.85]} />}
       {components.has('fireplace') && <FireplaceOutcomes />}
       {/* Tucked away from the dining and doorway zones; the coral sofa stays primary. */}
