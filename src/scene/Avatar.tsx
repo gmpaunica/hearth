@@ -115,6 +115,9 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     path: [] as GroundPoint[],
     pathIndex: 0,
     goalKey: '',
+    lastSpot: 'idle' as keyof typeof SPOTS,
+    exitTarget: null as { x: number; z: number; rotY: number } | null,
+    exitSeatY: 0,
   });
 
   // Show a thought bubble while this character has an open signal.
@@ -159,6 +162,32 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
       }
       : basePose;
 
+    // A seated Moment ends through the seat's authored clear-side point. Keep
+    // the low pose while crossing the furniture edge, then stand only once the
+    // avatar is outside its collider. This prevents the old one-frame switch
+    // to an upright body in the middle of a sofa, chair, bench, mat, or bed.
+    const applyingSnap = scene.snapAt !== a.seenSnap;
+    if (!applyingSnap && spotId !== a.lastSpot) {
+      const previousPose = SPOTS[a.lastSpot][avatar];
+      if (previousPose.seatY > 0 && previousPose.egress) {
+        const nearSeat = Math.hypot(
+          root.position.x - previousPose.x,
+          root.position.z - previousPose.z,
+        ) < 0.55;
+        if (a.sit > 0.12 || nearSeat) {
+          a.exitTarget = previousPose.egress;
+          a.exitSeatY = previousPose.seatY;
+        }
+      }
+      a.lastSpot = spotId;
+      a.goalKey = '';
+      a.path = [];
+      a.pathIndex = 0;
+      a.ambientTarget = null;
+      a.ambientArrived = false;
+      a.ambientWait = 1.2;
+    }
+
     // Stay hidden until the saved state has loaded (first snap): the app then
     // opens with everyone already in place — no flash of "standing in the
     // middle" before a glitchy catch-up walk.
@@ -168,6 +197,9 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     // to existing state — it shouldn't replay the walk).
     if (scene.snapAt !== a.seenSnap) {
       a.seenSnap = scene.snapAt;
+      a.lastSpot = spotId;
+      a.exitTarget = null;
+      a.exitSeatY = 0;
       root.position.set(pose.x, 0, pose.z);
       a.rotY = pose.rotY;
       a.sit = pose.seatY > 0 ? 1 : 0;
@@ -186,12 +218,19 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     if (atmo.reduceMotion) {
       root.visible = true;
       if (spotId === 'idle') {
-        // Releasing a Moment stands the character exactly where the shared
-        // scene left them. Reduced motion removes travel; it must not turn the
-        // release into a teleport to the canned idle coordinates.
+        // Reduced motion still respects collision safety: a seated avatar
+        // snaps to the authored clear-side point before becoming upright.
+        if (a.exitTarget) {
+          root.position.set(a.exitTarget.x, 0, a.exitTarget.z);
+          a.rotY = a.exitTarget.rotY;
+          a.exitTarget = null;
+          a.exitSeatY = 0;
+        }
         a.sit = 0;
         a.seatY = 0;
       } else {
+        a.exitTarget = null;
+        a.exitSeatY = 0;
         root.position.set(pose.x, 0, pose.z);
         a.rotY = pose.rotY;
         a.sit = pose.seatY > 0 ? 1 : 0;
@@ -235,7 +274,8 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
       return;
     }
 
-    const ambientAllowed = spotId === 'idle' && !signalType;
+    const exitingSeat = a.exitTarget != null;
+    const ambientAllowed = spotId === 'idle' && !signalType && !exitingSeat;
     if (!ambientAllowed) {
       a.ambientTarget = null;
       a.ambientArrived = false;
@@ -264,15 +304,19 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
       }
     }
 
-    const destination = a.ambientTarget ?? (
-      ambientAllowed
-        ? { x: root.position.x, z: root.position.z, rotY: a.rotY, seatY: 0 }
-        : pose
-    );
-    const seatedDestination = destination.seatY > 0;
-    const approach = seatedDestination
-      ? nearestWalkablePoint(destination)
-      : destination;
+    const destination: MotionTarget = a.exitTarget
+      ? { ...a.exitTarget, seatY: 0 }
+      : a.ambientTarget ?? (
+        ambientAllowed
+          ? { x: root.position.x, z: root.position.z, rotY: a.rotY, seatY: 0 }
+          : pose
+      );
+    const seatedDestination = !exitingSeat && destination.seatY > 0;
+    const approach = exitingSeat
+      ? destination
+      : seatedDestination
+        ? (pose.approach ?? nearestWalkablePoint(destination))
+        : destination;
     const targetX = approach.x;
     const targetZ = approach.z;
     const speed = a.ambientTarget ? AMBIENT_SPEED : WALK_SPEED;
@@ -285,10 +329,12 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     if (goalKey !== a.goalKey) {
       a.goalKey = goalKey;
       a.seating = false;
-      a.path = planPath(
-        { x: root.position.x, z: root.position.z },
-        { x: targetX, z: targetZ },
-      );
+      a.path = exitingSeat
+        ? [{ x: targetX, z: targetZ }]
+        : planPath(
+          { x: root.position.x, z: root.position.z },
+          { x: targetX, z: targetZ },
+        );
       a.pathIndex = 0;
     }
 
@@ -319,6 +365,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
       a.seating = true;
     }
     const standingUp =
+      !exitingSeat &&
       a.sit > 0.12 &&
       destinationRemainingBefore > 0.12 &&
       !a.seating;
@@ -363,18 +410,30 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     root.rotation.y = a.rotY;
 
     const sitTarget =
-      seatedDestination && (settlingIntoSeat || destinationRemaining < 0.1) ? 1 : 0;
+      exitingSeat
+        ? (approachRemaining > 0.07 ? 1 : 0)
+        : seatedDestination && (settlingIntoSeat || destinationRemaining < 0.1) ? 1 : 0;
     a.sit = THREE.MathUtils.damp(a.sit, sitTarget, 5, dt);
     a.seatY = THREE.MathUtils.damp(
       a.seatY,
-      seatedDestination ? destination.seatY : 0,
+      exitingSeat ? a.exitSeatY : seatedDestination ? destination.seatY : 0,
       5,
       dt,
     );
 
-    const activityComplete = seatedDestination
-      ? destinationRemaining < 0.045 && a.sit > 0.82
-      : approachRemaining < 0.055;
+    const activityComplete = exitingSeat
+      ? approachRemaining < 0.055 && a.sit < 0.08
+      : seatedDestination
+        ? destinationRemaining < 0.045 && a.sit > 0.82
+        : approachRemaining < 0.055;
+    if (exitingSeat && activityComplete) {
+      a.exitTarget = null;
+      a.exitSeatY = 0;
+      a.goalKey = '';
+      a.path = [];
+      a.pathIndex = 0;
+      a.ambientWait = 1.2;
+    }
     if (a.ambientTarget && !a.ambientArrived && activityComplete) {
       a.ambientArrived = true;
       a.ambientWait = 5 + Math.random() * 4;

@@ -70,8 +70,8 @@ test('destination response catalogs match the corrected state machine', () => {
 
 test('creation is two steps and active action is pinned directly below the header', () => {
   const controller = read('src/components/MomentsController.tsx');
-  assert.match(controller, />1 of 2</);
-  assert.match(controller, />2 of 2</);
+  assert.match(controller, /<StepPill current=\{1\} total=\{2\}/);
+  assert.match(controller, /<StepPill current=\{2\} total=\{2\}/);
   assert.match(controller, /<MomentNoteComposer value=\{note\}/);
   assert.match(controller, /<PinnedActionCard snapshot=\{snapshot\}/);
   assert.ok(controller.indexOf('<PinnedActionCard') < controller.indexOf('<ScrollView'));

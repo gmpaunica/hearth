@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { consequenceFor, type MomentConsequence, type MomentPropType } from '@/moments/consequenceCatalog';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
 import { VoxelMosaic } from './MomentVignette';
 
 function PixelHeart() {
@@ -82,10 +82,10 @@ export function MomentConsequencePreview({ actionId }: { actionId: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: { marginTop: 14, overflow: 'hidden', borderRadius: 22, borderWidth: 2, borderColor: '#E2B29A', backgroundColor: '#FFF8EE' },
+  card: { marginTop: 14, overflow: 'hidden', borderRadius: 24, borderWidth: 1.5, borderBottomWidth: 4, borderColor: hearthUi.outline, backgroundColor: hearthUi.shell, shadowColor: hearthUi.shadow, shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   postcard: { height: 154, overflow: 'hidden', backgroundColor: editorial.paperTint },
   wash: { position: 'absolute', inset: 0, backgroundColor: 'rgba(66, 43, 33, 0.14)' },
-  propSticker: { position: 'absolute', alignSelf: 'center', top: 30, width: 124, height: 96, alignItems: 'center', justifyContent: 'center', borderRadius: 25, borderWidth: 4, borderColor: '#FFF8EE', backgroundColor: '#FBE7D9', transform: [{ rotate: '-2deg' }], shadowColor: '#3E241A', shadowOpacity: 0.24, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  propSticker: { position: 'absolute', alignSelf: 'center', top: 30, width: 124, height: 96, alignItems: 'center', justifyContent: 'center', borderRadius: 27, borderWidth: 4, borderColor: hearthUi.shell, backgroundColor: hearthUi.shellWarm, transform: [{ rotate: '-2deg' }], shadowColor: hearthUi.shadow, shadowOpacity: 0.24, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   tape: { position: 'absolute', top: 16, alignSelf: 'center', width: 54, height: 14, backgroundColor: 'rgba(255, 233, 178, 0.82)', transform: [{ rotate: '3deg' }] },
   description: { color: editorial.ink, fontFamily: momentsTypography.body, fontSize: 13, lineHeight: 19, textAlign: 'center', paddingHorizontal: 16, paddingVertical: 12 },
   heart: { width: 64, height: 55 },

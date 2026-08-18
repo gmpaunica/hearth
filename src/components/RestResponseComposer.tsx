@@ -5,7 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import type { RestMomentPayload, RestVisitor } from '@/lib/db';
 import type { MomentConsequence } from '@/moments/consequenceCatalog';
 import { useSceneStore } from '@/state/sceneStore';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
 import { MomentConsequencePreview } from './MomentConsequencePreview';
 
 const SIZE = 12;
@@ -157,22 +157,22 @@ const styles = StyleSheet.create({
   composer: { paddingBottom: 8 },
   title: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 24, lineHeight: 29 },
   editorWrap: { alignItems: 'center', marginTop: 12, gap: 9 },
-  editor: { width: 240, height: 240, flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#FFF7E8', borderWidth: 2, borderColor: editorial.lineStrong },
+  editor: { width: 240, height: 240, flexDirection: 'row', flexWrap: 'wrap', overflow: 'hidden', backgroundColor: hearthUi.shell, borderWidth: 2, borderBottomWidth: 4, borderColor: hearthUi.outline, borderRadius: 20 },
   cell: { width: 20, height: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(80,50,40,0.12)' },
   palette: { flexDirection: 'row', gap: 8 },
   swatch: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF' },
   swatchOn: { borderColor: editorial.ink, transform: [{ scale: 1.08 }] },
   editorActions: { flexDirection: 'row', gap: 8 },
-  smallButton: { minWidth: 82, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: editorial.lineStrong, borderRadius: 18, backgroundColor: '#FFF9F2' },
+  smallButton: { minWidth: 82, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: hearthUi.outline, borderRadius: 19, backgroundColor: hearthUi.shellRaised },
   smallButtonText: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 12 },
   visitors: { flexDirection: 'row', gap: 7, marginTop: 12 },
-  visitorChoice: { flex: 1, minHeight: 116, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: editorial.lineStrong, borderRadius: 20, backgroundColor: editorial.paperTint, padding: 6 },
-  visitorChoiceOn: { borderWidth: 2, borderColor: editorial.clay, backgroundColor: editorial.claySoft },
+  visitorChoice: { flex: 1, minHeight: 116, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderBottomWidth: 3, borderColor: hearthUi.outline, borderRadius: 21, backgroundColor: hearthUi.lavender, padding: 6 },
+  visitorChoiceOn: { borderWidth: 2, borderColor: hearthUi.coralDark, backgroundColor: hearthUi.blush },
   visitorSprite: { width: 48, height: 42 },
   visitorRow: { flex: 1, flexDirection: 'row' },
   visitorPixel: { flex: 1 },
   visitorLabel: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 10, lineHeight: 13, textAlign: 'center', marginTop: 5 },
-  send: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: editorial.clay, marginTop: 12 },
+  send: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 1, borderBottomWidth: 4, borderColor: hearthUi.coralDark, backgroundColor: hearthUi.coral, marginTop: 12 },
   sendText: { color: '#FFFFFF', fontFamily: momentsTypography.bodyBold, fontSize: 14 },
   back: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   backText: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 13 },

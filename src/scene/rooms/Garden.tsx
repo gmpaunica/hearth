@@ -81,6 +81,37 @@ function buildGardenPlatform(v: Vox) {
   });
 }
 
+/**
+ * Garden-owned threshold arch. Its eastern face stops one voxel before the
+ * living wall, the posts stay outside the route, and foliage is individual
+ * vine pixels rather than a green slab across the doorway.
+ */
+function buildGardenGateway(v: Vox) {
+  const timber = '#754830';
+  const timberLight = '#A56547';
+  const vine = '#527F43';
+  const vineLight = '#6F9659';
+
+  // The open corridor is local z 1..4. Posts occupy only the outer pockets.
+  v.box(10, 0, -2, 2, 11, 2, timber);
+  v.box(10, 0, 5, 2, 11, 2, timber);
+  v.box(10, 10, -2, 2, 2, 9, timber);
+  for (let z = -1; z <= 6; z += 2) v.set(10, 12, z, timberLight);
+
+  // Sparse stepped vines wrap the garden-facing edges without masking the
+  // wall socket or occupying avatar height inside the opening.
+  for (const [x, y, z, color] of [
+    [9, 2, -2, vine], [9, 4, -2, vineLight], [10, 6, -1, vine],
+    [9, 3, 6, vine], [9, 6, 6, vineLight], [10, 8, 5, vine],
+    [9, 10, -1, vineLight], [9, 11, 1, vine], [9, 11, 4, vineLight],
+    [9, 10, 6, vine],
+  ] as const) v.set(x, y, z, color);
+  for (const [x, y, z, color] of [
+    [9, 5, -2, '#F3A7BC'], [9, 7, 6, '#EFC85E'],
+    [9, 12, 0, '#F7E9DC'], [9, 12, 5, '#E78B9F'],
+  ] as const) v.set(x, y, z, color);
+}
+
 const POND_ROWS = [
   '00002222222220000',
   '00221111111112200',
@@ -317,6 +348,7 @@ export function Garden() {
   return (
     <group position={[...GARDEN_OFFSET]}>
       <VoxMesh build={buildGardenPlatform} scale={S} />
+      <VoxMesh build={buildGardenGateway} scale={S} />
       <VoxMesh build={buildCherryTree} scale={0.17} position={[-7, 0, -5.2]} />
       <KoiPond />
       <VoxMesh build={buildRoseBush} scale={0.12} position={[-7.2, 0, 2.7]} />

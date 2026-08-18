@@ -835,11 +835,17 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
 
   assert.match(shellSource, /bedroom: \{ wall: 'back', start: 11, width: 6 \}/);
   assert.match(shellSource, /garden: \{ wall: 'left', start: 9, width: 5 \}/);
-  assert.match(roomSource, /function GardenPassage\(\)/);
-  assert.match(roomSource, /buildGardenArch/);
   assert.doesNotMatch(roomSource, /buildGardenPath/);
-  assert.match(roomSource, /position=\{\[-4\.5, 0, 2\.25\]\}/);
-  assert.doesNotMatch(roomSource.slice(roomSource.indexOf('function buildGardenArch'), roomSource.indexOf('function GardenPassage')), /v\.box\([^,]+,\s*-1,/);
+  assert.match(gardenSource, /function buildGardenGateway\(v: Vox\)/);
+  assert.match(gardenSource, /<VoxMesh build=\{buildGardenGateway\} scale=\{S\} \/>/);
+  // A worker cannot remove the old integrator-owned passage directly. The
+  // integration request removes it; both pre- and post-request trees must keep
+  // the garden-owned replacement present and floor-free.
+  if (roomSource.includes('function GardenPassage()')) {
+    assert.match(roomSource, /position=\{\[-4\.5, 0, 2\.25\]\}/);
+  } else {
+    assert.doesNotMatch(roomSource, /GardenPassage|buildGardenArch/);
+  }
   assert.match(gardenSource, /const threshold = x >= 10 && z >= 0 && z <= 3/);
   assert.match(gardenSource, /showRightEdge=\{false\}/);
   assert.match(bedroomSource, /buildCornerShell\(v, -10, 9, -10, 8\)/);
@@ -867,14 +873,32 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   assert.match(platformSource, /const EDGE_HIGHLIGHT = '#c27a53'/);
   assert.doesNotMatch(platformSource, /0\.24, 0\.72, 1\.0|#37c4ff|neon-blue/);
   const { SPOTS } = loadTsModule('src/scene/spots.ts');
-  assert.deepEqual(SPOTS.sofa, {
-    a: { x: 0.25, z: -2.82, rotY: 0, seatY: 0.5 },
-    b: { x: 1, z: -2.82, rotY: 0, seatY: 0.5 },
-  });
-  assert.deepEqual(SPOTS.romantic, {
-    a: { x: 4.08, z: -7.2, rotY: 0.28, seatY: 0.75 },
-    b: { x: 4.92, z: -7.2, rotY: -0.28, seatY: 0.75 },
-  });
+  assert.deepEqual(
+    ['a', 'b'].map((avatar) => ({
+      x: SPOTS.sofa[avatar].x,
+      z: SPOTS.sofa[avatar].z,
+      rotY: SPOTS.sofa[avatar].rotY,
+      seatY: SPOTS.sofa[avatar].seatY,
+    })),
+    [
+      { x: 0.25, z: -2.82, rotY: 0, seatY: 0.5 },
+      { x: 1, z: -2.82, rotY: 0, seatY: 0.5 },
+    ],
+  );
+  assert.deepEqual(SPOTS.sofa.a.egress, { x: 0.25, z: -2.28, rotY: 0 });
+  assert.deepEqual(
+    ['a', 'b'].map((avatar) => ({
+      x: SPOTS.romantic[avatar].x,
+      z: SPOTS.romantic[avatar].z,
+      rotY: SPOTS.romantic[avatar].rotY,
+      seatY: SPOTS.romantic[avatar].seatY,
+    })),
+    [
+      { x: 4.08, z: -7.2, rotY: 0.28, seatY: 0.75 },
+      { x: 4.92, z: -7.2, rotY: -0.28, seatY: 0.75 },
+    ],
+  );
+  assert.deepEqual(SPOTS.romantic.b.egress, { x: 5.08, z: -6.05, rotY: 0 });
 });
 
 test('locked-room countdown shifts below active top overlays', () => {
