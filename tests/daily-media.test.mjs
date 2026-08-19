@@ -68,9 +68,10 @@ test('daily media realtime refreshes the dedicated store without opening or movi
   const consoleObject = read('src/scene/objects/MediaConsole.tsx');
   assert.match(sync, /table:\s*['"]daily_media['"]/);
   assert.match(sync, /useDailyMediaStore\.getState\(\)\.refresh\(true\)/);
-  assert.match(consoleObject, /unreadVoice/);
+  assert.match(consoleObject, /partnerFor\(snapshot, userId, ['"]voice['"]\)/);
+  assert.match(consoleObject, /arrival\?\.medium === ['"]voice['"]/);
   assert.match(consoleObject, /useFrame/);
-  assert.match(consoleObject, /router\.push\(['"]\/daily-record['"]/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-record['"]\)/);
   assert.doesNotMatch(consoleObject, /requestMomentCameraFocus|publishFocusedRoom|camera\.position|camera\.lookAt/);
 });
 

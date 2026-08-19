@@ -9,7 +9,6 @@ import { PlatformFx } from '../PlatformFx';
 import { LIVING_BOUNDS, ROOM_SOCKETS, S } from '../shell';
 import { VoxMesh } from '../VoxMesh';
 import { Vox } from '../voxel';
-import { MediaConsole } from '../objects/MediaConsole';
 
 function buildLivingShell(v: Vox) {
   const { floorX0, floorX1, floorZ0, floorZ1, wallX, wallZ } = LIVING_BOUNDS;
@@ -366,7 +365,6 @@ export function LivingRoom() {
       <SkyBackdrop />
       <FireGlowDecal />
       <WindowSunbeams />
-      <MediaConsole />
       <PlatformFx x0={-4.5} x1={5.25} z0={-4.5} z1={4.25} />
     </group>
   );

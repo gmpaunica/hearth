@@ -1,6 +1,7 @@
 import { room } from '@/theme/hearth';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
+import { DailyCamera } from './MediaConsole';
 
 // Rich but warm spine colors: enough variation to read as a treasured, lived-in
 // collection without fighting the room's coral/sage focal points.
@@ -47,16 +48,16 @@ function buildShelf(v: Vox) {
   v.box(1, 10, 2, 2, 2, 2, '#d1a25d');
   v.set(2, 10, 2, '#f5dfc2');
   v.set(2, 11, 3, '#c96f68');
-
-  // A broad, chunky trailing plant survives the main nearest-neighbor pass.
-  v.box(1, 14, 1, 2, 2, 2, '#9d5938');
-  v.box(0, 16, 0, 3, 1, 4, room.plantLeafDark);
-  v.box(1, 17, 1, 2, 1, 2, room.plantLeaf);
-  v.set(2, 15, 4, '#79ad63');
-  v.set(2, 14, 5, '#648f54');
 }
 
 /** Tall packed bookshelf against the left wall (finer 0.2 grid for spines). */
 export function Bookshelf({ position }: { position: [number, number, number] }) {
-  return <VoxMesh build={buildShelf} scale={0.2} position={position} />;
+  const [x, y, z] = position;
+  return (
+    <group>
+      <VoxMesh build={buildShelf} scale={0.2} position={position} />
+      {/* The instant camera replaces the oversized trailing plant on the crown. */}
+      <DailyCamera position={[x + 0.52, y + 3.04, z + 0.2]} rotation={[0, -Math.PI / 2, 0]} />
+    </group>
+  );
 }

@@ -1,6 +1,7 @@
 import { room } from '@/theme/hearth';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
+import { DailyRecordPlayer } from './MediaConsole';
 
 // Table local grid: 6 x 6 top, stepped pedestal base.
 function buildTable(v: Vox) {
@@ -36,18 +37,13 @@ function buildTable(v: Vox) {
   v.box(1, 3, 1, 4, 1, 4, woodLight);
   v.box(2, 3, 1, 2, 1, 4, '#c28a51');
 
-  // Two place settings and shared mugs make the conversation destination read
-  // immediately. The central flower keeps the composition soft and warm.
+  // Two place settings and shared mugs keep the conversation destination clear.
+  // The old pink centerpiece is intentionally gone; the daily record player
+  // now owns the middle of the table.
   v.box(1, 4, 1, 2, 1, 1, '#f1dfc2');
   v.box(3, 4, 4, 2, 1, 1, '#ead4b4');
   v.set(1, 4, 2, '#9a6850');
   v.set(4, 4, 3, '#7f9369');
-  v.set(2, 4, 2, '#a65f3d');
-  v.set(2, 5, 2, '#7e8e59');
-  v.set(1, 6, 2, '#de8890');
-  v.set(2, 6, 2, '#f0b59d');
-  v.set(3, 6, 2, '#d66f7b');
-  v.set(2, 7, 2, '#f3c57d');
 }
 
 // Chair local grid: 4 x 4 seat; backrest on the +z side.
@@ -81,6 +77,7 @@ export function TableSet({ position }: { position: [number, number, number] }) {
   return (
     <group>
       <VoxMesh build={buildTable} scale={s} position={[x, y, z]} />
+      <DailyRecordPlayer position={[x + 0.3, y + 0.82, z + 0.32]} />
       {/* Front chair faces the table, backrest toward camera. */}
       <VoxMesh build={buildChair} scale={s} position={[x + 0.2, y, z + 1.35]} />
       {/* Back chair rotates 180 degrees so its backrest faces the wall. */}
