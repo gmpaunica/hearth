@@ -44,6 +44,7 @@ export interface DiaryVoice {
   mime_type: string;
   duration_ms: number;
   submitted_at: string;
+  receipt: string | null;
 }
 
 export interface DiaryDay {

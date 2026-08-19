@@ -2,13 +2,14 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { createSignedMediaUrl } from '@/daily/api';
-import type { DailyMediaItem } from '@/daily/model';
+import { createSignedMediaUrl, markMediaReceived } from '@/daily/api';
+import type { DailyMediaItem, DiaryVoice } from '@/daily/model';
 import { useDailyMediaStore } from '@/daily/store';
+import { useAuthStore } from '@/state/authStore';
 import { editorial, momentsTypography } from '@/theme/hearth';
 
 interface Props {
-  item?: DailyMediaItem | null;
+  item?: DailyMediaItem | DiaryVoice | null;
   localUri?: string | null;
   label: string;
   onPlaybackChange?: (playing: boolean) => void;
@@ -20,6 +21,7 @@ export function VoiceNotePlayer({ item, localUri, label, onPlaybackChange }: Pro
   const player = useAudioPlayer(localUri ? { uri: localUri } : null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const markReceived = useDailyMediaStore((state) => state.markReceived);
+  const userId = useAuthStore((state) => state.userId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedPath, setLoadedPath] = useState<string | null>(localUri ?? null);
@@ -44,7 +46,10 @@ export function VoiceNotePlayer({ item, localUri, label, onPlaybackChange }: Pro
       }
       if (status.didJustFinish) await player.seekTo(0);
       player.play();
-      if (item) void markReceived(item, 'voice_playback_started');
+      if (item && item.author_id !== userId && !item.receipt) {
+        if ('medium' in item) void markReceived(item, 'voice_playback_started');
+        else void markMediaReceived(item.id, 'voice_playback_started');
+      }
     } catch {
       setError('Couldn’t play this note.');
     } finally {
