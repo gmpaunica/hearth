@@ -29,11 +29,13 @@ type MusicState = {
   playback: MusicPlaybackState;
   playbackDetail: string | null;
   retryToken: number;
+  mediaSessionBusy: boolean;
   hydrate: () => Promise<void>;
   setEnabled: (enabled: boolean) => void;
   setVolume: (volume: MusicVolumePreset) => void;
   setPlaybackStatus: (playback: MusicPlaybackState, detail?: string | null) => void;
   retryPlayback: () => void;
+  setMediaSessionBusy: (busy: boolean) => void;
 };
 
 let hydration: Promise<void> | null = null;
@@ -45,6 +47,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   playback: 'loading',
   playbackDetail: null,
   retryToken: 0,
+  mediaSessionBusy: false,
 
   hydrate: async () => {
     if (get().hydrated) return;
@@ -75,4 +78,5 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   },
 
   retryPlayback: () => set((state) => ({ retryToken: state.retryToken + 1 })),
+  setMediaSessionBusy: (mediaSessionBusy) => set({ mediaSessionBusy }),
 }));

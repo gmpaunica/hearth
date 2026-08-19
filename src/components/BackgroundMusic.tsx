@@ -20,6 +20,7 @@ export function BackgroundMusic() {
   const hydrated = useMusicStore((state) => state.hydrated);
   const hydrate = useMusicStore((state) => state.hydrate);
   const retryToken = useMusicStore((state) => state.retryToken);
+  const mediaSessionBusy = useMusicStore((state) => state.mediaSessionBusy);
   const setPlaybackStatus = useMusicStore((state) => state.setPlaybackStatus);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function BackgroundMusic() {
     player.loop = true;
     player.volume = MUSIC_VOLUME_VALUES[volume];
 
-    if (audioReady && playerStatus.isLoaded && hydrated && enabled && appState === 'active') {
+    if (audioReady && playerStatus.isLoaded && hydrated && enabled && appState === 'active' && !mediaSessionBusy) {
       player.play();
     } else {
       player.pause();
@@ -63,6 +64,7 @@ export function BackgroundMusic() {
     audioReady,
     enabled,
     hydrated,
+    mediaSessionBusy,
     player,
     playerStatus.isLoaded,
     retryToken,

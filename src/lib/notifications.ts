@@ -67,11 +67,23 @@ export interface NotificationDestination {
   url: string;
   recipientUserId: string;
   coupleId: string;
-  signalId: string;
+  signalId?: string;
+  mediaId?: string;
 }
 
 function destinationOf(data: Record<string, unknown>): NotificationDestination | null {
-  const { url, recipientUserId, coupleId, signalId } = data;
+  const { url, recipientUserId, coupleId, signalId, mediaId, surface } = data;
+  if (
+    (surface === 'daily-record' || surface === 'daily-photo')
+    && typeof recipientUserId === 'string'
+    && typeof coupleId === 'string'
+    && typeof mediaId === 'string'
+  ) return {
+    url: surface === 'daily-record' ? '/daily-record' : '/daily-photo',
+    recipientUserId,
+    coupleId,
+    mediaId,
+  };
   if (
     typeof url !== 'string' ||
     typeof recipientUserId !== 'string' ||

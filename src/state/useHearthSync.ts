@@ -12,6 +12,7 @@ import { useDailyRitualStore } from './dailyRitualStore';
 import { useMomentV2Store } from './momentV2Store';
 import { useMomentsSurfaceStore } from './momentsSurfaceStore';
 import { useAvatarStore } from './avatarStore';
+import { useDailyMediaStore } from '@/daily/store';
 
 /**
  * The app's realtime spine. Mounted once at the root, it:
@@ -91,6 +92,7 @@ export function useHearthSync() {
       useDrawingStore.getState().reset();
       useDailyRitualStore.getState().reset();
       useAvatarStore.getState().reset();
+      useDailyMediaStore.getState().reset();
       return;
     }
     if (partnerId) void useAvatarStore.getState().load(userId, memberA, partnerId);
@@ -104,6 +106,7 @@ export function useHearthSync() {
     // phones use the same date across timezone and DST boundaries.
     void useDailyRitualStore.getState().refresh()
       .then(() => useDrawingStore.getState().load());
+    void useDailyMediaStore.getState().refresh(false);
 
     const hydrateNow = (snapScene = false) => useMomentV2Store.getState().refresh(snapScene);
     let cancelled = false;
@@ -122,6 +125,7 @@ export function useHearthSync() {
         void hydrateNow(false);
         void useDailyRitualStore.getState().refresh()
           .then(() => useDrawingStore.getState().load())
+          .then(() => useDailyMediaStore.getState().refresh(false))
           .then(() => useMomentV2Store.getState().resumePlayback());
       }
     });
@@ -193,6 +197,15 @@ export function useHearthSync() {
       )
       .subscribe();
 
+    const mediaChannel = supabase
+      .channel(`daily-media:${coupleId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'daily_media', filter: `couple_id=eq.${coupleId}` },
+        () => void useDailyMediaStore.getState().refresh(true),
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
       appState.remove();
@@ -201,6 +214,7 @@ export function useHearthSync() {
       void supabase.removeChannel(channel);
       void supabase.removeChannel(drawingChannel);
       void supabase.removeChannel(profileChannel);
+      void supabase.removeChannel(mediaChannel);
     };
   }, [coupleId, userId, memberA, memberB, partnerId, refreshCouple]);
 }
