@@ -81,17 +81,27 @@ test('photo planting is captionless, either-person, auto-pair-ready, and final o
   assert.doesNotMatch(screen, /album|countdown|reminder|streak|score/i);
 });
 
-test('the two living-room media objects are independently tappable and retain separate unread bubbles', () => {
+test('the two daily media objects are independently tappable without navigating during R3F dispatch', () => {
   const consoleObject = read('src/scene/objects/MediaConsole.tsx');
+  const bookshelf = read('src/scene/objects/Bookshelf.tsx');
+  const table = read('src/scene/objects/TableSet.tsx');
+  const livingRoom = read('src/scene/rooms/LivingRoom.tsx');
   const actions = read('src/components/daily/DailyMediaHomeActions.tsx');
-  assert.match(consoleObject, /openRecord/);
-  assert.match(consoleObject, /openPhoto/);
-  assert.match(consoleObject, /unreadVoice/);
-  assert.match(consoleObject, /unreadPhoto/);
+  assert.match(consoleObject, /export function DailyRecordPlayer/);
+  assert.match(consoleObject, /export function DailyCamera/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-record['"]\)/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-photo['"]\)/);
+  assert.match(consoleObject, /requestAnimationFrame\(\(\) => router\.push\(path as never\)\)/);
+  assert.match(consoleObject, /if \(openingRef\.current\) return/);
+  assert.equal((consoleObject.match(/onClick=\{open\}/g) ?? []).length, 2);
+  assert.doesNotMatch(consoleObject, /<mesh[^>]+onClick=/);
   assert.match(consoleObject, /buildRecordBubble/);
   assert.match(consoleObject, /buildPhotoBubble/);
-  assert.match(consoleObject, /router\.push\(['"]\/daily-record['"]/);
-  assert.match(consoleObject, /router\.push\(['"]\/daily-photo['"]/);
+  assert.match(bookshelf, /DailyCamera position=\{\[x \+ 0\.52, y \+ 3\.04, z \+ 0\.2\]\}/);
+  assert.doesNotMatch(bookshelf, /room\.plantLeaf|#9d5938|#79ad63|#648f54/);
+  assert.match(table, /DailyRecordPlayer position=\{\[x \+ 0\.3, y \+ 0\.82, z \+ 0\.32\]\}/);
+  assert.doesNotMatch(table, /#de8890|#f0b59d|#d66f7b/);
+  assert.doesNotMatch(livingRoom, /MediaConsole/);
   assert.match(actions, /record player voice prompt/);
   assert.match(actions, /instant camera photo prompt/);
 });
