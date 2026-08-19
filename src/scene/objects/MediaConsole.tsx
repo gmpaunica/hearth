@@ -50,13 +50,24 @@ function buildRecordBubble(v: Vox) {
   v.set(1, -1, 0, '#fff4df');
 }
 
+function buildPhotoBubble(v: Vox) {
+  v.box(0, 0, 0, 8, 6, 1, '#fff4df');
+  v.box(1, 1, -1, 6, 4, 1, '#bf6d54');
+  v.box(2, 2, -2, 4, 2, 1, '#9bb8ac');
+  v.set(5, 4, -2, '#f1c464');
+  v.set(6, -1, 0, '#fff4df');
+}
+
 export function MediaConsole() {
   const recordRef = useRef<THREE.Group>(null);
+  const cameraRef = useRef<THREE.Group>(null);
   const snapshot = useDailyMediaStore((state) => state.snapshot);
   const arrival = useDailyMediaStore((state) => state.arrival);
   const userId = useAuthStore((state) => state.userId);
   const voice = partnerFor(snapshot, userId, 'voice');
+  const photo = partnerFor(snapshot, userId, 'photo');
   const unreadVoice = Boolean(voice && !voice.receipt);
+  const unreadPhoto = Boolean(photo && !photo.receipt);
 
   useFrame((state) => {
     if (!recordRef.current) return;
@@ -64,11 +75,22 @@ export function MediaConsole() {
     const wave = atmo.reduceMotion || !animate ? 0 : Math.sin(state.clock.elapsedTime * 4.8);
     recordRef.current.rotation.y = wave * 0.08;
     recordRef.current.position.y = 0.47 + Math.max(0, wave) * 0.035;
+    if (cameraRef.current) {
+      const cameraAnimate = unreadPhoto || arrival?.medium === 'photo';
+      const cameraWave = atmo.reduceMotion || !cameraAnimate ? 0 : Math.sin(state.clock.elapsedTime * 5.2 + 1.4);
+      cameraRef.current.rotation.z = cameraWave * 0.06;
+      cameraRef.current.position.y = 0.54 + Math.max(0, cameraWave) * 0.035;
+    }
   });
 
   const openRecord = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
     router.push('/daily-record' as never);
+  };
+
+  const openPhoto = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    router.push('/daily-photo' as never);
   };
 
   return (
@@ -84,8 +106,15 @@ export function MediaConsole() {
           <VoxMesh build={buildRecordBubble} scale={0.05} position={[0.12, 0.73, 0.08]} />
         )}
       </group>
-      <group position={[0.86, 0.54, 0.14]}>
+      <group ref={cameraRef} position={[0.86, 0.54, 0.14]} onClick={openPhoto}>
+        <mesh position={[0.26, 0.18, 0.13]} onClick={openPhoto}>
+          <boxGeometry args={[0.64, 0.65, 0.55]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
         <VoxMesh build={buildCamera} scale={0.075} />
+        {unreadPhoto && (
+          <VoxMesh build={buildPhotoBubble} scale={0.05} position={[0.06, 0.73, 0.05]} />
+        )}
       </group>
     </group>
   );

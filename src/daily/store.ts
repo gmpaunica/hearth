@@ -17,6 +17,8 @@ import {
   type TodayDailyMediaSnapshot,
 } from './model';
 import { DAILY_VOICE_BIT_RATE, DAILY_VOICE_MAX_BYTES } from './audioOptions';
+import { DAILY_PHOTO_MAX_BYTES, type ProcessedDailyPhoto } from './photo';
+import { plantPhotoDay, unplantPhotoDay } from './api';
 
 const MAX_TIMER_MS = 2_000_000_000;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -30,8 +32,11 @@ interface DailyMediaState {
   arrival: { medium: DailyMedium; mediaId: string; token: number } | null;
   refresh: (announceArrival?: boolean) => Promise<void>;
   submitVoice: (uri: string, durationMs: number) => Promise<boolean>;
+  submitPhoto: (photo: ProcessedDailyPhoto) => Promise<boolean>;
   markReceived: (item: DailyMediaItem, kind: DailyReceiptKind) => Promise<void>;
   deleteArtifact: (kind: DailyMedium | 'sketch', id: string) => Promise<boolean>;
+  plantToday: () => Promise<boolean>;
+  unplantToday: () => Promise<boolean>;
   clearError: () => void;
   reset: () => void;
 }
@@ -121,6 +126,42 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
     }
   },
 
+  submitPhoto: async (photo) => {
+    const snapshot = get().snapshot;
+    const auth = useAuthStore.getState();
+    if (!snapshot || !auth.couple?.id || !auth.userId || get().busy) return false;
+    set({ busy: 'photo-upload', error: null });
+    try {
+      const bytes = await readLocalFileAsArrayBuffer(photo.uri);
+      if (bytes.byteLength > DAILY_PHOTO_MAX_BYTES) {
+        throw new Error('This processed photo is larger than 3 MiB. Please choose another.');
+      }
+      if (photo.width > 1600 || photo.height > 2000 || photo.width * 5 !== photo.height * 4) {
+        throw new Error('The processed photo did not keep the required 4:5 crop.');
+      }
+      const mediaId = createMediaId();
+      const storagePath = `${auth.couple.id}/${auth.userId}/photo/${snapshot.home_date}/${mediaId}.jpg`;
+      await uploadAndFinalizeMedia(bytes, {
+        assignmentId: snapshot.assignment_id,
+        mediaId,
+        medium: 'photo',
+        storagePath,
+        mimeType: 'image/jpeg',
+        width: photo.width,
+        height: photo.height,
+      });
+      await get().refresh(false);
+      set({ busy: null });
+      return true;
+    } catch (error) {
+      set({
+        busy: null,
+        error: errorMessage(error, 'Couldn’t send your photo. Your daily slot is still safe.'),
+      });
+      return false;
+    }
+  },
+
   markReceived: async (item, kind) => {
     if (item.receipt) return;
     try {
@@ -148,6 +189,36 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
       return true;
     } catch (error) {
       set({ busy: null, error: errorMessage(error, 'Couldn’t delete this artifact.') });
+      return false;
+    }
+  },
+
+  plantToday: async () => {
+    const homeDate = get().snapshot?.home_date;
+    if (!homeDate || get().busy) return false;
+    set({ busy: 'plant', error: null });
+    try {
+      await plantPhotoDay(homeDate);
+      await get().refresh(false);
+      set({ busy: null });
+      return true;
+    } catch (error) {
+      set({ busy: null, error: errorMessage(error, 'Couldn’t keep this day in the greenhouse.') });
+      return false;
+    }
+  },
+
+  unplantToday: async () => {
+    const homeDate = get().snapshot?.home_date;
+    if (!homeDate || get().busy) return false;
+    set({ busy: 'unplant', error: null });
+    try {
+      await unplantPhotoDay(homeDate);
+      await get().refresh(false);
+      set({ busy: null });
+      return true;
+    } catch (error) {
+      set({ busy: null, error: errorMessage(error, 'Couldn’t remove this greenhouse memory.') });
       return false;
     }
   },

@@ -71,7 +71,7 @@ test('daily media realtime refreshes the dedicated store without opening or movi
   assert.match(consoleObject, /unreadVoice/);
   assert.match(consoleObject, /useFrame/);
   assert.match(consoleObject, /router\.push\(['"]\/daily-record['"]/);
-  assert.doesNotMatch(consoleObject, /camera|requestMomentCameraFocus|publishFocusedRoom/);
+  assert.doesNotMatch(consoleObject, /requestMomentCameraFocus|publishFocusedRoom|camera\.position|camera\.lookAt/);
 });
 
 test('the daily record copy is shared, optional, independent, and has a final author delete', () => {
