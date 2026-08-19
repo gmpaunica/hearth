@@ -15,26 +15,21 @@ interface Props {
 }
 
 export function PrivatePhoto({ item, localUri, markViewed = false, accessibilityLabel }: Props) {
-  const [uri, setUri] = useState(localUri ?? null);
-  const [error, setError] = useState(false);
+  const [signed, setSigned] = useState<{ path: string; uri: string | null; error: boolean } | null>(null);
   const markReceived = useDailyMediaStore((state) => state.markReceived);
 
   useEffect(() => {
     let current = true;
-    setError(false);
-    if (localUri) {
-      setUri(localUri);
-      return () => { current = false; };
-    }
-    setUri(null);
-    if (item) {
+    if (!localUri && item) {
       void createSignedMediaUrl(item.storage_path)
-        .then((signed) => { if (current) setUri(signed); })
-        .catch(() => { if (current) setError(true); });
+        .then((uri) => { if (current) setSigned({ path: item.storage_path, uri, error: false }); })
+        .catch(() => { if (current) setSigned({ path: item.storage_path, uri: null, error: true }); });
     }
     return () => { current = false; };
   }, [item, localUri]);
 
+  const uri = localUri ?? (item && signed?.path === item.storage_path ? signed.uri : null);
+  const error = !localUri && !!item && signed?.path === item.storage_path && signed.error;
   if (error) return <View style={styles.placeholder}><Text style={styles.error}>Couldn’t open this private photo.</Text></View>;
   if (!uri) return <View style={styles.placeholder}><Text style={styles.loading}>Opening photo…</Text></View>;
   return (
@@ -49,7 +44,7 @@ export function PrivatePhoto({ item, localUri, markViewed = false, accessibility
           void markReceived(item, 'photo_viewed');
         }
       }}
-      onError={() => setError(true)}
+      onError={() => { if (item) setSigned({ path: item.storage_path, uri: null, error: true }); }}
     />
   );
 }

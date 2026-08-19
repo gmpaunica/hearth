@@ -20,25 +20,22 @@ export default function GreenhouseRoute() {
   const unplant = useDailyCollectionStore((state) => state.unplantMemory);
 
   useEffect(() => { void load(true); }, [load]);
-  useEffect(() => {
-    const maxBay = Math.max(0, Math.ceil(memories.length / 4) - 1);
-    if (activeBay > maxBay) setActiveBay(maxBay);
-  }, [activeBay, memories.length]);
-
-  const visibleCount = memoriesForBay(memories, activeBay).length;
+  const maxBay = Math.max(0, Math.ceil(memories.length / 4) - 1);
+  const visibleBay = Math.min(activeBay, maxBay);
+  const visibleCount = memoriesForBay(memories, visibleBay).length;
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.scene}>
         <SceneCanvas
-          accessibilityLabel={`Memory greenhouse bay ${activeBay + 1} with ${visibleCount} planted memories`}
+          accessibilityLabel={`Memory greenhouse bay ${visibleBay + 1} with ${visibleCount} planted memories`}
           accessibilityHint="Use the bay controls below to browse four memories at a time"
           onAccessibilityActivate={null}
         >
           <GreenhouseScene memoryCount={visibleCount} />
         </SceneCanvas>
       </View>
-      <GreenhouseMemories memories={memories} activeBay={activeBay} loading={loading} hasMore={hasMore}
+      <GreenhouseMemories memories={memories} activeBay={visibleBay} loading={loading} hasMore={hasMore}
         busy={busy != null} error={error} onBayChange={setActiveBay}
         onLoadMore={() => { void load(false).then(() => setActiveBay((bay) => bay + 1)); }}
         onUnplant={(homeDate) => void unplant(homeDate)} />

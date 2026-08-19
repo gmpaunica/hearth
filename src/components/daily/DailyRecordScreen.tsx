@@ -113,14 +113,18 @@ export function DailyRecordScreen() {
 
   useEffect(() => {
     if (phase === 'recording' && recorderState.durationMillis >= DAILY_VOICE_MAX_DURATION_MS) {
-      void finishRecording(true);
+      const timer = setTimeout(() => void finishRecording(true), 0);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [finishRecording, phase, recorderState.durationMillis]);
 
   useEffect(() => {
     if (phase === 'recording' && recorderState.mediaServicesDidReset) {
-      void finishRecording(false, true);
+      const timer = setTimeout(() => void finishRecording(false, true), 0);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [finishRecording, phase, recorderState.mediaServicesDidReset]);
 
   useEffect(() => {

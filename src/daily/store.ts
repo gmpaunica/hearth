@@ -6,7 +6,9 @@ import {
   deleteDailyArtifact,
   fetchTodayDailyMedia,
   markMediaReceived,
+  plantPhotoDay,
   readLocalFileAsArrayBuffer,
+  unplantPhotoDay,
   uploadAndFinalizeMedia,
 } from './api';
 import {
@@ -18,7 +20,6 @@ import {
 } from './model';
 import { DAILY_VOICE_BIT_RATE, DAILY_VOICE_MAX_BYTES } from './audioOptions';
 import { DAILY_PHOTO_MAX_BYTES, type ProcessedDailyPhoto } from './photo';
-import { plantPhotoDay, unplantPhotoDay } from './api';
 
 const MAX_TIMER_MS = 2_000_000_000;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
