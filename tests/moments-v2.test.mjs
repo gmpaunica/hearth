@@ -154,12 +154,12 @@ test('six code-native mosaics replace raster Moment photographs', () => {
   assert.doesNotMatch(read('src/moments/consequenceCatalog.ts'), /MOMENT_BANNER_IMAGES|expo-image|\.webp/);
 });
 
-test('SDK 57 and runtime 1.0.3 remain OTA compatible', () => {
+test('SDK 57 and runtime 1.0.4 remain OTA compatible', () => {
   const app = JSON.parse(read('app.json'));
   const pkg = JSON.parse(read('package.json'));
-  assert.equal(app.expo.version, '1.0.3');
+  assert.equal(app.expo.version, '1.0.4');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
-  assert.equal(pkg.version, '1.0.3');
-  assert.equal(pkg.dependencies.expo, '57.0.12');
+  assert.equal(pkg.version, '1.0.4');
+  assert.equal(pkg.dependencies.expo, '57.0.14');
   assert.equal(pkg.dependencies['react-native'], '0.86.2');
 });
