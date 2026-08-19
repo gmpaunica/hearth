@@ -65,7 +65,7 @@ test('greenhouse uses horizontal bay navigation without shrinking the scene', ()
   assert.match(greenhouse, /key=\{`persisted-bay-\$\{memoryCount\}`\}/);
   assert.match(greenhouse, /for \(let index = 0; index < memoryCount/);
   assert.match(route, /load\(true\)/);
-  assert.match(route, /memoriesForBay\(memories, activeBay\)/);
+  assert.match(route, /memoriesForBay\(memories, visibleBay\)/);
   assert.match(read('src/components/GreenhouseMemories.tsx'), /Older greenhouse bay/);
   assert.match(route, /onAccessibilityActivate=\{null\}/);
 });
