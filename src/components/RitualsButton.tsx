@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useDrawingStore } from '@/state/drawingStore';
@@ -27,6 +28,11 @@ export function RitualsButton() {
     useDrawingStore.getState().requestSketchbook();
   };
 
+  const openDiary = () => {
+    setMenuOpen(false);
+    router.push('/diary');
+  };
+
   return (
     <>
       {menuOpen && (
@@ -36,7 +42,7 @@ export function RitualsButton() {
             hasMoments ? styles.menuAtBottom : styles.menuAboveSignal,
           ]}
         >
-          <Text style={styles.menuKicker}>RITUALS</Text>
+          <Text style={styles.menuKicker}>TOGETHER</Text>
           <Pressable
             style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
             onPress={openSketchbook}
@@ -52,6 +58,21 @@ export function RitualsButton() {
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.menuItem, styles.menuItemAfter, pressed && styles.menuItemPressed]}
+            onPress={openDiary}
+            accessibilityRole="menuitem"
+            accessibilityLabel="Open Our Diary"
+          >
+            <View style={[styles.menuIcon, styles.diaryIcon]}>
+              <Text style={styles.menuIconText}>{'\u2665'}</Text>
+            </View>
+            <View style={styles.menuCopy}>
+              <Text style={styles.menuTitle}>Our Diary</Text>
+              <Text style={styles.menuHint}>Voice notes and sketches by date</Text>
+            </View>
+            <Text style={styles.chevron}>{'\u203a'}</Text>
+          </Pressable>
         </View>
       )}
 
@@ -64,12 +85,12 @@ export function RitualsButton() {
         onPress={() => setMenuOpen((open) => !open)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="Rituals"
-        accessibilityHint="Open the rituals menu"
+        accessibilityLabel="Together"
+        accessibilityHint="Open the Together menu"
         accessibilityState={{ expanded: menuOpen }}
       >
         <BookMark />
-        <Text style={styles.label}>Rituals</Text>
+        <Text style={styles.label}>Together</Text>
       </Pressable>
     </>
   );
@@ -195,6 +216,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   menuItemPressed: { opacity: 0.72 },
+  menuItemAfter: { marginTop: 7 },
   menuIcon: {
     width: 38,
     height: 38,
@@ -204,6 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: editorial.claySoft,
   },
   menuIconText: { color: editorial.clay, fontSize: 21, lineHeight: 24 },
+  diaryIcon: { backgroundColor: editorial.sageSoft },
   menuCopy: { flex: 1, paddingHorizontal: 10 },
   menuTitle: { color: editorial.ink, fontFamily: 'serif', fontSize: 16, fontWeight: '700' },
   menuHint: { color: editorial.inkSoft, fontSize: 10, marginTop: 2 },

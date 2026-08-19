@@ -14,6 +14,7 @@ import { PixelHeartPayoff } from '@/components/PixelHeartPayoff';
 import { Onboarding } from '@/components/Onboarding';
 import { Pairing } from '@/components/Pairing';
 import { RitualsButton } from '@/components/RitualsButton';
+import { DailyMediaHomeActions } from '@/components/daily/DailyMediaHomeActions';
 import { Settings } from '@/components/Settings';
 import { HomeScene } from '@/scene/HomeScene';
 import { LockedRoomNotice } from '@/scene/LockedRoomNotice';
@@ -68,6 +69,7 @@ export default function HomeScreen() {
           {!settingsOpen && <RitualsButton />}
           {!settingsOpen && <GreenhouseButton />}
           {!settingsOpen && <HomeGrewCard />}
+          {!settingsOpen && <DailyMediaHomeActions />}
         </>
       )}
       {!settingsOpen && <Pairing />}

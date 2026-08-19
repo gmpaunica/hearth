@@ -1,43 +1,44 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { GreenhouseMemories } from '@/components/GreenhouseMemories';
-import {
-  createGreenhousePreviewMemory,
-  MAX_GREENHOUSE_PREVIEW_MEMORIES,
-  type GreenhouseMemory,
-} from '@/memories/greenhouseModel';
+import { useDailyCollectionStore } from '@/daily/collectionStore';
+import { memoriesForBay } from '@/memories/greenhouseModel';
 import { GreenhouseScene } from '@/scene/GreenhouseScene';
 import { SceneCanvas } from '@/scene/SceneCanvas';
 import { editorial } from '@/theme/hearth';
 
 export default function GreenhouseRoute() {
-  const [memories, setMemories] = useState<GreenhouseMemory[]>([]);
+  const [activeBay, setActiveBay] = useState(0);
+  const memories = useDailyCollectionStore((state) => state.greenhouse);
+  const loading = useDailyCollectionStore((state) => state.greenhouseLoading);
+  const hasMore = useDailyCollectionStore((state) => state.greenhouseHasMore);
+  const busy = useDailyCollectionStore((state) => state.busy);
+  const error = useDailyCollectionStore((state) => state.error);
+  const load = useDailyCollectionStore((state) => state.loadGreenhouse);
+  const unplant = useDailyCollectionStore((state) => state.unplantMemory);
 
-  const addPreviewMemory = () => {
-    setMemories((current) => current.length >= MAX_GREENHOUSE_PREVIEW_MEMORIES
-      ? current
-      : [...current, createGreenhousePreviewMemory(current.length)]);
-  };
-
+  useEffect(() => { void load(true); }, [load]);
+  const maxBay = Math.max(0, Math.ceil(memories.length / 4) - 1);
+  const visibleBay = Math.min(activeBay, maxBay);
+  const visibleCount = memoriesForBay(memories, visibleBay).length;
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.scene}>
         <SceneCanvas
-          accessibilityLabel={`Memory greenhouse with ${memories.length} preview memories`}
-          accessibilityHint="The voxel greenhouse adds one bay for every four memories"
+          accessibilityLabel={`Memory greenhouse bay ${visibleBay + 1} with ${visibleCount} planted memories`}
+          accessibilityHint="Use the bay controls below to browse four memories at a time"
           onAccessibilityActivate={null}
         >
-          <GreenhouseScene memoryCount={memories.length} />
+          <GreenhouseScene memoryCount={visibleCount} />
         </SceneCanvas>
       </View>
-      <GreenhouseMemories
-        memories={memories}
-        onAddPreviewMemory={addPreviewMemory}
-        onResetPreview={() => setMemories([])}
-      />
+      <GreenhouseMemories memories={memories} activeBay={visibleBay} loading={loading} hasMore={hasMore}
+        busy={busy != null} error={error} onBayChange={setActiveBay}
+        onLoadMore={() => { void load(false).then(() => setActiveBay((bay) => bay + 1)); }}
+        onUnplant={(homeDate) => void unplant(homeDate)} />
     </View>
   );
 }

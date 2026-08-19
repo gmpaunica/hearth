@@ -1,4 +1,3 @@
-import { getGreenhouseBayCount } from '@/memories/greenhouseModel';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
 
@@ -11,9 +10,8 @@ function greenhouseWidth(bayCount: number) {
 }
 
 function addMemoryTile(v: Vox, memoryIndex: number) {
-  const bay = Math.floor(memoryIndex / 4);
   const slot = memoryIndex % 4;
-  const x = bay * BAY_WIDTH + 2 + (slot % 2) * 3;
+  const x = 2 + (slot % 2) * 3;
   const z = slot < 2 ? 1 : 8;
   const frame = memoryIndex % 2 === 0 ? '#bb6347' : '#9d6b43';
   const picture = memoryIndex % 3 === 0 ? '#d7a5a1' : memoryIndex % 3 === 1 ? '#efc675' : '#91ab78';
@@ -86,14 +84,14 @@ function GlassPanels({ bayCount }: { bayCount: number }) {
 }
 
 export function Greenhouse({ memoryCount }: { memoryCount: number }) {
-  const bayCount = getGreenhouseBayCount(memoryCount);
+  const bayCount = 1;
   const width = greenhouseWidth(bayCount);
   const offset: [number, number, number] = [-(width * CELL) / 2, 0, -(DEPTH * CELL) / 2];
 
   return (
     <group position={offset}>
       <VoxMesh
-        key={`${bayCount}-${memoryCount}`}
+        key={`persisted-bay-${memoryCount}`}
         build={(voxels) => buildGreenhouse(voxels, bayCount, memoryCount)}
         scale={CELL}
       />

@@ -1,16 +1,15 @@
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-import { getGreenhouseBayCount } from '@/memories/greenhouseModel';
 import { Atmosphere } from './Atmosphere';
 import { HOME_ART_RESOLUTION, PixelPass } from './PixelPass';
 import { Greenhouse } from './objects/Greenhouse';
 
-function GreenhouseCamera({ bayCount }: { bayCount: number }) {
+function GreenhouseCamera() {
   useFrame((state) => {
     const camera = state.camera as THREE.OrthographicCamera;
     const aspect = Math.max(state.size.width / Math.max(1, state.size.height), 0.01);
-    const frameWidth = 7.6 + Math.max(0, bayCount - 1) * 1.5;
+    const frameWidth = 7.6;
     const frameHeight = 7.4;
     const frameAspect = frameWidth / frameHeight;
     const fittedWidth = aspect >= frameAspect ? frameHeight * aspect : frameWidth;
@@ -28,10 +27,9 @@ function GreenhouseCamera({ bayCount }: { bayCount: number }) {
 }
 
 export function GreenhouseScene({ memoryCount }: { memoryCount: number }) {
-  const bayCount = getGreenhouseBayCount(memoryCount);
   return (
     <>
-      <GreenhouseCamera bayCount={bayCount} />
+      <GreenhouseCamera />
       <Atmosphere />
       <Greenhouse memoryCount={memoryCount} />
       <PixelPass resolution={HOME_ART_RESOLUTION} />
