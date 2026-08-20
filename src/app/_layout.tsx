@@ -23,7 +23,24 @@ export default function RootLayout() {
             headerShown: false,
             contentStyle: { backgroundColor: '#1a2340' },
           }}
-        />
+        >
+          <Stack.Screen
+            name="daily-photo"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
+            name="daily-record"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+        </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { clearPushToken, registerPushToken } from '@/lib/notifications';
 import { getNotificationsEnabled, setNotificationsEnabledPref } from '@/lib/prefs';
 import { useAuthStore } from '@/state/authStore';
+import { useHomeUiStore } from '@/state/homeUiStore';
 import { MUSIC_VOLUME_OPTIONS, useMusicStore } from '@/state/musicStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
@@ -30,6 +31,8 @@ export function Settings() {
   const setMusicEnabled = useMusicStore((state) => state.setEnabled);
   const setMusicVolume = useMusicStore((state) => state.setVolume);
   const retryMusic = useMusicStore((state) => state.retryPlayback);
+  const controlsHidden = useHomeUiStore((state) => state.controlsHidden);
+  const setControlsHidden = useHomeUiStore((state) => state.setControlsHidden);
   const setSettingsOpen = useMomentsSurfaceStore((state) => state.setSettingsOpen);
   const completeMomentMinimize = useMomentsSurfaceStore((state) => state.completeMinimize);
   const resumeMomentPlayback = useMomentV2Store((state) => state.resumePlayback);
@@ -171,6 +174,25 @@ export function Settings() {
                   </View>
                 </>
               )}
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>Hide home buttons</Text>
+                <Text style={styles.rowHint}>
+                  A clean view for filming. The title, day, sketch, and Settings stay visible.
+                </Text>
+              </View>
+              <Switch
+                value={controlsHidden}
+                onValueChange={setControlsHidden}
+                trackColor={{ true: editorial.clay, false: editorial.paperTint }}
+                thumbColor={editorial.onAccent}
+                accessibilityLabel="Hide home buttons"
+                accessibilityHint="Hide the lower home controls while keeping the top controls visible"
+              />
             </View>
 
             <View style={styles.divider} />

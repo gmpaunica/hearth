@@ -7,6 +7,7 @@ const ACK_STAGE_KEY = 'hearth.ackStage';
 const DRAWING_SEEN_KEY = 'hearth.drawingSeen';
 const MUSIC_ENABLED_KEY = 'hearth.musicEnabled';
 const MUSIC_VOLUME_KEY = 'hearth.musicVolume';
+const HOME_CONTROLS_HIDDEN_KEY = 'hearth.homeControlsHidden';
 
 export type MusicVolumePreset = 'quiet' | 'gentle' | 'full';
 
@@ -87,6 +88,23 @@ export async function setMusicVolumePref(volume: MusicVolumePreset): Promise<voi
     await AsyncStorage.setItem(MUSIC_VOLUME_KEY, volume);
   } catch {
     // Non-fatal: the gentle default applies next launch.
+  }
+}
+
+/** Whether lower home controls are hidden for a clean filming view. */
+export async function getHomeControlsHidden(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(HOME_CONTROLS_HIDDEN_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setHomeControlsHiddenPref(hidden: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(HOME_CONTROLS_HIDDEN_KEY, hidden ? 'true' : 'false');
+  } catch {
+    // Non-fatal: lower controls return on the next launch.
   }
 }
 
