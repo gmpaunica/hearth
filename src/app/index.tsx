@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CharacterButton } from '@/components/CharacterButton';
@@ -24,6 +25,7 @@ import { useReduceMotion } from '@/scene/useReduceMotion';
 import { useHearthSync } from '@/state/useHearthSync';
 import { useAuthStore } from '@/state/authStore';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
+import { useHomeUiStore } from '@/state/homeUiStore';
 import { daysTogether } from '@/state/homeProgress';
 import { APP_NAME, editorial } from '@/theme/hearth';
 
@@ -38,6 +40,12 @@ export default function HomeScreen() {
   const togetherSince = useAuthStore((s) => s.couple?.created_at ?? null);
   const togetherDay = Math.max(1, Math.floor(daysTogether(togetherSince)) + 1);
   const settingsOpen = useMomentsSurfaceStore((state) => state.settingsOpen);
+  const controlsHidden = useHomeUiStore((state) => state.controlsHidden);
+  const hydrateHomeUi = useHomeUiStore((state) => state.hydrate);
+
+  useEffect(() => {
+    void hydrateHomeUi();
+  }, [hydrateHomeUi]);
 
   return (
     <View style={styles.container}>
@@ -62,12 +70,19 @@ export default function HomeScreen() {
       {paired && !settingsOpen && <HearthStatusCard />}
       {paired && (
         <>
-          {!settingsOpen && <MomentsController />}
+          <View
+            style={[styles.lowerControls, controlsHidden && styles.lowerControlsHidden]}
+            pointerEvents={controlsHidden ? 'none' : 'box-none'}
+            accessibilityElementsHidden={controlsHidden}
+            importantForAccessibility={controlsHidden ? 'no-hide-descendants' : 'auto'}
+          >
+            {!settingsOpen && <MomentsController />}
+            {!settingsOpen && <CharacterButton />}
+            {!settingsOpen && <RitualsButton />}
+            {!settingsOpen && <GreenhouseButton />}
+          </View>
           <Settings />
           {!settingsOpen && <DailyDrawing />}
-          {!settingsOpen && <CharacterButton />}
-          {!settingsOpen && <RitualsButton />}
-          {!settingsOpen && <GreenhouseButton />}
           {!settingsOpen && <HomeGrewCard />}
           {!settingsOpen && <DailyMediaHomeActions />}
         </>
@@ -82,6 +97,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: editorial.canvas },
   scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  lowerControls: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  lowerControlsHidden: { display: 'none' },
   titleWrap: {
     position: 'absolute',
     top: 26,
