@@ -240,7 +240,6 @@ export function DailyRecordScreen() {
     <DailyMediaScaffold
       eyebrow="DAILY RECORD"
       title="A voice from today"
-      icon="♪"
       prompt={snapshot?.voice_prompt ?? null}
       sharedCopy={snapshot?.shared_prompt_copy}
       onBack={() => void closeScreen()}

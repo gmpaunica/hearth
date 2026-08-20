@@ -36,10 +36,21 @@ export function createMediaId(): string {
   return uuid;
 }
 
+function isDeviceLocalMediaUri(uri: string): boolean {
+  return /^(file|content):\/\//i.test(uri);
+}
+
 export async function readLocalFileAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
   const response = await fetch(uri);
-  if (!response.ok) throw new Error('The selected media file could not be read.');
-  return response.arrayBuffer();
+  // React Native commonly reports status 0 / ok=false for a successful local
+  // file response. Expo's picker and recorder both return these device-local
+  // URIs, so judge them by whether readable bytes exist instead of HTTP status.
+  if (!response.ok && !isDeviceLocalMediaUri(uri)) {
+    throw new Error('The selected media file could not be read.');
+  }
+  const bytes = await response.arrayBuffer();
+  if (bytes.byteLength === 0) throw new Error('The selected media file was empty.');
+  return bytes;
 }
 
 export async function uploadAndFinalizeMedia(

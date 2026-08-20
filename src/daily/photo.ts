@@ -54,13 +54,25 @@ export async function processDailyPhoto(
 
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
-  allowsEditing: true,
-  aspect: [4, 5],
-  shape: 'rectangle',
   quality: 1,
   exif: false,
   base64: false,
   allowsMultipleSelection: false,
+};
+
+const cameraOptions: ImagePicker.ImagePickerOptions = {
+  ...pickerOptions,
+  // The system cropper adds an ambiguous top-right confirmation control on
+  // some Android camera apps. Hearth already owns the deterministic 4:5 crop
+  // and preview, so return directly to that UI after capture.
+  allowsEditing: false,
+};
+
+const libraryOptions: ImagePicker.ImagePickerOptions = {
+  ...pickerOptions,
+  allowsEditing: true,
+  aspect: [4, 5],
+  shape: 'rectangle',
 };
 
 async function processPickerResult(result: ImagePicker.ImagePickerResult) {
@@ -79,9 +91,9 @@ export async function takeDailyPhoto(): Promise<ProcessedDailyPhoto | null> {
       ? 'Camera permission is needed only when you take a photo.'
       : 'Camera access is off. You can enable it in your phone settings.');
   }
-  return processPickerResult(await ImagePicker.launchCameraAsync(pickerOptions));
+  return processPickerResult(await ImagePicker.launchCameraAsync(cameraOptions));
 }
 
 export async function chooseDailyPhoto(): Promise<ProcessedDailyPhoto | null> {
-  return processPickerResult(await ImagePicker.launchImageLibraryAsync(pickerOptions));
+  return processPickerResult(await ImagePicker.launchImageLibraryAsync(libraryOptions));
 }
