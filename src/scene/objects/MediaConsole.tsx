@@ -20,17 +20,55 @@ interface DailyMediaObjectProps {
 }
 
 function buildRecordPlayer(v: Vox) {
-  // A compact wood turntable with a high-contrast platter, spindle, and tonearm.
-  v.box(0, 0, 0, 8, 2, 7, '#4d3027');
-  v.box(1, 2, 1, 6, 1, 5, '#d5a568');
-  for (let x = 1; x < 7; x++) for (let z = 1; z < 6; z++) {
-    const dx = x - 3.5;
-    const dz = z - 3;
-    if (dx * dx + dz * dz < 7) v.set(x, 3, z, '#36251f');
+  // Collected turntable: veneered case, inset deck, open dust-cover frame,
+  // hinge, speed controls, and a tonearm that visibly reaches the groove.
+  const wood = '#57372b';
+  const woodLight = '#9c6846';
+  const deck = '#d6ae78';
+  const brass = '#d8b26b';
+  const cover = '#b9d1c5';
+
+  v.box(0, 0, 0, 12, 2, 9, wood);
+  v.box(1, 1, 1, 10, 2, 7, deck);
+  v.box(1, 0, 0, 10, 1, 1, woodLight);
+  v.set(2, 0, -1, brass);
+  v.set(9, 0, -1, brass);
+  for (const [x, z] of [[1, 1], [10, 1], [1, 7], [10, 7]] as const) v.set(x, -1, z, '#3c2924');
+
+  // Open lid reads clearly from the home camera without becoming a solid wall.
+  v.box(0, 3, 8, 12, 1, 1, woodLight);
+  v.box(0, 4, 8, 1, 5, 1, cover);
+  v.box(11, 4, 8, 1, 5, 1, cover);
+  v.box(1, 8, 8, 10, 1, 1, cover);
+  v.set(3, 6, 8, '#d9e4d7');
+  v.set(8, 5, 8, '#d9e4d7');
+
+  // Start/stop and speed controls.
+  v.box(9, 3, 1, 2, 1, 2, '#4a3530');
+  v.set(9, 4, 1, '#d56f59');
+  v.set(10, 4, 2, brass);
+
+  // Pivot, counterweight, angled arm, headshell, and needle.
+  v.box(9, 3, 5, 2, 2, 2, '#6a4a3b');
+  v.set(10, 5, 6, brass);
+  v.set(9, 5, 5, brass);
+  v.set(8, 5, 5, brass);
+  v.set(7, 5, 4, brass);
+  v.set(6, 5, 4, brass);
+  v.set(5, 4, 4, '#f1dfbd');
+  v.set(5, 3, 4, '#49332c');
+}
+
+function buildPlayingRecord(v: Vox) {
+  for (let x = -4; x <= 4; x++) for (let z = -4; z <= 4; z++) {
+    const distance = x * x + z * z;
+    if (distance <= 18) {
+      const groove = (Math.abs(x) + Math.abs(z)) % 3 === 0 ? '#332725' : '#241d1c';
+      v.set(x, 0, z, distance <= 4 ? '#c96d59' : groove);
+    }
   }
-  v.set(3, 4, 3, '#df8061');
-  v.box(6, 3, 1, 1, 1, 4, '#c59c71');
-  v.set(5, 3, 4, '#f1d9ae');
+  v.set(0, 1, 0, '#efc973');
+  v.set(1, 1, 0, '#f1d8a6');
 }
 
 function buildCamera(v: Vox) {
@@ -87,13 +125,18 @@ function useDeferredDailyRoute(path: '/daily-record' | '/daily-photo') {
     openingRef.current = true;
 
     // R3F is still walking its pointer-event graph here. Let that dispatch
-    // finish before Expo Router unmounts the Canvas, and accept only one tap.
-    requestAnimationFrame(() => router.push(path as never));
+    // finish before navigating, then release the guard because transparent
+    // modal routes deliberately keep this home object mounted for the return.
+    requestAnimationFrame(() => {
+      router.push(path as never);
+      openingRef.current = false;
+    });
   }, [path]);
 }
 
 export function DailyRecordPlayer({ position, rotation = [0, 0, 0] }: DailyMediaObjectProps) {
   const animatedRef = useRef<THREE.Group>(null);
+  const recordRef = useRef<THREE.Group>(null);
   const snapshot = useDailyMediaStore((state) => state.snapshot);
   const arrival = useDailyMediaStore((state) => state.arrival);
   const userId = useAuthStore((state) => state.userId);
@@ -101,22 +144,26 @@ export function DailyRecordPlayer({ position, rotation = [0, 0, 0] }: DailyMedia
   const unread = Boolean(voice && !voice.receipt);
   const open = useDeferredDailyRoute('/daily-record');
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!animatedRef.current) return;
     const animate = unread || arrival?.medium === 'voice';
     const wave = atmo.reduceMotion || !animate ? 0 : Math.sin(state.clock.elapsedTime * 4.8);
     animatedRef.current.rotation.y = wave * 0.08;
     animatedRef.current.position.y = Math.max(0, wave) * 0.035;
+    if (recordRef.current && !atmo.reduceMotion) recordRef.current.rotation.y += delta * 1.8;
   });
 
   return (
     <group position={position} rotation={rotation}>
       <group ref={animatedRef} onClick={open}>
-        <mesh position={[0.3, 0.18, 0.22]}>
-          <boxGeometry args={[0.8, 0.58, 0.72]} />
+        <mesh position={[0.35, 0.27, 0.27]}>
+          <boxGeometry args={[0.82, 0.78, 0.7]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
-        <VoxMesh build={buildRecordPlayer} scale={0.075} />
+        <VoxMesh build={buildRecordPlayer} scale={0.06} />
+        <group ref={recordRef} position={[0.3, 0.2, 0.27]}>
+          <VoxMesh build={buildPlayingRecord} scale={0.06} />
+        </group>
         {unread && (
           <VoxMesh build={buildRecordBubble} scale={0.05} position={[0.12, 0.73, 0.08]} />
         )}

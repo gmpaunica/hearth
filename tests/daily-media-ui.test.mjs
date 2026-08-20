@@ -10,16 +10,22 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 test('photo acquisition offers camera or library and explicitly excludes EXIF/base64 data', () => {
   const photo = read('src/daily/photo.ts');
   const screen = read('src/components/daily/DailyPhotoScreen.tsx');
-  assert.match(screen, />Take photo</);
-  assert.match(screen, />Choose photo</);
+  assert.match(screen, /accessibilityLabel="Take photo"/);
+  assert.match(screen, /accessibilityLabel="Choose photo"/);
   assert.match(photo, /requestCameraPermissionsAsync\(\)/);
-  assert.match(photo, /launchCameraAsync\(pickerOptions\)/);
-  assert.match(photo, /launchImageLibraryAsync\(pickerOptions\)/);
+  assert.match(photo, /launchCameraAsync\(cameraOptions\)/);
+  assert.match(photo, /launchImageLibraryAsync\(libraryOptions\)/);
   assert.match(photo, /mediaTypes:\s*\[['"]images['"]\]/);
-  assert.match(photo, /allowsEditing:\s*true/);
+  assert.match(photo, /cameraOptions[\s\S]{0,300}allowsEditing:\s*false/);
+  assert.match(photo, /libraryOptions[\s\S]{0,180}allowsEditing:\s*true/);
   assert.match(photo, /aspect:\s*\[4,\s*5\]/);
   assert.match(photo, /exif:\s*false/);
   assert.match(photo, /base64:\s*false/);
+  assert.match(screen, />1  Take</);
+  assert.match(screen, />2  Preview</);
+  assert.match(screen, />3  Send</);
+  assert.match(screen, /Opening camera/);
+  assert.match(screen, /acquiring != null/);
 });
 
 test('the final image pipeline enforces a 4:5 center crop and maximum 1600 by 2000 JPEG', () => {
@@ -91,8 +97,13 @@ test('the two daily media objects are independently tappable without navigating 
   assert.match(consoleObject, /export function DailyCamera/);
   assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-record['"]\)/);
   assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-photo['"]\)/);
-  assert.match(consoleObject, /requestAnimationFrame\(\(\) => router\.push\(path as never\)\)/);
+  assert.match(consoleObject, /requestAnimationFrame\(\(\) => \{[\s\S]{0,120}router\.push\(path as never\);[\s\S]{0,120}openingRef\.current = false/);
   assert.match(consoleObject, /if \(openingRef\.current\) return/);
+  assert.match(consoleObject, /buildPlayingRecord/);
+  assert.match(consoleObject, /recordRef\.current\.rotation\.y \+= delta \* 1\.8/);
+  assert.match(consoleObject, /if \(recordRef\.current && !atmo\.reduceMotion\)/);
+  assert.match(consoleObject, /Open lid reads clearly/);
+  assert.match(consoleObject, /Pivot, counterweight, angled arm, headshell, and needle/);
   assert.equal((consoleObject.match(/onClick=\{open\}/g) ?? []).length, 2);
   assert.doesNotMatch(consoleObject, /<mesh[^>]+onClick=/);
   assert.match(consoleObject, /buildRecordBubble/);
@@ -104,4 +115,14 @@ test('the two daily media objects are independently tappable without navigating 
   assert.doesNotMatch(livingRoom, /MediaConsole/);
   assert.match(actions, /record player voice prompt/);
   assert.match(actions, /instant camera photo prompt/);
+});
+
+test('daily media headers do not present decorative top-right chrome as a fake button', () => {
+  const scaffold = read('src/components/daily/DailyMediaScaffold.tsx');
+  const photo = read('src/components/daily/DailyPhotoScreen.tsx');
+  const record = read('src/components/daily/DailyRecordScreen.tsx');
+
+  assert.match(scaffold, /styles\.headerSpacer/);
+  assert.doesNotMatch(scaffold, /styles\.icon|iconText|icon: string/);
+  assert.doesNotMatch(photo + record, /icon=/);
 });

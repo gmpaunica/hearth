@@ -4,10 +4,10 @@ import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('daily media routes preserve the rendered home and close without a transition flash', () => {
+test('daily media and greenhouse routes preserve the rendered home and close without a transition flash', () => {
   const layout = read('src/app/_layout.tsx');
 
-  for (const route of ['daily-photo', 'daily-record']) {
+  for (const route of ['daily-photo', 'daily-record', 'greenhouse']) {
     const screen = layout.match(
       new RegExp(`<Stack\\.Screen[\\s\\S]*?name=["']${route}["'][\\s\\S]*?\\/>`),
     )?.[0] ?? '';

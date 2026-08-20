@@ -66,6 +66,9 @@ test('closing Daily Record serializes native stop before navigation and never st
 test('React Native uploads are ArrayBuffers and orphaned objects are removed if metadata finalization fails', () => {
   const api = read('src/daily/api.ts');
   assert.match(api, /response\.arrayBuffer\(\)/);
+  assert.match(api, /isDeviceLocalMediaUri/);
+  assert.match(api, /!response\.ok && !isDeviceLocalMediaUri\(uri\)/);
+  assert.match(api, /bytes\.byteLength === 0/);
   assert.match(api, /bytes:\s*ArrayBuffer/);
   assert.match(api, /storage\.upload\(input\.storagePath, bytes/);
   assert.match(api, /finalize_daily_submission/);

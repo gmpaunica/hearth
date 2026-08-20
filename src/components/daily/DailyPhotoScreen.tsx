@@ -22,6 +22,7 @@ export function DailyPhotoScreen() {
   const userId = useAuthStore((state) => state.userId);
   const [preview, setPreview] = useState<ProcessedDailyPhoto | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [acquiring, setAcquiring] = useState<'camera' | 'library' | null>(null);
 
   const mine = mineFor(snapshot, userId, 'photo');
   const partner = partnerFor(snapshot, userId, 'photo');
@@ -32,11 +33,14 @@ export function DailyPhotoScreen() {
 
   const pick = async (source: 'camera' | 'library') => {
     setLocalError(null);
+    setAcquiring(source);
     try {
       const processed = source === 'camera' ? await takeDailyPhoto() : await chooseDailyPhoto();
       if (processed) setPreview(processed);
     } catch (pickError) {
       setLocalError(pickError instanceof Error ? pickError.message : 'Couldn’t prepare that photo.');
+    } finally {
+      setAcquiring(null);
     }
   };
 
@@ -66,32 +70,43 @@ export function DailyPhotoScreen() {
     <DailyMediaScaffold
       eyebrow="DAILY PHOTO"
       title="A little view of today"
-      icon="▣"
       prompt={snapshot?.photo_prompt ?? null}
       sharedCopy={snapshot?.shared_prompt_copy}
     >
       {(error || localError) && <View style={styles.errorCard} accessibilityLiveRegion="polite"><Text style={styles.errorText}>{localError ?? error}</Text></View>}
 
+      {!mine && (
+        <View style={styles.steps} accessibilityLabel={preview ? 'Photo step 2 of 3, preview' : 'Photo step 1 of 3, take or choose'}>
+          <View style={[styles.step, !preview && styles.stepActive]}><Text style={[styles.stepText, !preview && styles.stepTextActive]}>1  Take</Text></View>
+          <View style={styles.stepLine} />
+          <View style={[styles.step, !!preview && styles.stepActive]}><Text style={[styles.stepText, !!preview && styles.stepTextActive]}>2  Preview</Text></View>
+          <View style={styles.stepLine} />
+          <View style={styles.step}><Text style={styles.stepText}>3  Send</Text></View>
+        </View>
+      )}
+
       {!mine && !preview && (
         <View style={styles.takeCard}>
           <View style={styles.cameraArt}><View style={styles.lens} /></View>
           <Text style={styles.takeTitle}>One photo, just for today</Text>
-          <Text style={styles.takeBody}>Take or choose a photo, adjust it, then preview the final 4:5 frame before Send.</Text>
+          <Text style={styles.takeBody}>Take it, then come straight back to Hearth for a clean 4:5 preview. Nothing sends until you choose Send.</Text>
           <View style={styles.row}>
             <Pressable
               style={({ pressed }) => [styles.primary, styles.flex, pressed && styles.pressed]}
               onPress={() => void pick('camera')}
-              disabled={loading || busy != null}
+              disabled={loading || busy != null || acquiring != null}
               accessibilityRole="button"
               accessibilityLabel="Take photo"
-            ><Text style={styles.primaryText}>Take photo</Text></Pressable>
+              accessibilityState={{ busy: acquiring === 'camera', disabled: loading || busy != null || acquiring != null }}
+            ><Text style={styles.primaryText}>{acquiring === 'camera' ? 'Opening camera…' : 'Take photo'}</Text></Pressable>
             <Pressable
               style={({ pressed }) => [styles.secondary, styles.flex, pressed && styles.pressed]}
               onPress={() => void pick('library')}
-              disabled={loading || busy != null}
+              disabled={loading || busy != null || acquiring != null}
               accessibilityRole="button"
               accessibilityLabel="Choose photo"
-            ><Text style={styles.secondaryText}>Choose photo</Text></Pressable>
+              accessibilityState={{ busy: acquiring === 'library', disabled: loading || busy != null || acquiring != null }}
+            ><Text style={styles.secondaryText}>{acquiring === 'library' ? 'Opening photos…' : 'Choose photo'}</Text></Pressable>
           </View>
         </View>
       )}
@@ -164,6 +179,12 @@ export function DailyPhotoScreen() {
 const styles = StyleSheet.create({
   errorCard: { borderRadius: 16, padding: 12, backgroundColor: '#f7ddd6', borderWidth: 1, borderColor: editorial.lineStrong },
   errorText: { color: editorial.danger, fontFamily: momentsTypography.bodyBold, fontSize: 12, lineHeight: 17 },
+  steps: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 5 },
+  step: { minHeight: 28, justifyContent: 'center', paddingHorizontal: 9, borderRadius: 12 },
+  stepActive: { backgroundColor: editorial.clayWash },
+  stepText: { color: editorial.inkFaint, fontFamily: momentsTypography.bodyBold, fontSize: 10 },
+  stepTextActive: { color: editorial.clayDark },
+  stepLine: { flex: 1, height: 1, backgroundColor: editorial.lineStrong },
   takeCard: { borderRadius: 27, padding: 18, alignItems: 'center', backgroundColor: editorial.paper, borderWidth: 1, borderColor: editorial.lineStrong },
   cameraArt: { width: 96, height: 72, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e4cfaa', borderWidth: 8, borderColor: editorial.rose },
   lens: { width: 39, height: 39, borderRadius: 20, backgroundColor: editorial.ink, borderWidth: 8, borderColor: '#9cb5aa' },

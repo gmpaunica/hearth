@@ -3,12 +3,11 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
+import { editorial, momentsTypography } from '@/theme/hearth';
 
 interface Props {
   eyebrow: string;
   title: string;
-  icon: string;
   prompt: string | null;
   sharedCopy?: string | null;
   onBack?: () => void;
@@ -19,7 +18,6 @@ interface Props {
 export function DailyMediaScaffold({
   eyebrow,
   title,
-  icon,
   prompt,
   sharedCopy,
   onBack,
@@ -44,9 +42,8 @@ export function DailyMediaScaffold({
           <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title}>{title}</Text>
         </View>
-        <View style={styles.icon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={styles.iconText}>{icon}</Text>
-        </View>
+        {/* Preserve the centered title without presenting decoration as a fake button. */}
+        <View style={styles.headerSpacer} pointerEvents="none" />
       </View>
       <ScrollView
         style={styles.scroll}
@@ -78,11 +75,7 @@ const styles = StyleSheet.create({
   heading: { flex: 1, paddingHorizontal: 12 },
   eyebrow: { color: editorial.clay, fontFamily: momentsTypography.bodyBold, fontSize: 10, letterSpacing: 1.4 },
   title: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 27, lineHeight: 31 },
-  icon: {
-    width: 46, height: 46, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: hearthUi.blush, borderWidth: 1, borderColor: hearthUi.outline,
-  },
-  iconText: { fontSize: 24 },
+  headerSpacer: { width: 44, height: 44 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 7, paddingBottom: 34, gap: 14 },
   promptCard: {
