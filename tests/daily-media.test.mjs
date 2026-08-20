@@ -43,6 +43,26 @@ test('recording is cancelled safely when backgrounded or interrupted and never a
   assert.doesNotMatch(screen, /submitVoice\([^)]*\)[\s\S]{0,120}finishRecording/);
 });
 
+test('closing Daily Record serializes native stop before navigation and never stops from unmount cleanup', () => {
+  const screen = read('src/components/daily/DailyRecordScreen.tsx');
+  const scaffold = read('src/components/daily/DailyMediaScaffold.tsx');
+  const mountEffect = screen.match(/useEffect\(\(\) => \{\s*mountedRef\.current = true;[\s\S]*?\n  \}, \[refresh\]\);/)?.[0] ?? '';
+  const closeScreen = screen.match(/const closeScreen = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[stopRecorder\]\);/)?.[0] ?? '';
+
+  assert.match(screen, /const stopPromiseRef = useRef<Promise<void> \| null>\(null\)/);
+  assert.match(screen, /if \(stopPromiseRef\.current\) return stopPromiseRef\.current/);
+  assert.match(closeScreen, /await stopRecorder\(\)\.catch/);
+  assert.match(closeScreen, /await restoreHomeAudioMode\(\)\.catch/);
+  assert.match(closeScreen, /router\.back\(\)/);
+  assert.ok(closeScreen.indexOf('await stopRecorder()') < closeScreen.indexOf('router.back()'));
+  assert.ok(closeScreen.indexOf('await restoreHomeAudioMode()') < closeScreen.indexOf('router.back()'));
+  assert.doesNotMatch(mountEffect, /recorder\.(?:stop|isRecording|getStatus)/);
+  assert.match(screen, /BackHandler\.addEventListener\(['"]hardwareBackPress['"]/);
+  assert.match(screen, /onBack=\{\(\) => void closeScreen\(\)\}/);
+  assert.match(scaffold, /onPress=\{onBack \?\? \(\(\) => router\.back\(\)\)\}/);
+  assert.match(scaffold, /disabled=\{backDisabled\}/);
+});
+
 test('React Native uploads are ArrayBuffers and orphaned objects are removed if metadata finalization fails', () => {
   const api = read('src/daily/api.ts');
   assert.match(api, /response\.arrayBuffer\(\)/);
