@@ -11,19 +11,32 @@ interface Props {
   icon: string;
   prompt: string | null;
   sharedCopy?: string | null;
+  onBack?: () => void;
+  backDisabled?: boolean;
   children: ReactNode;
 }
 
-export function DailyMediaScaffold({ eyebrow, title, icon, prompt, sharedCopy, children }: Props) {
+export function DailyMediaScaffold({
+  eyebrow,
+  title,
+  icon,
+  prompt,
+  sharedCopy,
+  onBack,
+  backDisabled = false,
+  children,
+}: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'bottom', 'left']}>
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-          onPress={() => router.back()}
+          onPress={onBack ?? (() => router.back())}
+          disabled={backDisabled}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Back home"
+          accessibilityState={{ disabled: backDisabled }}
         >
           <Text style={styles.backText}>‹</Text>
         </Pressable>

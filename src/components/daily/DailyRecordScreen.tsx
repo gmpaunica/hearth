@@ -4,10 +4,12 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
+  BackHandler,
   Platform,
   Pressable,
   StyleSheet,
@@ -32,6 +34,14 @@ type RecordingPhase = 'idle' | 'recording' | 'preview';
 const formatSeconds = (milliseconds: number) =>
   `0:${Math.min(30, Math.ceil(milliseconds / 1000)).toString().padStart(2, '0')}`;
 
+const restoreHomeAudioMode = () => setAudioModeAsync({
+  allowsRecording: false,
+  allowsBackgroundRecording: false,
+  shouldPlayInBackground: false,
+  playsInSilentMode: true,
+  interruptionMode: 'mixWithOthers',
+});
+
 export function DailyRecordScreen() {
   const recorder = useAudioRecorder(DAILY_VOICE_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, 100);
@@ -48,7 +58,9 @@ export function DailyRecordScreen() {
   const [previewDuration, setPreviewDuration] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
   const [playingPreview, setPlayingPreview] = useState(false);
-  const stoppingRef = useRef(false);
+  const [closing, setClosing] = useState(false);
+  const stopPromiseRef = useRef<Promise<void> | null>(null);
+  const closingRef = useRef(false);
   const mountedRef = useRef(true);
 
   const mine = mineFor(snapshot, userId, 'voice');
@@ -60,27 +72,44 @@ export function DailyRecordScreen() {
     void refresh(false);
     return () => {
       mountedRef.current = false;
-      useMusicStore.getState().setMediaSessionBusy(false);
-      if (recorder.isRecording) void recorder.stop().catch(() => {});
-      void setAudioModeAsync({
-        allowsRecording: false,
-        allowsBackgroundRecording: false,
-        shouldPlayInBackground: false,
-        playsInSilentMode: true,
-        interruptionMode: 'mixWithOthers',
-      }).catch(() => {});
+      if (!closingRef.current) {
+        // useAudioRecorder owns native disposal. Never call the recorder from
+        // this cleanup: its SharedObject release effect runs earlier on
+        // unmount. Restore the global session before allowing music to resume.
+        void restoreHomeAudioMode()
+          .catch(() => {})
+          .finally(() => useMusicStore.getState().setMediaSessionBusy(false));
+      }
     };
-  }, [recorder, refresh]);
+  }, [refresh]);
+
+  const stopRecorder = useCallback(() => {
+    if (stopPromiseRef.current) return stopPromiseRef.current;
+
+    const stopPromise = (async () => {
+      if (recorder.isRecording) await recorder.stop();
+    })();
+    stopPromiseRef.current = stopPromise;
+    stopPromise.then(
+      () => {
+        if (stopPromiseRef.current === stopPromise) stopPromiseRef.current = null;
+      },
+      () => {
+        if (stopPromiseRef.current === stopPromise) stopPromiseRef.current = null;
+      },
+    );
+    return stopPromise;
+  }, [recorder]);
 
   const finishRecording = useCallback(async (keep: boolean, interrupted = false) => {
-    if (stoppingRef.current) return;
-    stoppingRef.current = true;
+    if (closingRef.current) return;
     const duration = Math.min(
       DAILY_VOICE_MAX_DURATION_MS,
       Math.max(recorderState.durationMillis, recorder.getStatus().durationMillis),
     );
     try {
-      if (recorder.isRecording) await recorder.stop();
+      await stopRecorder();
+      if (closingRef.current) return;
       const uri = recorder.uri ?? recorder.getStatus().url;
       if (mountedRef.current) {
         if (keep && uri && duration > 0) {
@@ -95,21 +124,38 @@ export function DailyRecordScreen() {
         }
       }
     } catch {
-      if (mountedRef.current) {
+      if (mountedRef.current && !closingRef.current) {
         setPhase('idle');
         setLocalError('Recording was interrupted. Nothing was sent.');
       }
     } finally {
-      stoppingRef.current = false;
-      await setAudioModeAsync({
-        allowsRecording: false,
-        allowsBackgroundRecording: false,
-        shouldPlayInBackground: false,
-        playsInSilentMode: true,
-        interruptionMode: 'doNotMix',
-      }).catch(() => {});
+      if (!closingRef.current) {
+        await setAudioModeAsync({
+          allowsRecording: false,
+          allowsBackgroundRecording: false,
+          shouldPlayInBackground: false,
+          playsInSilentMode: true,
+          interruptionMode: 'doNotMix',
+        }).catch(() => {});
+      }
     }
-  }, [recorder, recorderState.durationMillis]);
+  }, [recorder, recorderState.durationMillis, stopRecorder]);
+
+  const closeScreen = useCallback(async () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    if (mountedRef.current) setClosing(true);
+
+    try {
+      // If Stop and Back arrive together, both await this same native stop.
+      // Only navigate after the recorder and global audio session are settled.
+      await stopRecorder().catch(() => {});
+      await restoreHomeAudioMode().catch(() => {});
+    } finally {
+      useMusicStore.getState().setMediaSessionBusy(false);
+      if (mountedRef.current) router.back();
+    }
+  }, [stopRecorder]);
 
   useEffect(() => {
     if (phase === 'recording' && recorderState.durationMillis >= DAILY_VOICE_MAX_DURATION_MS) {
@@ -133,6 +179,15 @@ export function DailyRecordScreen() {
     });
     return () => subscription.remove();
   }, [finishRecording, phase]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      void closeScreen();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [closeScreen]);
 
   const startRecording = async () => {
     if (Platform.OS === 'web' || mine || busy) return;
@@ -188,6 +243,8 @@ export function DailyRecordScreen() {
       icon="♪"
       prompt={snapshot?.voice_prompt ?? null}
       sharedCopy={snapshot?.shared_prompt_copy}
+      onBack={() => void closeScreen()}
+      backDisabled={closing}
     >
       {(error || localError) && (
         <View style={styles.errorCard} accessibilityLiveRegion="polite">
