@@ -142,7 +142,7 @@ src/scene/            Everything inside the 3D canvas.
     LivingRoom.tsx    Living-room shell, fixtures, doorway, and backdrop.
     Bedroom.tsx       Bedroom shell and fixtures.
     Garden.tsx        Garden shell, planting, pond, and garden fixtures.
-    RoomComposition.tsx  Small integrator-owned topology, void, bridges, and gates.
+    RoomComposition.tsx  Small shared topology, void, bridges, and gates.
   shell.ts            Shared builders: paintBrickFloor, buildCornerShell, stripedRug,
                       and the room world OFFSETS (LIVING/BEDROOM/GARDEN_OFFSET).
   PlatformFx.tsx      Per-room blue plinth rim + soft glow + warm under-halo,
@@ -197,10 +197,7 @@ supabase/             SQL you run in the Supabase dashboard + the edge function.
 
 dev/                  Sandbox browser-QA tooling (see §10). Not shipped.
 scripts/live-test.mjs Node script exercising the backend directly.
-scripts/parallel/     Claims, scope/impact validation, cross-platform tests/lint/
-                      exports, synthetic merges, locking, state, and EAS retry.
-.codex/parallel-policy.json  Machine-readable worktree/integrator ownership policy.
-.agents/skills/       Repo-local $hearth-worker and $hearth-integrator workflows.
+scripts/export-all.mjs Cross-platform Android, iOS, and web Expo export check.
 docs/art-bible.md     The locked Style-F visual target and mandates.
 ```
 
@@ -243,9 +240,8 @@ overlap between ~7-wide rooms.
 - `PlatformFx.tsx` — `<PlatformFx x0 x1 z0 z1 />` draws that room's blue rim +
   warm halo from its floor's world extent. Render one per room.
 - `src/scene/rooms/NewRoom.tsx` — add a `<NewRoom>` component containing the
-  shell VoxMesh, furniture, and `<PlatformFx>`. The protected integrator updates
-  `RoomComposition.tsx` to gate it and connect shared topology after a worker
-  requests that composition change.
+  shell VoxMesh, furniture, and `<PlatformFx>`, then update
+  `RoomComposition.tsx` to gate it and connect shared topology.
 - `spots.ts` — any signal seat in the new room is `OFFSET + local seat` (write
   the final world coords).
 - `homeProgress.ts` — add a `HomeComponent` + a `HOME_STAGES` entry so it unlocks.

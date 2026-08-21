@@ -13,7 +13,7 @@ function buildBedroomThreshold(v: Vox) {
   v.box(0, -1, 0, 6, 1, 1, room.woodDark);
 }
 
-/** Integrator-owned topology for the connected dollhouse. */
+/** Shared topology for the connected dollhouse. */
 export function Room() {
   const { components } = useHomeProgress();
   const hasBedroom = components.has('bed');

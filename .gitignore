@@ -39,15 +39,8 @@ yarn-error.*
 /supabase/.temp/
 /skills-lock.json
 
-# Third-party agent packages are installed locally. Keep only Hearth's
-# repository-owned coordination skills under version control.
+# Third-party agent packages are installed locally.
 /.agents/*
-!/.agents/skills/
-/.agents/skills/*
-!/.agents/skills/hearth-worker/
-!/.agents/skills/hearth-worker/**
-!/.agents/skills/hearth-integrator/
-!/.agents/skills/hearth-integrator/**
 
 # typescript
 *.tsbuildinfo

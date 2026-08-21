@@ -1,6 +1,0 @@
-interface:
-  display_name: "Hearth Integrator"
-  short_description: "Merge and publish Hearth feature PRs safely"
-  default_prompt: "Use $hearth-integrator to process one ready Hearth PR and publish its verified preview."
-policy:
-  allow_implicit_invocation: true

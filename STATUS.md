@@ -7,26 +7,17 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
-## Parallel delivery system — 18 August 2026
+## Development workflow — 22 August 2026
 
-- `app/integration` is the protected phone staging trunk. Feature tabs use
-  isolated Codex worktrees and machine-readable GitHub issue reservations;
-  overlapping paths are owned by the lowest claim number.
-- `Room.tsx` is now a compatibility export. `LivingRoom.tsx`, `Bedroom.tsx`,
-  and `Garden.tsx` own their feature geometry while the small
-  `RoomComposition.tsx` topology remains integrator-owned. The behavior-
-  preserving split was exported and published in EAS group
-  `fae8a07c-ee0d-40fb-9628-f13b468948c3` for runtime `1.0.3`.
-- Repo policy, role hooks, `$hearth-worker`/`$hearth-integrator`, claim/CI
-  validators, atomic integration state, idempotent preview publication, and
-  synthetic merge validation are committed infrastructure. Merges and preview
-  updates are serialized; native/database PRs require explicit authorization.
-- `app/integration` is pushed and protected with its required gate, PR-only
-  changes, admin enforcement, merge commits, and force-push/deletion disabled.
-  The six coordination labels are installed. GitHub helpers obtain the existing
-  repo-scoped Git Credential Manager token ephemerally; no token is copied into
-  worktrees. Creating the five-minute task in the Codex desktop UI remains the
-  one UI-only activation step.
+- Development happens directly in the canonical phone checkout.
+- Product work remains one owner-review feature at a time. A later feature does
+  not begin until the current preview has been reviewed.
+- `Room.tsx` remains a compatibility export. `LivingRoom.tsx`, `Bedroom.tsx`,
+  and `Garden.tsx` own their feature geometry while `RoomComposition.tsx` owns
+  shared topology.
+- TypeScript, repository tests, and Android/iOS/web exports remain the standard
+  local release validation. Native builds and database deployments still
+  require explicit authorization.
 
 ## The vision (owner's intent)
 

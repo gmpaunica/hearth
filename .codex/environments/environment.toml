@@ -17,16 +17,11 @@ icon = "run"
 command = "npm test"
 
 [[actions]]
-name = "Changed lint"
+name = "Repository lint"
 icon = "run"
-command = "npm run lint:changed -- --base origin/app/integration"
+command = "npm run lint"
 
 [[actions]]
 name = "Production exports"
 icon = "run"
 command = "npm run export:all"
-
-[[actions]]
-name = "Parallel policy"
-icon = "run"
-command = "npm run test:parallel"

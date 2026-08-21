@@ -59,7 +59,7 @@ participating in.
 
 These are not separate product modules. Together, they form the emotional loop.
 
-## Delivery agreement: parallel implementation, serialized review
+## Delivery agreement: one feature at a time
 
 Work through the roadmap in order. For each numbered feature:
 
@@ -70,21 +70,17 @@ Work through the roadmap in order. For each numbered feature:
 5. Record feedback and revise or approve the feature before starting the next
    numbered feature.
 
-Codex worktrees may implement disjoint, owner-authorized pieces concurrently.
-Each worktree must hold a GitHub file reservation and deliver a PR to
-`app/integration`. This is an implementation optimization, not permission to
-advance a later numbered experience gate: only the protected integrator merges
-ready work, one PR at a time, and publishes one verified preview after every
-successful merge. If preview publication is pending or fails, later merges
-wait. Native builds and database deployments remain explicit manual gates.
+Implement directly in the canonical phone checkout and keep each owner-visible
+change isolated to its current review gate. If preview publication is pending
+or fails, later features wait. Native builds and database deployments remain
+explicit manual gates.
 
-Shared composition, manifests/configuration, release policy, workflows, and
-coordination files remain integrator-owned. Garden-specific work should stay in
-`src/scene/rooms/Garden.tsx` plus its own assets/tests; the small
-`RoomComposition.tsx` topology is shared and serialized.
+Garden-specific work should stay in `src/scene/rooms/Garden.tsx` plus its own
+assets/tests. Keep the small `RoomComposition.tsx` topology focused on shared
+room composition.
 
-For every JavaScript/assets-only feature, publishing is part of integrated
-completion, not an optional handoff step. The integrator runs the preview EAS Update command from `AGENTS.md`,
+For every JavaScript/assets-only feature, publishing is part of completion, not
+an optional handoff step. Run the preview EAS Update command from `AGENTS.md`,
 verify that the new update is the latest update on the `preview` branch, and
 then tell the owner to:
 

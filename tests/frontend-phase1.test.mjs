@@ -761,7 +761,7 @@ test('rest-nook seats keep full avatar heads from intersecting', () => {
   assert.match(read('src/scene/objects/RestNook.tsx'), /v\.box\(0, 0, 0, 8, 1, 4/);
 });
 
-test('room features are isolated behind one integrator-owned composition module', () => {
+test('room features are isolated behind one shared composition module', () => {
   const entry = read('src/scene/Room.tsx').trim();
   const composition = read('src/scene/rooms/RoomComposition.tsx');
   const garden = read('src/scene/rooms/Garden.tsx');
@@ -838,8 +838,7 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   assert.doesNotMatch(roomSource, /buildGardenPath/);
   assert.match(gardenSource, /function buildGardenGateway\(v: Vox\)/);
   assert.match(gardenSource, /<VoxMesh build=\{buildGardenGateway\} scale=\{S\} \/>/);
-  // A worker cannot remove the old integrator-owned passage directly. The
-  // integration request removes it; both pre- and post-request trees must keep
+  // Historical trees may still contain the old passage. Both forms must keep
   // the garden-owned replacement present and floor-free.
   if (roomSource.includes('function GardenPassage()')) {
     assert.match(roomSource, /position=\{\[-4\.5, 0, 2\.25\]\}/);
