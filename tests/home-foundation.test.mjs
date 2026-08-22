@@ -36,7 +36,7 @@ test('the foundation catalog is stable, versioned, and preserves every visible 1
     'koi-pond-medium', 'blossom-tree', 'rose-bush', 'garden-lantern',
     'garden-bench', 'greenhouse-portal',
   ]) assert.ok(ids.includes(id), `${id} must remain registered`);
-  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v2'/);
+  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v3'/);
   assert.match(catalog, /renderer: 'UnknownHomeAsset'/);
   assert.match(catalog, /FOUNDATION_COUPLE_RIGS/);
   for (const field of ['poses', 'approach', 'exit', 'cameraTarget', 'reactionAnchor', 'uiAnchor', 'clickBounds', 'effectSockets']) {

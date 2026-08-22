@@ -253,7 +253,9 @@ export function validateHomeDraft(snapshot: HomeSnapshot): HomeValidationIssue[]
       if (second.parentObjectId || second.roomId !== first.roomId) continue;
       const secondDefinition = HOME_ASSET_REGISTRY.get(second.assetId);
       if (!secondDefinition) continue;
-      if (firstDefinition.progression.walkable === true || secondDefinition.progression.walkable === true) continue;
+      const firstWalkable = firstDefinition.progression.walkable === true;
+      const secondWalkable = secondDefinition.progression.walkable === true;
+      if (firstWalkable !== secondWalkable) continue;
       if ((first.surface === 'wall') !== (second.surface === 'wall')) continue;
       const clearance = Math.max(firstDefinition.collisionClearance, secondDefinition.collisionClearance);
       if (overlaps(objectBounds(first), objectBounds(second), clearance)) {
@@ -270,6 +272,58 @@ export function validateHomeDraft(snapshot: HomeSnapshot): HomeValidationIssue[]
       if (overlaps(objectBounds(object), route)) {
         issues.push(issue('route_blocked', `${definition.id} blocks ${route.key}.`, [object.id]));
       }
+    }
+  }
+
+  const gardenPaths = placed.filter((object) =>
+    HOME_ASSET_REGISTRY.get(object.assetId)?.progression.path_connector === true);
+  if (gardenPaths.length) {
+    const gardenRoom = snapshot.rooms.find((candidate) => candidate.moduleId === 'garden');
+    const entry = gardenRoom ? gardenPaths.filter((path) =>
+      objectBounds(path).maxX >= gardenRoom.bounds.maxX - 0.35) : [];
+    const connected = new Set(entry.map((path) => path.id));
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const path of gardenPaths) {
+        if (connected.has(path.id)) continue;
+        const bounds = objectBounds(path);
+        if (gardenPaths.some((candidate) => connected.has(candidate.id)
+          && overlaps(bounds, objectBounds(candidate), 0.4))) {
+          connected.add(path.id);
+          changed = true;
+        }
+      }
+    }
+    const disconnected = gardenPaths.filter((path) => !connected.has(path.id));
+    if (disconnected.length) {
+      issues.push(issue(
+        'path_disconnected',
+        'Garden paths must form one route from the house threshold.',
+        disconnected.map((path) => path.id),
+      ));
+    }
+  }
+
+  for (const tree of placed.filter((object) =>
+    HOME_ASSET_REGISTRY.get(object.assetId)?.progression.large_tree === true)) {
+    const definition = HOME_ASSET_REGISTRY.get(tree.assetId);
+    const canopy = definition?.footprint.canopy;
+    if (!canopy) continue;
+    const canopyBounds = {
+      minX: tree.position[0] - canopy / 2,
+      maxX: tree.position[0] + canopy / 2,
+      minZ: tree.position[2] - canopy / 2,
+      maxZ: tree.position[2] + canopy / 2,
+    };
+    const hiddenRoutes = snapshot.reservedRoutes.filter((route) =>
+      route.roomId === tree.roomId && overlaps(canopyBounds, route));
+    if (hiddenRoutes.length) {
+      issues.push(issue(
+        'canopy_occlusion',
+        `${definition.id} hides a protected garden sightline.`,
+        [tree.id],
+      ));
     }
   }
 

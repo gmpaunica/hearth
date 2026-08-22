@@ -1,6 +1,6 @@
 import type { HomeAssetDefinition, HomeCoupleRig } from './types';
 
-export const HOME_CATALOG_VERSION = 'home-catalog-v2';
+export const HOME_CATALOG_VERSION = 'home-catalog-v3';
 
 const allRotations = [0, 1, 2, 3] as const;
 
@@ -128,6 +128,109 @@ export const INDOOR_HOME_ASSETS = [
   indoorAsset('flower-vase', 'plant', { width: 0.38, depth: 0.38, height: 0.65 }, ['flower', 'foliage', 'stone'], { surfaces: ['table', 'shelf', 'mantel'], renderCost: 5 }),
 ] as const satisfies readonly HomeAssetDefinition[];
 
+interface GardenAssetOptions {
+  surfaces?: HomeAssetDefinition['compatibleSurfaces'];
+  sockets?: HomeAssetDefinition['attachmentSockets'];
+  day?: number;
+  renderCost?: number;
+  progression?: HomeAssetDefinition['progression'];
+  functional?: HomeAssetDefinition['functional'];
+  routeEndpoint?: boolean;
+  clearance?: number;
+}
+
+const GARDEN_COUPLE_RIG: HomeCoupleRig = {
+  a: { x: -0.34, z: 0, rotY: 0, seatY: 0.48, approach: { x: -0.34, z: 0.72 }, egress: { x: -0.34, z: 0.72, rotY: 0 } },
+  b: { x: 0.34, z: 0, rotY: 0, seatY: 0.48, approach: { x: 0.34, z: 0.72 }, egress: { x: 0.34, z: 0.72, rotY: 0 } },
+};
+
+function gardenAsset(
+  id: string,
+  category: string,
+  footprint: HomeAssetDefinition['footprint'],
+  paletteSlots: HomeAssetDefinition['paletteSlots'],
+  options: GardenAssetOptions = {},
+) {
+  return asset({
+    id,
+    category,
+    renderer: 'GardenCatalog',
+    footprint,
+    compatibleRooms: ['garden'],
+    compatibleSurfaces: options.surfaces ?? ['terrain'],
+    collisionClearance: options.clearance ?? (options.progression?.walkable === true ? 0 : 0.06),
+    paletteSlots,
+    attachmentSockets: options.sockets ?? [],
+    renderCost: options.renderCost ?? 5,
+    progression: { day: options.day ?? 30, ...options.progression },
+    functional: options.functional ?? {},
+    routeEndpoint: options.routeEndpoint,
+  });
+}
+
+/** 46 additions plus six stable installed pieces form the 52-piece garden pack. */
+export const GARDEN_HOME_ASSETS = [
+  // Hardscape and boundaries
+  gardenAsset('straight-path', 'path', { width: 1, depth: 1, height: 0.05 }, ['stone', 'terrain'], { surfaces: ['path'], renderCost: 3, progression: { walkable: true, path_connector: true, connectors: 'north,south' } }),
+  gardenAsset('corner-path', 'path', { width: 1, depth: 1, height: 0.05 }, ['stone', 'terrain'], { surfaces: ['path'], renderCost: 3, progression: { walkable: true, path_connector: true, connectors: 'north,east' } }),
+  gardenAsset('junction-path', 'path', { width: 1, depth: 1, height: 0.05 }, ['stone', 'terrain'], { surfaces: ['path'], renderCost: 4, progression: { walkable: true, path_connector: true, connectors: 'north,east,south,west' } }),
+  gardenAsset('stepping-stones', 'path', { width: 1, depth: 1.25, height: 0.06 }, ['stone', 'terrain'], { surfaces: ['path'], renderCost: 3, progression: { walkable: true, path_connector: true, connectors: 'north,south' } }),
+  gardenAsset('gravel-patch', 'hardscape', { width: 1.5, depth: 1.5, height: 0.04 }, ['stone', 'terrain'], { renderCost: 3, progression: { walkable: true } }),
+  gardenAsset('patio-tile', 'hardscape', { width: 1.25, depth: 1.25, height: 0.05 }, ['stone'], { renderCost: 3, progression: { walkable: true } }),
+  gardenAsset('low-fence', 'boundary', { width: 1.5, depth: 0.25, height: 0.8 }, ['wood', 'metal'], { surfaces: ['border'], renderCost: 5 }),
+  gardenAsset('garden-gate', 'boundary', { width: 1.5, depth: 0.3, height: 1.25 }, ['wood', 'metal'], { surfaces: ['border'], renderCost: 6, routeEndpoint: true }),
+
+  // Planting
+  gardenAsset('round-flower-bed', 'planting', { width: 1.4, depth: 1.4, height: 0.55 }, ['flower', 'foliage', 'stone'], { renderCost: 7 }),
+  gardenAsset('long-flower-bed', 'planting', { width: 2.2, depth: 0.8, height: 0.55 }, ['flower', 'foliage', 'stone'], { renderCost: 8 }),
+  gardenAsset('hydrangea', 'plant', { width: 1, depth: 0.9, height: 1.05 }, ['flower', 'foliage'], { renderCost: 7 }),
+  gardenAsset('lavender', 'plant', { width: 0.9, depth: 0.7, height: 0.7 }, ['flower', 'foliage'], { renderCost: 5 }),
+  gardenAsset('hedge', 'plant', { width: 1.6, depth: 0.55, height: 1.1 }, ['foliage'], { renderCost: 7 }),
+  gardenAsset('topiary', 'plant', { width: 0.75, depth: 0.75, height: 1.65 }, ['foliage', 'stone'], { renderCost: 7 }),
+  gardenAsset('planter-pot', 'planting', { width: 0.6, depth: 0.6, height: 0.75 }, ['stone', 'flower', 'foliage'], { day: 3, renderCost: 5 }),
+  gardenAsset('planter-box', 'planting', { width: 1.35, depth: 0.55, height: 0.7 }, ['wood', 'flower', 'foliage'], { day: 3, renderCost: 6 }),
+  gardenAsset('fern-cluster', 'plant', { width: 1, depth: 0.85, height: 0.85 }, ['foliage'], { renderCost: 6 }),
+
+  // Trees and crops
+  gardenAsset('fruit-tree', 'tree', { width: 1.2, depth: 1.2, height: 3.6, canopy: 3.4 }, ['wood', 'foliage', 'flower'], { day: 180, renderCost: 18, clearance: 0.6, progression: { large_tree: true } }),
+  gardenAsset('willow', 'tree', { width: 1.4, depth: 1.4, height: 4.1, canopy: 4.2 }, ['wood', 'foliage'], { day: 180, renderCost: 21, clearance: 0.7, progression: { large_tree: true } }),
+  gardenAsset('small-evergreen', 'tree', { width: 1, depth: 1, height: 2.5, canopy: 2.1 }, ['wood', 'foliage'], { day: 60, renderCost: 12, clearance: 0.35 }),
+  gardenAsset('raised-vegetable-bed', 'planting', { width: 1.8, depth: 1.1, height: 0.65 }, ['wood', 'foliage', 'terrain'], { day: 60, renderCost: 9 }),
+
+  // Outdoor furniture
+  gardenAsset('bistro-table', 'surface', { width: 0.8, depth: 0.8, height: 0.8 }, ['metal', 'wood'], { sockets: ['tabletop'], renderCost: 6 }),
+  gardenAsset('bistro-chair', 'seating', { width: 0.65, depth: 0.65, height: 1 }, ['metal', 'wood', 'fabric'], { renderCost: 5 }),
+  gardenAsset('lounge-chair', 'seating', { width: 0.85, depth: 1.5, height: 0.75 }, ['wood', 'fabric', 'metal'], { renderCost: 8 }),
+  gardenAsset('picnic-blanket', 'seating', { width: 1.8, depth: 1.5, height: 0.04 }, ['fabric'], { renderCost: 5, progression: { walkable: true }, functional: { interactionRig: 'garden-couple', coupleRig: GARDEN_COUPLE_RIG }, routeEndpoint: true }),
+  gardenAsset('swing-bench', 'seating', { width: 1.9, depth: 1.1, height: 2.2 }, ['wood', 'metal', 'fabric'], { day: 60, renderCost: 13, functional: { interactionRig: 'garden-couple', coupleRig: GARDEN_COUPLE_RIG }, routeEndpoint: true }),
+  gardenAsset('garden-stool', 'seating', { width: 0.55, depth: 0.55, height: 0.55 }, ['wood', 'metal', 'stone'], { renderCost: 4 }),
+
+  // Structures
+  gardenAsset('trellis-arch', 'structure', { width: 1.6, depth: 0.55, height: 2.35 }, ['wood', 'metal', 'flower', 'foliage'], { day: 60, renderCost: 11, routeEndpoint: true }),
+  gardenAsset('pergola', 'structure', { width: 2.6, depth: 2.1, height: 2.5 }, ['wood', 'metal', 'foliage'], { day: 60, renderCost: 18, routeEndpoint: true }),
+  gardenAsset('gazebo', 'structure', { width: 3.2, depth: 3, height: 3.1 }, ['wood', 'metal', 'fabric'], { day: 180, renderCost: 24, functional: { interactionRig: 'garden-couple', coupleRig: GARDEN_COUPLE_RIG }, routeEndpoint: true, clearance: 0.25 }),
+  gardenAsset('potting-bench', 'surface', { width: 1.5, depth: 0.7, height: 1.45 }, ['wood', 'metal', 'stone'], { day: 60, sockets: ['shelf-1', 'tabletop'], renderCost: 9 }),
+  gardenAsset('tool-shed', 'structure', { width: 2.3, depth: 1.8, height: 2.6 }, ['wood', 'metal', 'stone'], { day: 60, renderCost: 17, clearance: 0.18 }),
+
+  // Water features
+  gardenAsset('birdbath', 'water', { width: 0.8, depth: 0.8, height: 1.1 }, ['stone', 'water'], { renderCost: 7 }),
+  gardenAsset('small-pond', 'water', { width: 2, depth: 1.4, height: 0.3 }, ['stone', 'water', 'foliage'], { renderCost: 12, routeEndpoint: true, functional: { effectSockets: ['water', 'pond-edge'] } }),
+  gardenAsset('koi-pond-large', 'water', { width: 4.4, depth: 3, height: 0.5 }, ['stone', 'water', 'foliage'], { day: 90, renderCost: 34, clearance: 0.3, progression: { major_water: true }, routeEndpoint: true, functional: { interactionRig: 'pond-edge', coupleRig: GARDEN_COUPLE_RIG, effectSockets: ['water', 'fish', 'pond-edge'] } }),
+  gardenAsset('fountain', 'water', { width: 2, depth: 2, height: 2.6 }, ['stone', 'water', 'metal'], { day: 90, renderCost: 20, clearance: 0.2, progression: { major_water: true, style_variants: 'low,tall' }, routeEndpoint: true, functional: { effectSockets: ['water', 'spray', 'basin'] } }),
+
+  // Decoration and lighting
+  gardenAsset('string-light-set', 'lighting', { width: 2.4, depth: 0.35, height: 2.1 }, ['metal', 'wood'], { day: 60, renderCost: 8 }),
+  gardenAsset('ground-light', 'lighting', { width: 0.35, depth: 0.35, height: 0.35 }, ['metal', 'stone'], { renderCost: 4 }),
+  gardenAsset('stone-statue', 'decoration', { width: 0.85, depth: 0.75, height: 1.7 }, ['stone'], { day: 180, renderCost: 9 }),
+  gardenAsset('sundial', 'decoration', { width: 0.75, depth: 0.75, height: 1 }, ['stone', 'metal'], { day: 60, renderCost: 6 }),
+  gardenAsset('birdhouse', 'decoration', { width: 0.55, depth: 0.55, height: 1.65 }, ['wood', 'metal'], { renderCost: 6 }),
+  gardenAsset('wind-chime', 'decoration', { width: 0.45, depth: 0.45, height: 1.25 }, ['wood', 'metal'], { renderCost: 6, progression: { motion: true } }),
+  gardenAsset('watering-can', 'decoration', { width: 0.65, depth: 0.4, height: 0.55 }, ['metal', 'flower'], { renderCost: 4 }),
+  gardenAsset('wheelbarrow', 'decoration', { width: 1.25, depth: 0.65, height: 0.7 }, ['wood', 'metal', 'flower'], { renderCost: 7 }),
+  gardenAsset('garden-gnome', 'decoration', { width: 0.4, depth: 0.4, height: 0.75 }, ['fabric', 'stone'], { renderCost: 5 }),
+  gardenAsset('scarecrow', 'decoration', { width: 1.2, depth: 0.45, height: 2.1 }, ['wood', 'fabric'], { day: 60, renderCost: 8 }),
+] as const satisfies readonly HomeAssetDefinition[];
+
 export const HOME_ASSETS = [
   asset({ id: 'core-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 2.8 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 18, progression: { day: 0, tier: 1 }, functional: { role: 'fireplace', signals: ['fireplace'], poses: ['floor-left', 'floor-right'], approach: [[-2.55, -1.95], [-1.55, -1.95]], exit: [[-2.55, -1.95], [-1.55, -1.95]], cameraTarget: [-2.6, 1.2, -3.6], reactionAnchor: [1, 2.3, 0.6], uiAnchor: [1, 2.9, 0.4], clickBounds: { width: 2.5, depth: 1.5, height: 3 }, effectSockets: ['fire', 'mantel', 'floor-glow'] }, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
   asset({ id: 'cottage-sofa', category: 'seating', renderer: 'Sofa', footprint: { width: 2.2, depth: 0.9, height: 1.15 }, compatibleRooms: ['living', 'bedroom'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 10, progression: { day: 0 }, functional: { role: 'conversation_seating', signals: ['sofa'], poses: ['sit-left', 'sit-right'], approach: [[0.65, 1.67], [1.55, 1.67]], exit: [[0.65, 1.67], [1.55, 1.67]], cameraTarget: [1.1, 0.8, 0.6], reactionAnchor: [1.1, 1.8, 0.5], uiAnchor: [1.1, 2.1, 0.5], clickBounds: { width: 2.8, depth: 1.4, height: 1.5 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 2.75, minZ: 0, maxZ: 1.25 } }),
@@ -148,6 +251,7 @@ export const HOME_ASSETS = [
   asset({ id: 'garden-bench', category: 'seating', renderer: 'Bench', footprint: { width: 1.7, depth: 0.75, height: 1.1 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.12, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 8, progression: { day: 30 }, functional: { interactionRig: 'garden-couple', poses: ['sit-left', 'sit-right'], approach: [[1.15, 0.33], [1.15, 1.17]], exit: [[1.15, 0.33], [1.15, 1.17]], cameraTarget: [0.4, 0.8, 0.75], reactionAnchor: [0.4, 1.7, 0.75], uiAnchor: [0.4, 2, 0.75], clickBounds: { width: 1, depth: 1.7, height: 1.3 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 0.75, minZ: 0, maxZ: 1.5 } }),
   asset({ id: 'greenhouse-portal', category: 'structure', renderer: 'GardenGreenhousePortal', footprint: { width: 1.35, depth: 1.05, height: 1.55 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'foliage'], attachmentSockets: [], renderCost: 12, progression: { day: 30 }, functional: { role: 'greenhouse_portal', route: '/greenhouse' }, routeEndpoint: true }),
   ...INDOOR_HOME_ASSETS,
+  ...GARDEN_HOME_ASSETS,
 ] as const satisfies readonly HomeAssetDefinition[];
 
 export const HOME_ASSET_REGISTRY: ReadonlyMap<string, HomeAssetDefinition> = new Map(

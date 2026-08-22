@@ -54,6 +54,11 @@ export const HOME_PALETTES = {
     { id: 'woodland-moss', label: 'Woodland moss', color: '#65755a' },
     { id: 'garden-earth', label: 'Garden earth', color: '#7a5a42' },
   ],
+  water: [
+    { id: 'clear-blue', label: 'Clear blue', color: '#70aeb8' },
+    { id: 'pond-green', label: 'Pond green', color: '#668f83' },
+    { id: 'twilight-blue', label: 'Twilight blue', color: '#657f9d' },
+  ],
   glass: [
     { id: 'clear-glass', label: 'Clear glass', color: '#b9d4d0' },
     { id: 'smoke-glass', label: 'Smoke glass', color: '#758889' },

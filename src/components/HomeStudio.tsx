@@ -120,6 +120,8 @@ export function HomeStudio() {
   const room = draft?.rooms.find((candidate) => candidate.id === selectedRoomId) ?? null;
   const selected = draft?.objects.find((object) => object.id === selectedObjectId) ?? null;
   const definition = selected ? HOME_ASSET_REGISTRY.get(selected.assetId) : null;
+  const selectedVariants = typeof definition?.progression.style_variants === 'string'
+    ? definition.progression.style_variants.split(',').filter(Boolean) : [];
 
   const exitStudioSurface = () => {
     useMomentsSurfaceStore.getState().setSettingsOpen(false);
@@ -307,7 +309,8 @@ export function HomeStudio() {
   const unlockedDays = isDeveloper ? Infinity : growthDays;
   const availableTrays = isDeveloper
     ? TRAYS
-    : TRAYS.filter((candidate) => ['furnish', 'decorate', 'stored', 'needs_spot'].includes(candidate.id));
+    : TRAYS.filter((candidate) => ['furnish', 'decorate', 'stored', 'needs_spot'].includes(candidate.id)
+      || (candidate.id === 'garden' && room?.moduleId === 'garden' && growthDays >= 30));
   const catalog = catalogForTray(tray, room?.moduleId ?? null, unlockedDays);
   const blockingIssues = issues.filter((problem) => problem.code !== 'frozen_simulation');
   const effectiveSection = isDeveloper ? section : 'catalog';
@@ -576,6 +579,27 @@ export function HomeStudio() {
                         </View>
                       );
                     })}
+                    {selectedVariants.length > 0 && (
+                      <View style={styles.paletteBlock}>
+                        <Text style={styles.paletteLabel}>Style</Text>
+                        <View style={styles.variantRow}>
+                          {selectedVariants.map((variant) => {
+                            const variantSelected = (selected.style.variant ?? selectedVariants[0]) === variant;
+                            return (
+                              <Pressable
+                                key={variant}
+                                style={[styles.tierButton, variantSelected && styles.tierButtonSelected]}
+                                onPress={() => execute({ type: 'restyle', objectId: selected.id, style: { variant } })}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected: variantSelected }}
+                              >
+                                <Text style={[styles.tierButtonText, variantSelected && styles.tierButtonTextSelected]}>{friendly(variant)}</Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -701,6 +725,7 @@ const styles = StyleSheet.create({
   paletteBlock: { gap: 4 },
   paletteLabel: { color: editorial.inkSoft, fontSize: 8, fontWeight: '900', letterSpacing: 0.7, textTransform: 'uppercase' },
   paletteRow: { gap: 6, paddingRight: 6 },
+  variantRow: { flexDirection: 'row', gap: 6 },
   paletteChoice: { minWidth: 82, minHeight: 34, paddingHorizontal: 7, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
   paletteChoiceSelected: { borderColor: editorial.clay, backgroundColor: 'rgba(177,103,76,0.10)' },
   paletteSwatch: { width: 18, height: 18, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(76,54,45,0.18)' },

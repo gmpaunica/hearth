@@ -12,6 +12,7 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 import { IndoorCatalogObject } from './objects/IndoorCatalogObject';
+import { GardenCatalogObject } from './objects/GardenCatalogObject';
 import { BlossomTree, GardenLantern, GardenThreshold, KoiPond, RoseBush } from './rooms/Garden';
 
 function UnknownAsset() {
@@ -51,6 +52,7 @@ function Renderer({ object }: { object: ResolvedHomeObject }) {
     case 'Bench': return <Bench position={[0, 0, 0]} />;
     case 'GardenGreenhousePortal': return <GardenGreenhousePortal position={[0, 0, 0]} />;
     case 'IndoorCatalog': return <IndoorCatalogObject object={object} />;
+    case 'GardenCatalog': return <GardenCatalogObject object={object} />;
     default: return <UnknownAsset />;
   }
 }
