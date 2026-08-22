@@ -13,6 +13,10 @@ const attachmentSafety = readFileSync(join(
   root,
   'supabase/migrations/20260822160000_home_attachment_safety.sql',
 ), 'utf8');
+const indoorCatalog = readFileSync(join(
+  root,
+  'supabase/migrations/20260822170000_indoor_home_catalog.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -97,6 +101,24 @@ test('attachment groups reject invalid graphs and move with their parent', () =>
   assert.match(attachmentSafety, /position_x = child\.position_x \+ \(new\.position_x - old\.position_x\)/);
   assert.match(attachmentSafety, /where child\.parent_object_id = new\.id/);
   assert.match(attachmentSafety, /sync_home_attachment_placement/);
+});
+
+test('the complete indoor pack is registered and advances catalog v2 atomically', () => {
+  const ids = [
+    'cottage-wardrobe', 'paneled-armoire', 'clothes-rail', 'low-cubby', 'blanket-chest',
+    'reading-chair', 'rocking-chair', 'pouf', 'side-table', 'narrow-bench',
+    'teddy-bear', 'trophy-cup', 'rosette', 'couple-statuette', 'animal-figurine',
+    'snow-globe', 'travel-trunk', 'shell-jar', 'book-stack', 'botanical-print',
+    'landscape-print', 'heart-print', 'memory-frame', 'tall-mirror', 'table-lamp',
+    'floor-lamp', 'lantern', 'round-rug', 'runner', 'cushion-basket', 'flower-vase',
+  ];
+  for (const id of ids) assert.match(indoorCatalog, new RegExp(`"id":"${id}"`));
+  assert.equal((indoorCatalog.match(/"id":"/g) ?? []).length, 31);
+  assert.match(indoorCatalog, /'IndoorCatalog'/);
+  assert.match(indoorCatalog, /'home-catalog-v2'/);
+  assert.match(indoorCatalog, /update public\.home_states/);
+  assert.match(migration, /parent_object_id, attachment_socket/);
+  assert.match(migration, /progression ->> 'walkable'/);
 });
 
 test('server validation covers authored masks, collisions, routes, roles, water sockets, and budget', () => {

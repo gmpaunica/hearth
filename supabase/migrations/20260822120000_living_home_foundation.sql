@@ -525,6 +525,9 @@ begin
     join public.home_catalog_assets b on b.id = b_obj.asset_id
     where a_obj.couple_id = p_couple_id and a_obj.placement_state = 'placed'
       and a_obj.parent_object_id is null and b_obj.parent_object_id is null
+      and coalesce((a.progression ->> 'walkable')::boolean, false) = false
+      and coalesce((b.progression ->> 'walkable')::boolean, false) = false
+      and ((a_obj.surface = 'wall') = (b_obj.surface = 'wall'))
       and abs(a_obj.position_x - b_obj.position_x) < (
         (case when a_obj.rotation % 2 = 0 then (a.footprint->>'width')::numeric else (a.footprint->>'depth')::numeric end
         + case when b_obj.rotation % 2 = 0 then (b.footprint->>'width')::numeric else (b.footprint->>'depth')::numeric end) / 2
@@ -543,6 +546,9 @@ begin
     join public.home_reserved_routes rr on rr.couple_id = o.couple_id and rr.room_id = o.room_id
     where o.couple_id = p_couple_id and o.placement_state = 'placed'
       and not a.route_endpoint
+      and o.parent_object_id is null
+      and o.surface <> 'wall'
+      and coalesce((a.progression ->> 'walkable')::boolean, false) = false
       and o.position_x + (case when o.rotation % 2 = 0 then (a.footprint->>'width')::numeric else (a.footprint->>'depth')::numeric end) / 2 > rr.min_x
       and o.position_x - (case when o.rotation % 2 = 0 then (a.footprint->>'width')::numeric else (a.footprint->>'depth')::numeric end) / 2 < rr.max_x
       and o.position_z + (case when o.rotation % 2 = 0 then (a.footprint->>'depth')::numeric else (a.footprint->>'width')::numeric end) / 2 > rr.min_z
@@ -640,14 +646,16 @@ begin
       then raise exception 'Room is not part of this home'; end if;
       insert into public.home_objects (
         id, couple_id, room_id, asset_id, asset_revision, placement_state, surface,
-        position_x, position_y, position_z, rotation, style
+        position_x, position_y, position_z, rotation, style,
+        parent_object_id, attachment_socket
       ) values (
         coalesce((op ->> 'objectId')::uuid, gen_random_uuid()), home.id, room_uuid,
         asset.id, asset.revision, 'placed', coalesce(op ->> 'surface', 'floor'),
         coalesce((op #>> '{position,0}')::numeric, 0),
         coalesce((op #>> '{position,1}')::numeric, 0),
         coalesce((op #>> '{position,2}')::numeric, 0),
-        coalesce((op ->> 'rotation')::smallint, 0), coalesce(op -> 'style', '{}'::jsonb)
+        coalesce((op ->> 'rotation')::smallint, 0), coalesce(op -> 'style', '{}'::jsonb),
+        (op ->> 'parentObjectId')::uuid, op ->> 'attachmentSocket'
       );
     elsif action = 'move' then
       object_uuid := (op ->> 'objectId')::uuid;
@@ -659,6 +667,10 @@ begin
         position_x = coalesce((op #>> '{position,0}')::numeric, position_x),
         position_y = coalesce((op #>> '{position,1}')::numeric, position_y),
         position_z = coalesce((op #>> '{position,2}')::numeric, position_z),
+        parent_object_id = case when op ? 'parentObjectId'
+          then (op ->> 'parentObjectId')::uuid else parent_object_id end,
+        attachment_socket = case when op ? 'attachmentSocket'
+          then op ->> 'attachmentSocket' else attachment_socket end,
         updated_at = now()
       where id = object_uuid and couple_id = home.id;
       get diagnostics affected = row_count;
