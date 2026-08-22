@@ -525,8 +525,8 @@ begin
     join public.home_catalog_assets b on b.id = b_obj.asset_id
     where a_obj.couple_id = p_couple_id and a_obj.placement_state = 'placed'
       and a_obj.parent_object_id is null and b_obj.parent_object_id is null
-      and coalesce((a.progression ->> 'walkable')::boolean, false) = false
-      and coalesce((b.progression ->> 'walkable')::boolean, false) = false
+      and coalesce((a.progression ->> 'walkable')::boolean, false)
+        = coalesce((b.progression ->> 'walkable')::boolean, false)
       and ((a_obj.surface = 'wall') = (b_obj.surface = 'wall'))
       and abs(a_obj.position_x - b_obj.position_x) < (
         (case when a_obj.rotation % 2 = 0 then (a.footprint->>'width')::numeric else (a.footprint->>'depth')::numeric end
@@ -554,6 +554,47 @@ begin
       and o.position_z + (case when o.rotation % 2 = 0 then (a.footprint->>'depth')::numeric else (a.footprint->>'width')::numeric end) / 2 > rr.min_z
       and o.position_z - (case when o.rotation % 2 = 0 then (a.footprint->>'depth')::numeric else (a.footprint->>'width')::numeric end) / 2 < rr.max_z
   ) then raise exception 'An object blocks a protected travel route'; end if;
+
+  -- Once a couple places connectable path pieces, every piece must belong to
+  -- one continuous route that reaches the authored house threshold.
+  if exists (
+    with recursive path_nodes as (
+      select o.id, o.room_id, o.position_x, o.position_z,
+        case when o.rotation % 2 = 0 then (a.footprint->>'width')::numeric else (a.footprint->>'depth')::numeric end as width,
+        case when o.rotation % 2 = 0 then (a.footprint->>'depth')::numeric else (a.footprint->>'width')::numeric end as depth,
+        r.bounds
+      from public.home_objects o
+      join public.home_catalog_assets a on a.id = o.asset_id
+      join public.home_rooms r on r.id = o.room_id and r.module_id = 'garden'
+      where o.couple_id = p_couple_id and o.placement_state = 'placed'
+        and coalesce((a.progression->>'path_connector')::boolean, false)
+    ), connected as (
+      select p.id, p.room_id, p.position_x, p.position_z, p.width, p.depth, p.bounds
+      from path_nodes p
+      where p.position_x + p.width / 2 >= (p.bounds->>'maxX')::numeric - 0.35
+      union
+      select p.id, p.room_id, p.position_x, p.position_z, p.width, p.depth, p.bounds
+      from path_nodes p join connected c on c.room_id = p.room_id
+      where abs(p.position_x - c.position_x) < (p.width + c.width) / 2 + 0.4
+        and abs(p.position_z - c.position_z) < (p.depth + c.depth) / 2 + 0.4
+    )
+    select 1 from path_nodes p
+    where not exists (select 1 from connected c where c.id = p.id)
+  ) then raise exception 'Garden paths must form one route from the house threshold'; end if;
+
+  if exists (
+    select 1 from public.home_objects tree
+    join public.home_catalog_assets asset on asset.id = tree.asset_id
+    join public.home_reserved_routes route on route.couple_id = tree.couple_id
+      and route.room_id = tree.room_id
+    where tree.couple_id = p_couple_id and tree.placement_state = 'placed'
+      and coalesce((asset.progression->>'large_tree')::boolean, false)
+      and asset.footprint ? 'canopy'
+      and tree.position_x + (asset.footprint->>'canopy')::numeric / 2 > route.min_x
+      and tree.position_x - (asset.footprint->>'canopy')::numeric / 2 < route.max_x
+      and tree.position_z + (asset.footprint->>'canopy')::numeric / 2 > route.min_z
+      and tree.position_z - (asset.footprint->>'canopy')::numeric / 2 < route.max_z
+  ) then raise exception 'A large tree hides a protected garden sightline'; end if;
 
   if exists (
     select 1 from public.home_objects child

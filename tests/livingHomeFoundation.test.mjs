@@ -17,6 +17,10 @@ const indoorCatalog = readFileSync(join(
   root,
   'supabase/migrations/20260822170000_indoor_home_catalog.sql',
 ), 'utf8');
+const gardenCatalog = readFileSync(join(
+  root,
+  'supabase/migrations/20260822180000_garden_home_catalog.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -131,6 +135,20 @@ test('server validation covers authored masks, collisions, routes, roles, water 
   assert.match(validate, /render budget/);
   assert.match(validate, /major water-feature socket/);
   assert.match(validate, /when tier = 'grand' then 2/);
+  assert.match(validate, /Garden paths must form one route from the house threshold/);
+  assert.match(validate, /large tree hides a protected garden sightline/i);
+});
+
+test('the complete garden taxonomy advances catalog v3 without replacing installed IDs', () => {
+  assert.equal((gardenCatalog.match(/"id":"/g) ?? []).length, 46);
+  for (const id of [
+    'straight-path', 'garden-gate', 'hydrangea', 'fruit-tree', 'bistro-table',
+    'picnic-blanket', 'pergola', 'gazebo', 'small-pond', 'koi-pond-large',
+    'fountain', 'string-light-set', 'wind-chime', 'garden-gnome', 'scarecrow',
+  ]) assert.match(gardenCatalog, new RegExp(`"id":"${id}"`));
+  assert.match(gardenCatalog, /'home-catalog-v3'/);
+  assert.match(gardenCatalog, /"style_variants":"low,tall"/);
+  assert.match(gardenCatalog, /"path_connector":true/);
 });
 
 test('paired_at is server-owned and every membership epoch purge clears all shared home state', () => {
