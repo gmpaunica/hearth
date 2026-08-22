@@ -12,7 +12,7 @@ import {
 } from '@/home/editor';
 import { HOME_ASSET_REGISTRY } from '@/home/catalog';
 import { LEGACY_COTTAGE_V2_SNAPSHOT } from '@/home/layouts';
-import type { HomeOperation, HomeSnapshot } from '@/home/types';
+import type { HomeOperation, HomeSnapshot, HomeSurface } from '@/home/types';
 import { useAuthStore } from './authStore';
 import { useHomeStore } from './homeStore';
 
@@ -42,8 +42,14 @@ interface PersistedHomeDraft {
 export interface HomePlacementGhost {
   objectId: string;
   assetId: string;
+  roomId: string;
+  surface: HomeSurface;
   position: [number, number, number];
   rotation: 0 | 1 | 2 | 3;
+  style: Record<string, unknown>;
+  parentObjectId: string | null;
+  attachmentSocket: string | null;
+  isNew: boolean;
   valid: boolean;
 }
 
@@ -65,6 +71,7 @@ interface HomeStudioState {
   pendingRequestId: string | null;
   simulateFrozen: boolean;
   placementGhost: HomePlacementGhost | null;
+  draggingObjectId: string | null;
 
   open: (mode?: HomeStudioMode) => Promise<void>;
   cancel: () => Promise<void>;
@@ -80,6 +87,7 @@ interface HomeStudioState {
   resetToFoundation: () => void;
   setSimulateFrozen: (frozen: boolean) => void;
   setPlacementGhost: (ghost: HomePlacementGhost | null) => void;
+  setDraggingObject: (objectId: string | null) => void;
   setMessage: (message: string | null) => void;
 }
 
@@ -189,6 +197,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
   pendingRequestId: null,
   simulateFrozen: false,
   placementGhost: null,
+  draggingObjectId: null,
 
   open: async (mode = 'developer') => {
     const authoritative = cloneHomeSnapshot(useHomeStore.getState().snapshot);
@@ -234,6 +243,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       saving: false,
       pendingRequestId,
       placementGhost: null,
+      draggingObjectId: null,
     });
     useHomeStore.getState().previewSnapshot(draft);
   },
@@ -255,6 +265,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       saving: false,
       pendingRequestId: null,
       placementGhost: null,
+      draggingObjectId: null,
     });
   },
 
@@ -330,7 +341,13 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
 
   setTray: (tray) => set({ tray }),
   selectRoom: (selectedRoomId) => set({ selectedRoomId, selectedObjectId: null }),
-  selectObject: (selectedObjectId) => set({ selectedObjectId }),
+  selectObject: (selectedObjectId) => set((state) => ({
+    selectedObjectId,
+    selectedRoomId: selectedObjectId
+      ? state.draftSnapshot?.objects.find((object) => object.id === selectedObjectId)?.roomId
+        ?? state.selectedRoomId
+      : state.selectedRoomId,
+  })),
 
   save: async () => {
     const state = get();
@@ -365,7 +382,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
           useHomeStore.getState().ingestSnapshot(retry.snapshot);
           await clearPersistedDraft();
           useHomeStore.getState().clearPreview();
-          set({ isOpen: false, saving: false, pendingRequestId: null, placementGhost: null });
+          set({ isOpen: false, saving: false, pendingRequestId: null, placementGhost: null, draggingObjectId: null });
           return true;
         }
       }
@@ -411,7 +428,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
         useHomeStore.getState().ingestSnapshot(result.snapshot);
         await clearPersistedDraft();
         useHomeStore.getState().clearPreview();
-        set({ isOpen: false, saving: false, pendingRequestId: null, placementGhost: null });
+        set({ isOpen: false, saving: false, pendingRequestId: null, placementGhost: null, draggingObjectId: null });
         return true;
       }
 
@@ -540,5 +557,6 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
     });
   },
   setPlacementGhost: (placementGhost) => set({ placementGhost }),
+  setDraggingObject: (draggingObjectId) => set({ draggingObjectId }),
   setMessage: (message) => set({ message }),
 }));

@@ -52,5 +52,5 @@ test('relationship-gated Decorate mode is distinct from public Developer Studio'
   assert.match(store, /HomeStudioMode = 'developer' \| 'decorate'/);
   assert.match(studio, /activeGrowthDays\(draft\)/);
   assert.match(studio, /Number\(asset\.progression\.day \?\? 0\) > unlockedDays/);
-  assert.match(studio, /isDeveloper \? 'Every registered piece' : 'Unlocked pieces'/);
+  assert.match(studio, /isDeveloper \? 'Complete catalog' : 'Add something'/);
 });

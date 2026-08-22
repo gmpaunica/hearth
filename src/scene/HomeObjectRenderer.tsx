@@ -1,5 +1,11 @@
+import type { ThreeEvent } from '@react-three/fiber';
+import { useRef } from 'react';
+import * as THREE from 'three';
+
+import { applyHomeOperation, snapHomeCoordinate, validateHomeDraft } from '@/home/editor';
 import type { ResolvedHomeObject } from '@/home/types';
 import { paletteColor } from '@/home/palettes';
+import { type HomePlacementGhost, useHomeStudioStore } from '@/state/homeStudioStore';
 import { Bed } from './objects/Bed';
 import { BedsideTable, PaneledWardrobe } from './objects/BedroomFurniture';
 import { Bench } from './objects/Bench';
@@ -73,9 +79,151 @@ function Renderer({ object }: { object: ResolvedHomeObject }) {
   }
 }
 
-export function HomeObjectRenderer({ object }: { object: ResolvedHomeObject }) {
+function validPlacement(
+  object: ResolvedHomeObject,
+  ghost: HomePlacementGhost,
+  position: [number, number, number],
+) {
+  const draft = useHomeStudioStore.getState().draftSnapshot;
+  if (!draft) return false;
+  try {
+    let candidate = draft;
+    if (ghost.isNew) {
+      candidate = applyHomeOperation(candidate, {
+        type: 'add',
+        objectId: ghost.objectId,
+        roomId: ghost.roomId,
+        assetId: ghost.assetId,
+        surface: ghost.surface,
+        position,
+        rotation: ghost.rotation,
+        style: ghost.style,
+        parentObjectId: ghost.parentObjectId ?? undefined,
+        attachmentSocket: ghost.attachmentSocket ?? undefined,
+      });
+    } else {
+      if (object.rotation !== ghost.rotation) {
+        candidate = applyHomeOperation(candidate, {
+          type: 'rotate', objectId: object.id, rotation: ghost.rotation,
+        });
+      }
+      candidate = applyHomeOperation(candidate, {
+        type: 'move', objectId: object.id, roomId: ghost.roomId,
+        surface: ghost.surface, position,
+      });
+    }
+    return !validateHomeDraft(candidate)
+      .some((problem) => problem.objectIds.includes(ghost.objectId));
+  } catch {
+    return false;
+  }
+}
+
+export function HomeObjectRenderer({
+  object,
+  placement,
+}: {
+  object: ResolvedHomeObject;
+  placement?: HomePlacementGhost | null;
+}) {
+  const dragOffset = useRef({ x: 0, z: 0 });
+  const pointerId = useRef<number | null>(null);
+  const offset = object.definition.renderOffset ?? [0, 0, 0];
+  const renderPosition: [number, number, number] = placement
+    ? [
+        placement.position[0] + offset[0],
+        placement.position[1] + offset[1],
+        placement.position[2] + offset[2],
+      ]
+    : object.renderPosition;
+  const rotationY = (placement?.rotation ?? object.rotation) * Math.PI / 2;
+
+  const beginDrag = (event: ThreeEvent<PointerEvent>) => {
+    const studio = useHomeStudioStore.getState();
+    if (!studio.isOpen || object.placementState !== 'placed') return;
+    event.stopPropagation();
+    studio.selectObject(placement?.isNew ? null : object.id);
+    studio.setDraggingObject(object.id);
+    studio.setMessage('Drag the piece, then tap the tick when it feels right.');
+    const anchor = placement?.position ?? object.position;
+    const point = event.ray.intersectPlane(
+      new THREE.Plane(new THREE.Vector3(0, 1, 0), -anchor[1]),
+      new THREE.Vector3(),
+    );
+    if (point) {
+      dragOffset.current = { x: anchor[0] - point.x, z: anchor[2] - point.z };
+    }
+    pointerId.current = event.pointerId;
+    (event.target as unknown as { setPointerCapture?: (id: number) => void })
+      .setPointerCapture?.(event.pointerId);
+  };
+
+  const moveDrag = (event: ThreeEvent<PointerEvent>) => {
+    const studio = useHomeStudioStore.getState();
+    if (studio.draggingObjectId !== object.id) return;
+    event.stopPropagation();
+    const current = studio.placementGhost?.objectId === object.id
+      ? studio.placementGhost
+      : {
+          objectId: object.id,
+          assetId: object.assetId,
+          roomId: object.roomId ?? studio.selectedRoomId ?? '',
+          surface: object.surface,
+          position: [...object.position] as [number, number, number],
+          rotation: object.rotation,
+          style: object.style,
+          parentObjectId: object.parentObjectId,
+          attachmentSocket: object.attachmentSocket,
+          isNew: false,
+          valid: true,
+        };
+    const point = event.ray.intersectPlane(
+      new THREE.Plane(new THREE.Vector3(0, 1, 0), -current.position[1]),
+      new THREE.Vector3(),
+    );
+    if (!point) return;
+    const position: [number, number, number] = [
+      snapHomeCoordinate(point.x + dragOffset.current.x),
+      current.position[1],
+      snapHomeCoordinate(point.z + dragOffset.current.z),
+    ];
+    studio.setPlacementGhost({
+      ...current,
+      position,
+      valid: validPlacement(object, current, position),
+    });
+  };
+
+  const endDrag = (event: ThreeEvent<PointerEvent>) => {
+    const studio = useHomeStudioStore.getState();
+    if (studio.draggingObjectId !== object.id) return;
+    event.stopPropagation();
+    studio.setDraggingObject(null);
+    const captured = pointerId.current;
+    if (captured != null) {
+      (event.target as unknown as { releasePointerCapture?: (id: number) => void })
+        .releasePointerCapture?.(captured);
+    }
+    pointerId.current = null;
+    if (studio.placementGhost?.valid === false) {
+      studio.setMessage('That red spot blocks a path, wall, or another piece.');
+    }
+  };
+
   return (
-    <group position={object.renderPosition} rotation={[0, object.rotationY, 0]}>
+    <group
+      position={renderPosition}
+      rotation={[0, rotationY, 0]}
+      onPointerDown={beginDrag}
+      onPointerMove={moveDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClick={(event) => {
+        if (!useHomeStudioStore.getState().isOpen) return;
+        event.stopPropagation();
+        if (!placement?.isNew) useHomeStudioStore.getState().selectObject(object.id);
+      }}
+    >
       <Renderer object={object} />
     </group>
   );

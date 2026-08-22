@@ -7,29 +7,38 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('Home Studio exposes the complete editor surface from visible Developer settings', () => {
+test('Home Studio exposes a visual direct-manipulation editor from visible Developer settings', () => {
   const settings = read('src/components/Settings.tsx');
   const studio = read('src/components/HomeStudio.tsx');
+  const thumbnail = read('src/components/HomeAssetThumbnail.tsx');
+  const renderer = read('src/scene/HomeObjectRenderer.tsx');
+  const pan = read('src/scene/usePan.ts');
   const index = read('src/app/index.tsx');
   assert.match(settings, />Developer</);
   assert.match(settings, /Open Home Studio/);
   assert.match(settings, /activeMoment \|\| homeBlockedByMoment/);
   assert.match(index, /<HomeStudio \/>/);
-  for (const tray of ['Build', 'Furnish', 'Decorate', 'Garden', 'Stored', 'Needs a new spot']) {
+  for (const tray of ['Rooms', 'Furniture', 'Finishing touches', 'Garden', 'Put away', 'Place these']) {
     assert.match(studio, new RegExp(`label: '${tray}'`));
   }
-  for (const action of ['Duplicate', 'Style', 'Store', 'Replace', 'Reset layout', 'Export snapshot']) {
+  for (const action of ['Duplicate', 'Style', 'Put away', 'Reset layout', 'Export snapshot']) {
     assert.match(studio, new RegExp(action));
   }
-  assert.match(studio, /PanResponder\.create/);
-  assert.match(studio, /valid: candidate\.valid/);
-  assert.match(studio, /Nudge left/);
-  assert.match(studio, /Rotate 90 degrees/);
+  assert.match(studio, /HomeAssetThumbnail/);
+  assert.match(thumbnail, /accessibilityRole="image"/);
+  assert.match(studio, /accessibilityLabel="Confirm this placement"/);
+  assert.match(studio, /pointerEvents="box-none"/);
+  assert.doesNotMatch(studio, /Snap grid|Nudge left|toFixed\(2\)/);
+  assert.match(renderer, /event\.ray\.intersectPlane/);
+  assert.match(renderer, /setPointerCapture/);
+  assert.match(renderer, /validPlacement/);
+  assert.match(pan, /draggingObjectId == null/);
   for (const tier of ['courtyard', 'standard', 'large', 'grand']) {
     assert.match(studio, new RegExp(`'${tier}'`));
   }
-  assert.match(studio, /Attach bedroom/);
-  assert.match(studio, /Attach future room/);
+  assert.match(studio, /Add bedroom/);
+  assert.match(studio, /Add extra room/);
+  for (const section of ['Catalog', 'World', 'QA']) assert.match(studio, new RegExp(`'${section}'`));
   assert.match(read('src/home/layouts.ts'), /COTTAGE_V2_ROOM_MASKS/);
   assert.match(read('src/home/layouts.ts'), /COTTAGE_V2_GARDEN_MASKS/);
 });

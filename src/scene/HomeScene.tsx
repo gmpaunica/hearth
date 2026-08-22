@@ -6,6 +6,7 @@ import { useAvatarStore } from '@/state/avatarStore';
 import { useHomeStore } from '@/state/homeStore';
 import { useHomeStudioStore } from '@/state/homeStudioStore';
 import { HOME_ASSET_REGISTRY } from '@/home/catalog';
+import type { ResolvedHomeObject } from '@/home/types';
 import { appearanceToAvatarColors } from '@/state/avatarAppearance';
 import { Atmosphere } from './Atmosphere';
 import { HOME_CAMERA_FRAME, camState, publishFocusedRoom } from './cameraState';
@@ -45,6 +46,37 @@ function PlacementGhost() {
       />
     </mesh>
   );
+}
+
+function PendingNewObject() {
+  const ghost = useHomeStudioStore((state) => state.placementGhost);
+  const existing = useHomeStore((state) => state.resolved.objects.find((object) => object.id === ghost?.objectId));
+  if (!ghost || existing?.placementState === 'placed') return null;
+  const definition = HOME_ASSET_REGISTRY.get(ghost.assetId);
+  if (!definition) return null;
+  const offset = definition.renderOffset ?? [0, 0, 0];
+  const object: ResolvedHomeObject = {
+    id: ghost.objectId,
+    roomId: ghost.roomId,
+    assetId: ghost.assetId,
+    assetRevision: definition.revision,
+    placementState: 'placed',
+    surface: ghost.surface,
+    position: ghost.position,
+    rotation: ghost.rotation,
+    style: ghost.style,
+    parentObjectId: ghost.parentObjectId,
+    attachmentSocket: ghost.attachmentSocket,
+    definition,
+    renderPosition: [
+      ghost.position[0] + offset[0],
+      ghost.position[1] + offset[1],
+      ghost.position[2] + offset[2],
+    ],
+    rotationY: ghost.rotation * Math.PI / 2,
+    placeholder: false,
+  };
+  return <HomeObjectRenderer object={object} placement={ghost} />;
 }
 
 /**
@@ -122,6 +154,7 @@ function CameraRig() {
 /** Everything inside the Canvas: the shared voxel home. */
 export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) {
   const scene = useHomeStore((state) => state.resolved);
+  const placementGhost = useHomeStudioStore((state) => state.placementGhost);
   const avatarA = useAvatarStore((s) => s.appearances.a);
   const avatarB = useAvatarStore((s) => s.appearances.b);
   const fireplace = scene.roles.fireplace;
@@ -154,7 +187,14 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
       <PlacementGhost />
       {scene.objects
         .filter((object) => object.placementState === 'placed')
-        .map((object) => <HomeObjectRenderer key={object.id} object={object} />)}
+        .map((object) => (
+          <HomeObjectRenderer
+            key={object.id}
+            object={object}
+            placement={placementGhost?.objectId === object.id ? placementGhost : null}
+          />
+        ))}
+      <PendingNewObject />
       {fireplace && (
         <>
           <FireplaceOutcomes position={fireplace.renderPosition} rotationY={fireplace.rotationY} />

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { PanResponder, Platform } from 'react-native';
 
+import { useHomeStudioStore } from '@/state/homeStudioStore';
 import { camState, cancelCameraFocus } from './cameraState';
 import { clampCameraOffset } from './roomNavigation';
 
@@ -47,7 +48,8 @@ export function useScenePan() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, g) =>
-        e.nativeEvent.touches.length >= 2 || Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
+        useHomeStudioStore.getState().draggingObjectId == null
+        && (e.nativeEvent.touches.length >= 2 || Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3),
       onPanResponderGrant: (e, g) => {
         cancelCameraFocus();
         last.current = { x: g.dx, y: g.dy };

@@ -872,7 +872,9 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   const homeLayoutSource = read('src/home/layouts.ts');
   const homeCatalogSource = read('src/home/catalog.ts');
   const objectRendererSource = read('src/scene/HomeObjectRenderer.tsx');
-  assert.match(objectRendererSource, /position=\{object\.renderPosition\} rotation=\{\[0, object\.rotationY, 0\]\}/);
+  assert.match(objectRendererSource, /const renderPosition:[\s\S]*: object\.renderPosition/);
+  assert.match(objectRendererSource, /const rotationY = \(placement\?\.rotation \?\? object\.rotation\)/);
+  assert.match(objectRendererSource, /position=\{renderPosition\}[\s\S]*rotation=\{\[0, rotationY, 0\]\}/);
   assert.match(objectRendererSource, /case 'Easel'/);
   assert.match(homeLayoutSource, /'drawing-easel', \[-4\.28, 0, 1\.08\], 1/);
   assert.match(homeCatalogSource, /renderOffset: \[0, 1\.2, 0\]/);
