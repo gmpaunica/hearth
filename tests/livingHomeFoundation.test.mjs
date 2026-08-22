@@ -163,3 +163,27 @@ test('paired_at is server-owned and every membership epoch purge clears all shar
   assert.match(maintain, /new\.paired_at := null/);
   assert.match(migration, /before delete on public\.couples[\s\S]{0,100}purge_home_on_couple_delete/);
 });
+
+test('active growth is authoritative, pauseable, irreversible, and gates normal edits', () => {
+  const activeGrowth = functionBody('private', 'active_home_growth_seconds');
+  const freeze = functionBody('private', 'set_home_world_frozen');
+  const unlocks = functionBody('private', 'refresh_home_growth_unlocks');
+  const snapshot = functionBody('private', 'home_snapshot');
+  const apply = functionBody('public', 'apply_home_edit');
+
+  assert.match(activeGrowth, /world_frozen_at is null/);
+  assert.match(activeGrowth, /growth_resumed_at/);
+  assert.match(freeze, /growth_seconds = active_seconds/);
+  assert.match(freeze, /growth_resumed_at = null/);
+  assert.match(freeze, /growth_resumed_at = now\(\)/);
+  assert.match(migration, /revoke execute on function private\.set_home_world_frozen\(uuid,boolean\)/);
+  for (const seconds of [259200, 518400, 1209600, 1814400, 2592000, 5184000, 7776000, 15552000]) {
+    assert.match(unlocks, new RegExp(`${seconds}::bigint`));
+  }
+  assert.match(unlocks, /on conflict \(couple_id, unlock_id\) do nothing/);
+  assert.match(snapshot, /'activeGrowthSeconds'/);
+  assert.match(apply, /developer_bypass/);
+  assert.match(apply, /state\.world_frozen_at is not null and not developer_bypass/);
+  assert.match(apply, /growth < coalesce\(\(asset\.progression->>'day'\)::numeric, 0\) \* 86400/);
+  assert.match(apply, /growth < case requested_garden_tier/);
+});

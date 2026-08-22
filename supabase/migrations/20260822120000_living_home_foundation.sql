@@ -221,17 +221,20 @@ create or replace function private.ensure_home_state(
 set search_path = pg_catalog, public, private as $$
 declare
   paired boolean;
+  pair_started timestamptz;
   living_id uuid;
   garden_id uuid;
 begin
-  select member_b is not null into paired
+  select member_b is not null, paired_at into paired, pair_started
   from public.couples where id = p_couple_id for share;
   if not coalesce(paired, false) then return; end if;
 
   insert into public.home_states (
-    couple_id, garden_tier, growth_resumed_at
+    couple_id, garden_tier, growth_seconds, growth_resumed_at
   ) values (
-    p_couple_id, case when p_legacy_full then 'large' else 'courtyard' end, now()
+    p_couple_id, case when p_legacy_full then 'large' else 'courtyard' end,
+    greatest(0, extract(epoch from (now() - coalesce(pair_started, now())))::bigint),
+    now()
   ) on conflict (couple_id) do nothing;
 
   if not found then return; end if;
@@ -342,6 +345,71 @@ set search_path = pg_catalog, public, private as $$
   from public.home_states hs where hs.couple_id = p_couple_id;
 $$;
 
+create or replace function private.active_home_growth_seconds(p_couple_id uuid)
+returns bigint language sql stable security definer
+set search_path = pg_catalog, public as $$
+  select greatest(0, hs.growth_seconds + case
+    when hs.world_frozen_at is null and hs.growth_resumed_at is not null
+      then extract(epoch from (now() - hs.growth_resumed_at))::bigint
+    else 0 end)
+  from public.home_states hs where hs.couple_id = p_couple_id;
+$$;
+
+-- Billing may call this private primitive later. No public freeze or payment RPC is
+-- exposed while monetization is disabled.
+create or replace function private.set_home_world_frozen(p_couple_id uuid, p_frozen boolean)
+returns void language plpgsql volatile security definer
+set search_path = pg_catalog, public, private as $$
+declare
+  active_seconds bigint;
+begin
+  select private.active_home_growth_seconds(p_couple_id) into active_seconds;
+  if active_seconds is null then
+    raise exception 'Home state does not exist';
+  end if;
+
+  if p_frozen then
+    update public.home_states
+    set growth_seconds = active_seconds,
+        growth_resumed_at = null,
+        world_frozen_at = now(),
+        updated_at = now()
+    where couple_id = p_couple_id and world_frozen_at is null;
+  else
+    update public.home_states
+    set growth_resumed_at = now(),
+        world_frozen_at = null,
+        updated_at = now()
+    where couple_id = p_couple_id and world_frozen_at is not null;
+  end if;
+end;
+$$;
+
+create or replace function private.refresh_home_growth_unlocks(p_couple_id uuid)
+returns void language plpgsql volatile security definer
+set search_path = pg_catalog, public, private as $$
+declare
+  active_seconds bigint := private.active_home_growth_seconds(p_couple_id);
+begin
+  insert into public.home_unlocks (couple_id, unlock_id, source)
+  select p_couple_id, milestone.id, 'active_growth'
+  from (values
+    ('moving-in', 0::bigint),
+    ('first-finishes', 259200::bigint),
+    ('living-standard', 518400::bigint),
+    ('fireplace-tier-2', 1209600::bigint),
+    ('bedroom', 1814400::bigint),
+    ('garden-standard', 2592000::bigint),
+    ('large-options', 5184000::bigint),
+    ('garden-large', 7776000::bigint),
+    ('fireplace-tier-3', 7776000::bigint),
+    ('garden-grand', 15552000::bigint)
+  ) as milestone(id, required_seconds)
+  where milestone.required_seconds <= active_seconds
+  on conflict (couple_id, unlock_id) do nothing;
+end;
+$$;
+
 create or replace function private.home_snapshot(p_couple_id uuid)
 returns jsonb language sql stable security definer
 set search_path = pg_catalog, public, private as $$
@@ -351,6 +419,7 @@ set search_path = pg_catalog, public, private as $$
     'catalogVersion', hs.catalog_version,
     'revision', hs.revision,
     'pairedAt', c.paired_at,
+    'activeGrowthSeconds', private.active_home_growth_seconds(hs.couple_id),
     'gardenTier', hs.garden_tier,
     'finishes', hs.finishes,
     'rooms', coalesce((
@@ -423,6 +492,7 @@ begin
     );
   end if;
   perform private.ensure_home_state(home.id, false);
+  perform private.refresh_home_growth_unlocks(home.id);
   return private.home_snapshot(home.id) || jsonb_build_object('paired', true);
 end;
 $$;
@@ -640,6 +710,9 @@ declare
   room_module text;
   authored_bounds jsonb;
   requested_garden_tier text;
+  current_room_size text;
+  growth bigint;
+  developer_bypass boolean;
 begin
   if uid is null then raise exception 'Authentication required' using errcode = '42501'; end if;
   if request_id is null then raise exception 'request_id is required'; end if;
@@ -652,7 +725,13 @@ begin
     raise exception 'A paired home is required' using errcode = '42501';
   end if;
   perform private.ensure_home_state(home.id, false);
+  perform private.refresh_home_growth_unlocks(home.id);
   select * into state from public.home_states where couple_id = home.id for update;
+  growth := private.active_home_growth_seconds(home.id);
+  developer_bypass := not exists (
+    select 1 from jsonb_array_elements(operations) command
+    where coalesce((command ->> 'developer')::boolean, false) = false
+  );
 
   request_hash := md5(catalog_version || ':' || operations::text);
   select * into existing from public.home_edit_requests
@@ -672,7 +751,8 @@ begin
     return jsonb_build_object('ok', false, 'code', 'revision_conflict',
       'currentRevision', state.revision, 'snapshot', private.home_snapshot(home.id));
   end if;
-  if state.world_frozen_at is not null then raise exception 'This shared world is frozen'; end if;
+  if state.world_frozen_at is not null and not developer_bypass
+  then raise exception 'This shared world is frozen'; end if;
   if private.home_has_active_moment(home.id) then raise exception 'Finish the active Moment before editing the home'; end if;
 
   for op in select value from jsonb_array_elements(operations)
@@ -682,6 +762,8 @@ begin
       select * into asset from public.home_catalog_assets
       where id = op ->> 'assetId' and retired_at is null;
       if asset.id is null then raise exception 'Unknown home asset: %', op ->> 'assetId'; end if;
+      if not developer_bypass and growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
+      then raise exception 'That home asset has not unlocked yet'; end if;
       room_uuid := (op ->> 'roomId')::uuid;
       if not exists (select 1 from public.home_rooms where id = room_uuid and couple_id = home.id)
       then raise exception 'Room is not part of this home'; end if;
@@ -756,6 +838,8 @@ begin
       select * into asset from public.home_catalog_assets
       where id = op ->> 'assetId' and retired_at is null;
       if asset.id is null then raise exception 'Unknown replacement asset'; end if;
+      if not developer_bypass and growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
+      then raise exception 'That replacement has not unlocked yet'; end if;
       update public.home_objects set asset_id = asset.id, asset_revision = asset.revision,
         style = coalesce(op -> 'style', '{}'::jsonb), updated_at = now()
       where id = object_uuid and couple_id = home.id;
@@ -763,7 +847,7 @@ begin
       if affected = 0 then raise exception 'Object is not part of this home'; end if;
     elsif action = 'resize' then
       room_uuid := (op ->> 'roomId')::uuid;
-      select module_id into room_module from public.home_rooms
+      select module_id, size_tier into room_module, current_room_size from public.home_rooms
       where id = room_uuid and couple_id = home.id;
       if room_module is null then raise exception 'Room is not part of this home'; end if;
       requested_garden_tier := op ->> 'gardenTier';
@@ -772,6 +856,24 @@ begin
       );
       if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
         raise exception 'Room resize must use an authored cottage-v2 mask';
+      end if;
+      if not developer_bypass then
+        if room_module = 'garden'
+          and array_position(array['courtyard','standard','large','grand'], requested_garden_tier)
+            > array_position(array['courtyard','standard','large','grand'], state.garden_tier)
+          and growth < case requested_garden_tier
+            when 'standard' then 2592000 when 'large' then 7776000
+            when 'grand' then 15552000 else 0 end
+        then raise exception 'That garden tier has not unlocked yet';
+        elsif room_module <> 'garden'
+          and array_position(array['compact','standard','large'], op ->> 'sizeTier')
+            > array_position(array['compact','standard','large'], current_room_size)
+          and growth < case
+            when op ->> 'sizeTier' = 'large' then 5184000
+            when room_module = 'living' and op ->> 'sizeTier' = 'standard' then 518400
+            when room_module = 'bedroom' and op ->> 'sizeTier' = 'standard' then 1814400
+            else 5184000 end
+        then raise exception 'That room size has not unlocked yet'; end if;
       end if;
       update public.home_rooms set size_tier = op ->> 'sizeTier',
         bounds = authored_bounds, updated_at = now()
@@ -804,6 +906,8 @@ begin
             > (r.bounds ->> 'maxZ')::numeric
         );
     elsif action in ('change_terrain', 'change_finish') then
+      if not developer_bypass and growth < case when action = 'change_finish' then 259200 else 2592000 end
+      then raise exception 'That finish has not unlocked yet'; end if;
       update public.home_states set finishes = finishes || jsonb_build_object(
         coalesce(op ->> 'target', case when action = 'change_terrain' then 'terrain' else 'home' end),
         op -> 'value'
@@ -819,6 +923,9 @@ begin
       if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
         raise exception 'Module must use an authored cottage-v2 mask';
       end if;
+      if not developer_bypass and growth < case op ->> 'moduleId'
+        when 'bedroom' then 1814400 else 5184000 end
+      then raise exception 'That room module has not unlocked yet'; end if;
       insert into public.home_rooms (id, couple_id, module_id, socket_id, size_tier, bounds)
       values ((op ->> 'roomId')::uuid, home.id, op ->> 'moduleId', op ->> 'socketId',
         op ->> 'sizeTier', authored_bounds);
@@ -937,6 +1044,9 @@ revoke execute on function private.seed_home_object(uuid,text,text,text,numeric,
 revoke execute on function private.ensure_home_state(uuid,boolean) from public, anon, authenticated;
 revoke execute on function private.home_has_active_moment(uuid) from public, anon, authenticated;
 revoke execute on function private.home_capabilities(uuid) from public, anon, authenticated;
+revoke execute on function private.active_home_growth_seconds(uuid) from public, anon, authenticated;
+revoke execute on function private.set_home_world_frozen(uuid,boolean) from public, anon, authenticated;
+revoke execute on function private.refresh_home_growth_unlocks(uuid) from public, anon, authenticated;
 revoke execute on function private.home_snapshot(uuid) from public, anon, authenticated;
 revoke execute on function private.authored_home_bounds(text,text,text) from public, anon, authenticated;
 revoke execute on function private.validate_home_scene(uuid) from public, anon, authenticated;
