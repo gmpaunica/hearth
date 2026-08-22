@@ -28,7 +28,7 @@ import { useHearthSync } from '@/state/useHearthSync';
 import { useAuthStore } from '@/state/authStore';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useHomeUiStore } from '@/state/homeUiStore';
-import { daysTogether } from '@/state/homeProgress';
+import { useHomeProgress } from '@/state/homeProgress';
 import { APP_NAME, editorial } from '@/theme/hearth';
 
 export default function HomeScreen() {
@@ -39,8 +39,8 @@ export default function HomeScreen() {
   // Drag to scroll the home around.
   const panHandlers = useScenePan();
   const paired = useAuthStore((s) => s.phase === 'paired');
-  const togetherSince = useAuthStore((s) => s.couple?.paired_at ?? s.couple?.created_at ?? null);
-  const togetherDay = Math.max(1, Math.floor(daysTogether(togetherSince)) + 1);
+  const activeGrowthDays = useHomeProgress().days;
+  const togetherDay = Math.max(1, Math.floor(activeGrowthDays) + 1);
   const settingsOpen = useMomentsSurfaceStore((state) => state.settingsOpen);
   const controlsHidden = useHomeUiStore((state) => state.controlsHidden);
   const hydrateHomeUi = useHomeUiStore((state) => state.hydrate);

@@ -99,6 +99,7 @@ test('relationship growth reads paired_at rather than couple-row creation time',
   const db = read('src/lib/db.ts');
   const progress = read('src/state/homeProgress.ts');
   assert.match(db, /paired_at\?: string \| null/);
-  assert.match(progress, /s\.couple\?\.paired_at/);
-  assert.doesNotMatch(progress, /s\.couple\?\.created_at/);
+  assert.match(progress, /state\.couple\?\.paired_at/);
+  assert.doesNotMatch(progress, /state\.couple\?\.created_at/);
+  assert.match(progress, /state\.snapshot\.activeGrowthSeconds/);
 });

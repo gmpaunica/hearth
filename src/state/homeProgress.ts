@@ -1,14 +1,9 @@
-// The home grows with the relationship. A couple starts with almost nothing —
-// just a fire to gather by — and rooms fill in as milestones pass. This module
-// is the single source of truth for *what* is unlocked at a given age; the
-// scene and the signal UI both read it, and new Higgsfield-designed components
-// slot in by adding a stage entry here (no scene/logic rewrite needed).
 import { useMemo } from 'react';
 
 import type { SignalType } from '@/copy';
 import { useAuthStore } from './authStore';
+import { useHomeStore } from './homeStore';
 
-/** A placeable/visible piece of the home. New art registers as one of these. */
 export type HomeComponent =
   | 'fireplace'
   | 'restnook'
@@ -21,70 +16,83 @@ export type HomeComponent =
   | 'garden';
 
 export interface HomeStage {
-  /** Days together at which this stage unlocks. */
   atDays: number;
-  /** Milestone title (for a future "your home grew" moment). */
   title: string;
-  /** One-line description of what changed. */
   blurb: string;
-  /** Components that appear at this stage. */
   components: HomeComponent[];
-  /** Signal places that open up at this stage (empty = none new). */
   signals: SignalType[];
 }
 
-// Editing mode keeps the full home available from day 0. Flip this to false
-// when the milestone pacing is ready for real relationship-aged homes.
-export const PREVIEW_UNLOCK_ALL = true;
+/** Production pacing is active; Developer Home Studio owns the public bypass. */
+export const PREVIEW_UNLOCK_ALL = false;
 
-// The milestone ladder remains the source of truth for production pacing.
-// Editing mode above currently makes every row available immediately.
 export const HOME_STAGES: HomeStage[] = [
   {
     atDays: 0,
     title: 'Moving in',
-    blurb: 'Your home begins — a fire to gather by, a daily canvas, and a little place to rest.',
-    components: ['fireplace', 'restnook', 'easel'],
-    signals: ['fireplace', 'rest'],
+    blurb: 'Your compact home begins with every core emotional signal.',
+    components: ['fireplace', 'restnook', 'easel', 'sofa', 'table'],
+    signals: ['fireplace', 'rest', 'sofa', 'table', 'romantic', 'garden'],
   },
   {
     atDays: 3,
-    title: 'A place to rest',
-    blurb: 'A sofa arrives, for the quiet evenings.',
-    components: ['sofa'],
-    signals: ['sofa'],
+    title: 'Signs of you',
+    blurb: 'Finishes, lighting, indoor decor, and small planters become yours to arrange.',
+    components: ['plants'],
+    signals: [],
   },
   {
-    atDays: 7,
-    title: 'Somewhere to talk',
-    blurb: 'A small table, for the harder conversations.',
-    components: ['table'],
-    signals: ['table'],
+    atDays: 6,
+    title: 'A little more room',
+    blurb: 'After 144 active hours, the standard living room is ready before day seven ends.',
+    components: [],
+    signals: [],
   },
   {
     atDays: 14,
-    title: 'Signs of life',
-    blurb: 'Shelves and plants — the room feels lived-in now.',
-    components: ['bookshelf', 'plants'],
+    title: 'A warmer hearth',
+    blurb: 'Fireplace tier II and its first architectural details unlock.',
+    components: ['bookshelf'],
     signals: [],
   },
   {
     atDays: 21,
     title: 'Growing closer',
-    blurb: 'A bedroom nook, with a bed — and a soft way to say you feel close.',
+    blurb: 'A bedroom, bed, and wardrobe family become available.',
     components: ['bed', 'easel'],
-    signals: ['romantic'],
+    signals: [],
   },
   {
     atDays: 30,
     title: 'Room to grow',
-    blurb: 'A garden opens up beyond the door.',
+    blurb: 'The standard garden opens with paths, planting, furniture, and small water features.',
     components: ['garden'],
-    signals: ['garden'],
+    signals: [],
+  },
+  {
+    atDays: 60,
+    title: 'Room to imagine',
+    blurb: 'Large interiors and garden structures become available.',
+    components: [],
+    signals: [],
+  },
+  {
+    atDays: 90,
+    title: 'A garden landmark',
+    blurb: 'A large garden, major water features, and fireplace tier III unlock.',
+    components: [],
+    signals: [],
+  },
+  {
+    atDays: 180,
+    title: 'A grand garden',
+    blurb: 'Grand grounds, large trees, a gazebo, and major statues become available.',
+    components: [],
+    signals: [],
   },
 ];
 
-/** Fractional active-growth days since pairing completed. */
+/** Fractional elapsed wall time, used only until the authoritative home loads. */
 export function daysTogether(since: string | null | undefined): number {
   if (!since) return 0;
   const ms = Date.now() - Date.parse(since);
@@ -92,28 +100,22 @@ export function daysTogether(since: string | null | undefined): number {
 }
 
 export interface HomeProgress {
-  /** Days together (fractional). */
   days: number;
-  /** Every component unlocked so far. */
   components: Set<HomeComponent>;
-  /** Every signal place unlocked so far. */
   signals: Set<SignalType>;
-  /** Index of the latest reached stage in HOME_STAGES. */
   stageIndex: number;
-  /** The next stage not yet reached, or null once everything is unlocked. */
   next: HomeStage | null;
 }
 
-/** Accumulate everything unlocked at or before `days`. */
 export function progressForDays(days: number): HomeProgress {
   const components = new Set<HomeComponent>();
   const signals = new Set<SignalType>();
   let stageIndex = -1;
-  HOME_STAGES.forEach((stage, i) => {
+  HOME_STAGES.forEach((stage, index) => {
     if (days >= stage.atDays) {
-      stage.components.forEach((c) => components.add(c));
-      stage.signals.forEach((s) => signals.add(s));
-      stageIndex = i;
+      stage.components.forEach((component) => components.add(component));
+      stage.signals.forEach((signal) => signals.add(signal));
+      stageIndex = index;
     }
   });
   return {
@@ -125,15 +127,16 @@ export function progressForDays(days: number): HomeProgress {
   };
 }
 
-/**
- * Live home progression for the current couple. Recomputes when the couple
- * changes; day-scale unlocks don't need to tick within a session (a relaunch
- * reflects the new day), which keeps the scene from re-rendering needlessly.
- */
+/** Reads server-owned active time after load, including future freeze pauses. */
 export function useHomeProgress(): HomeProgress {
-  const since = useAuthStore((s) => s.couple?.paired_at ?? null);
+  const since = useAuthStore((state) => state.couple?.paired_at ?? null);
+  const activeGrowthSeconds = useHomeStore((state) => state.snapshot.activeGrowthSeconds);
+  const homeStatus = useHomeStore((state) => state.status);
+  const activeDays = homeStatus === 'ready'
+    ? activeGrowthSeconds / 86_400
+    : daysTogether(since);
   return useMemo(
-    () => progressForDays(PREVIEW_UNLOCK_ALL ? Infinity : daysTogether(since)),
-    [since],
+    () => progressForDays(PREVIEW_UNLOCK_ALL ? Infinity : activeDays),
+    [activeDays],
   );
 }

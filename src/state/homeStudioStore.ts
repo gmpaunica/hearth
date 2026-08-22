@@ -36,6 +36,7 @@ interface PersistedHomeDraft {
   catalogVersion: string;
   operations: HomeOperation[];
   pendingRequestId: string | null;
+  mode: HomeStudioMode;
 }
 
 export interface HomePlacementGhost {
@@ -138,7 +139,7 @@ function touchedConflictMessages(
 
 async function persistDraft(state: Pick<
   HomeStudioState,
-  'baseSnapshot' | 'operations' | 'pendingRequestId'
+  'baseSnapshot' | 'operations' | 'pendingRequestId' | 'mode'
 >) {
   const key = draftKey();
   if (!key || !state.baseSnapshot) return;
@@ -147,6 +148,7 @@ async function persistDraft(state: Pick<
     catalogVersion: state.baseSnapshot.catalogVersion,
     operations: state.operations,
     pendingRequestId: state.pendingRequestId,
+    mode: state.mode,
   };
   await AsyncStorage.setItem(key, JSON.stringify(persisted));
 }
@@ -203,7 +205,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
           const replayed = replay(authoritative, stored.operations);
           draft = replayed.snapshot;
           operations = replayed.operations;
-          pendingRequestId = stored.baseRevision === authoritative.revision
+          pendingRequestId = stored.baseRevision === authoritative.revision && stored.mode === mode
             ? stored.pendingRequestId : null;
           message = replayed.failures.length
             ? `${replayed.failures.length} offline command${replayed.failures.length === 1 ? '' : 's'} need review.`
@@ -355,7 +357,9 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
           state.pendingRequestId,
           state.baseSnapshot.revision,
           state.baseSnapshot.catalogVersion,
-          state.operations,
+          state.mode === 'developer'
+            ? state.operations.map((operation) => ({ ...operation, developer: true }))
+            : state.operations,
         );
         if (retry.ok) {
           useHomeStore.getState().ingestSnapshot(retry.snapshot);
@@ -388,18 +392,20 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
             ? 'Your partner also changed this home. Choose which version to keep.'
             : 'Partner changes merged. Review the draft, then Save again.',
         });
-        await persistDraft({ baseSnapshot: latest, operations: replayed.operations, pendingRequestId: null });
+        await persistDraft({ baseSnapshot: latest, operations: replayed.operations, pendingRequestId: null, mode: state.mode });
         return false;
       }
 
       const requestId = createHomeObjectId();
       set({ pendingRequestId: requestId });
-      await persistDraft({ baseSnapshot: state.baseSnapshot, operations: state.operations, pendingRequestId: requestId });
+      await persistDraft({ baseSnapshot: state.baseSnapshot, operations: state.operations, pendingRequestId: requestId, mode: state.mode });
       const result = await applyHomeEdit(
         requestId,
         state.baseSnapshot.revision,
         state.baseSnapshot.catalogVersion,
-        state.operations,
+        state.mode === 'developer'
+          ? state.operations.map((operation) => ({ ...operation, developer: true }))
+          : state.operations,
       );
       if (result.ok) {
         useHomeStore.getState().ingestSnapshot(result.snapshot);
@@ -428,7 +434,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
           ? 'The catalog changed. Reopen Studio after this app updates.'
           : 'The latest home was fetched and your commands were replayed. Review before saving.',
       });
-      await persistDraft({ baseSnapshot: conflictSnapshot, operations: replayed.operations, pendingRequestId: null });
+      await persistDraft({ baseSnapshot: conflictSnapshot, operations: replayed.operations, pendingRequestId: null, mode: state.mode });
       return false;
     } catch (error) {
       set({
@@ -458,7 +464,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       pendingRequestId: null,
       message: 'Partner version loaded.',
     });
-    await persistDraft({ baseSnapshot: latest, operations: [], pendingRequestId: null });
+    await persistDraft({ baseSnapshot: latest, operations: [], pendingRequestId: null, mode: get().mode });
   },
 
   resetToFoundation: () => {
@@ -522,7 +528,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       issues: validationFor(reset, state.simulateFrozen),
       message: 'Foundation layout restored in this draft.',
     });
-    void persistDraft({ baseSnapshot: state.baseSnapshot, operations, pendingRequestId: null });
+    void persistDraft({ baseSnapshot: state.baseSnapshot, operations, pendingRequestId: null, mode: state.mode });
   },
 
   setSimulateFrozen: (simulateFrozen) => {

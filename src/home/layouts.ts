@@ -110,6 +110,7 @@ export const LEGACY_COTTAGE_V2_SNAPSHOT: HomeSnapshot = {
   catalogVersion: HOME_CATALOG_VERSION,
   revision: 0,
   pairedAt: null,
+  activeGrowthSeconds: 0,
   gardenTier: 'large',
   finishes: {},
   rooms: [...COTTAGE_V2_ROOMS],

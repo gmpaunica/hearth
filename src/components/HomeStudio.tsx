@@ -15,6 +15,12 @@ import { HOME_ASSETS, HOME_ASSET_REGISTRY } from '@/home/catalog';
 import { COTTAGE_V2_GARDEN_MASKS, COTTAGE_V2_ROOM_MASKS } from '@/home/layouts';
 import { paletteChoices } from '@/home/palettes';
 import {
+  activeGrowthDays,
+  gardenTierUnlockDay,
+  moduleUnlockDay,
+  roomSizeUnlockDay,
+} from '@/home/progression';
+import {
   applyHomeOperation,
   createHomeObjectId,
   findOpenPlacement,
@@ -22,7 +28,6 @@ import {
   validateHomeDraft,
 } from '@/home/editor';
 import type { GardenTier, HomeAssetDefinition, HomeObjectSnapshot, HomeRoomSize } from '@/home/types';
-import { daysTogether } from '@/state/homeProgress';
 import { useHomeStore } from '@/state/homeStore';
 import { useHomeStudioStore, type HomeStudioTray } from '@/state/homeStudioStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
@@ -229,6 +234,11 @@ export function HomeStudio() {
 
   const attachRoom = (moduleId: 'bedroom' | 'future-room') => {
     if (!draft) return;
+    const growthDays = activeGrowthDays(draft);
+    if (!isDeveloper && growthDays < moduleUnlockDay(moduleId)) {
+      setMessage(`${friendly(moduleId)} unlocks on active day ${moduleUnlockDay(moduleId)}.`);
+      return;
+    }
     const socketId = moduleId === 'bedroom' ? 'bedroom-north' : 'future-east';
     if (draft.rooms.some((candidate) => candidate.socketId === socketId)) return;
     const roomId = createHomeObjectId();
@@ -305,12 +315,19 @@ export function HomeStudio() {
     object.placementState === 'needs_spot' && !object.parentObjectId);
   const trayObjects = tray === 'stored' ? storedObjects
     : tray === 'needs_spot' ? needsSpotObjects : null;
-  const growthDays = daysTogether(draft.pairedAt);
+  const growthDays = activeGrowthDays(draft);
   const unlockedDays = isDeveloper ? Infinity : growthDays;
   const availableTrays = isDeveloper
     ? TRAYS
     : TRAYS.filter((candidate) => ['furnish', 'decorate', 'stored', 'needs_spot'].includes(candidate.id)
-      || (candidate.id === 'garden' && room?.moduleId === 'garden' && growthDays >= 30));
+      || (candidate.id === 'garden' && room?.moduleId === 'garden' && growthDays >= 30)
+      || (candidate.id === 'build' && draft.capabilities.expand && growthDays >= 6));
+  const availableRoomSizes = room
+    ? ROOM_SIZES.filter((size) => isDeveloper || size === room.sizeTier
+      || growthDays >= roomSizeUnlockDay(room.moduleId, size))
+    : [];
+  const availableGardenTiers = GARDEN_TIERS.filter((tier) => isDeveloper
+    || tier === draft.gardenTier || growthDays >= gardenTierUnlockDay(tier));
   const catalog = catalogForTray(tray, room?.moduleId ?? null, unlockedDays);
   const blockingIssues = issues.filter((problem) => problem.code !== 'frozen_simulation');
   const effectiveSection = isDeveloper ? section : 'catalog';
@@ -449,7 +466,7 @@ export function HomeStudio() {
                       Rooms stay on their cottage-v2 sockets so the isometric cutaway remains readable.
                     </Text>
                     <View style={styles.tierRow}>
-                      {(room.moduleId === 'garden' ? GARDEN_TIERS : ROOM_SIZES).map((tier) => {
+                      {(room.moduleId === 'garden' ? availableGardenTiers : availableRoomSizes).map((tier) => {
                         const selectedTier = room.moduleId === 'garden'
                           ? draft.gardenTier === tier
                           : room.sizeTier === tier;
@@ -471,12 +488,14 @@ export function HomeStudio() {
                       })}
                     </View>
                     <View style={styles.actionRow}>
-                      {!draft.rooms.some((candidate) => candidate.socketId === 'bedroom-north') && (
+                      {!draft.rooms.some((candidate) => candidate.socketId === 'bedroom-north')
+                        && (isDeveloper || growthDays >= moduleUnlockDay('bedroom')) && (
                         <Pressable style={styles.miniAction} onPress={() => attachRoom('bedroom')}>
                           <Text style={styles.miniActionText}>Attach bedroom</Text>
                         </Pressable>
                       )}
-                      {!draft.rooms.some((candidate) => candidate.socketId === 'future-east') && (
+                      {!draft.rooms.some((candidate) => candidate.socketId === 'future-east')
+                        && (isDeveloper || growthDays >= moduleUnlockDay('future-room')) && (
                         <Pressable style={styles.miniAction} onPress={() => attachRoom('future-room')}>
                           <Text style={styles.miniActionText}>Attach future room</Text>
                         </Pressable>

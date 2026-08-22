@@ -160,6 +160,8 @@ export interface HomeSnapshot {
   catalogVersion: string;
   revision: number;
   pairedAt: string | null;
+  /** Server-owned active time; pauses while a future subscription is frozen. */
+  activeGrowthSeconds: number;
   gardenTier: GardenTier;
   finishes: Record<string, unknown>;
   rooms: HomeRoomSnapshot[];
@@ -170,7 +172,7 @@ export interface HomeSnapshot {
   capabilities: WorldCapabilities;
 }
 
-export type HomeOperation =
+export type HomeOperation = (
   | { type: 'add'; objectId: string; roomId: string; assetId: string; surface: HomeSurface; position: [number, number, number]; rotation: HomeRotation; style?: Record<string, unknown>; parentObjectId?: string; attachmentSocket?: string }
   | { type: 'move'; objectId: string; roomId: string; surface: HomeSurface; position: [number, number, number]; parentObjectId?: string | null; attachmentSocket?: string | null }
   | { type: 'rotate'; objectId: string; rotation: HomeRotation }
@@ -181,7 +183,8 @@ export type HomeOperation =
   | { type: 'resize'; roomId: string; sizeTier: HomeRoomSize; bounds: HomeBounds; gardenTier?: GardenTier }
   | { type: 'change_terrain'; target: string; value: unknown }
   | { type: 'change_finish'; target: string; value: unknown }
-  | { type: 'attach_module'; roomId: string; moduleId: 'bedroom' | 'future-room'; socketId: 'bedroom-north' | 'future-east'; sizeTier: HomeRoomSize; bounds: HomeBounds };
+  | { type: 'attach_module'; roomId: string; moduleId: 'bedroom' | 'future-room'; socketId: 'bedroom-north' | 'future-east'; sizeTier: HomeRoomSize; bounds: HomeBounds }
+) & { /** Temporary public QA bypass; remove before monetization. */ developer?: boolean };
 
 export interface HomeApplySuccess {
   ok: true;

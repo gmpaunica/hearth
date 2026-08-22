@@ -151,7 +151,7 @@ test('garden spaces the pink tree, moved bench and animated koi pond into separa
 
 test('home header includes an obvious days-together feature', () => {
   const source = read('src/app/index.tsx');
-  assert.match(source, /daysTogether\(togetherSince\)/);
+  assert.match(source, /useHomeProgress\(\)\.days/);
   assert.match(source, /Day \{togetherDay\} of being together/);
   assert.match(source, /styles\.togetherLabel/);
   assert.doesNotMatch(source, /♥ Day/);
@@ -880,8 +880,8 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   const gardenDoorMinZ = 9 * 0.25;
   assert.ok(drawingMinZ > bookshelfMaxZ, 'daily drawing must clear the bookshelf');
   assert.ok(1.08 < gardenDoorMinZ, 'daily drawing must clear the garden doorway');
-  assert.match(read('src/state/homeProgress.ts'), /PREVIEW_UNLOCK_ALL = true/);
-  assert.match(read('src/state/homeProgress.ts'), /components: \['fireplace', 'restnook', 'easel'\]/);
+  assert.match(read('src/state/homeProgress.ts'), /PREVIEW_UNLOCK_ALL = false/);
+  assert.match(read('src/state/homeProgress.ts'), /components: \['fireplace', 'restnook', 'easel', 'sofa', 'table'\]/);
   const platformSource = read('src/scene/PlatformFx.tsx');
   assert.match(platformSource, /const EDGE_WOOD = '#75452f'/);
   assert.match(platformSource, /const EDGE_HIGHLIGHT = '#c27a53'/);
