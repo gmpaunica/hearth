@@ -27,7 +27,7 @@ test('the phone owns typed snapshot, operation, capability, registry, and resolv
 test('the foundation catalog is stable, versioned, and preserves every visible 1.0.4 asset', () => {
   const catalog = read('src/home/catalog.ts');
   const ids = [...catalog.matchAll(/asset\(\{ id: '([^']+)'/g)].map((match) => match[1]);
-  assert.equal(ids.length, 18, 'the complete 1.0.4 foundation pack');
+  assert.equal(ids.length, 27, '18 foundation pieces plus nine upgrade-family pieces');
   assert.equal(new Set(ids).size, ids.length);
   for (const id of [
     'core-fireplace', 'cottage-sofa', 'shared-table', 'rest-nook',
@@ -36,7 +36,7 @@ test('the foundation catalog is stable, versioned, and preserves every visible 1
     'koi-pond-medium', 'blossom-tree', 'rose-bush', 'garden-lantern',
     'garden-bench', 'greenhouse-portal',
   ]) assert.ok(ids.includes(id), `${id} must remain registered`);
-  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v3'/);
+  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v4'/);
   assert.match(catalog, /renderer: 'UnknownHomeAsset'/);
   assert.match(catalog, /FOUNDATION_COUPLE_RIGS/);
   for (const field of ['poses', 'approach', 'exit', 'cameraTarget', 'reactionAnchor', 'uiAnchor', 'clickBounds', 'effectSockets']) {

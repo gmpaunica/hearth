@@ -26,7 +26,7 @@ test('the garden is a first-class 52-component catalog', () => {
     'rose-bush', 'blossom-tree', 'garden-bench', 'greenhouse-portal',
     'koi-pond-medium', 'garden-lantern',
   ].includes(id))) assert.match(renderer, new RegExp(`['"]${id}['"]`));
-  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v3'/);
+  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v4'/);
   assert.match(catalog, /GARDEN_HOME_ASSETS/);
 });
 

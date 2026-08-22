@@ -12,6 +12,7 @@ import { RestNook } from './objects/RestNook';
 import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 import { IndoorCatalogObject } from './objects/IndoorCatalogObject';
+import { BedroomCatalogObject } from './objects/BedroomCatalogObject';
 import { GardenCatalogObject } from './objects/GardenCatalogObject';
 import { BlossomTree, GardenLantern, GardenThreshold, KoiPond, RoseBush } from './rooms/Garden';
 
@@ -33,7 +34,13 @@ function UnknownAsset() {
 function Renderer({ object }: { object: ResolvedHomeObject }) {
   if (object.placeholder) return <UnknownAsset />;
   switch (object.definition.renderer) {
-    case 'Fireplace': return <Fireplace position={[0, 0, 0]} />;
+    case 'Fireplace': return (
+      <Fireplace
+        position={[0, 0, 0]}
+        tier={Number(object.definition.progression.tier ?? 1)}
+        style={object.style}
+      />
+    );
     case 'Sofa': return <Sofa position={[0, 0, 0]} />;
     case 'TableSet': return <TableSet position={[0, 0, 0]} />;
     case 'RestNook': return <RestNook position={[0, 0, 0]} />;
@@ -52,6 +59,7 @@ function Renderer({ object }: { object: ResolvedHomeObject }) {
     case 'Bench': return <Bench position={[0, 0, 0]} />;
     case 'GardenGreenhousePortal': return <GardenGreenhousePortal position={[0, 0, 0]} />;
     case 'IndoorCatalog': return <IndoorCatalogObject object={object} />;
+    case 'BedroomCatalog': return <BedroomCatalogObject object={object} />;
     case 'GardenCatalog': return <GardenCatalogObject object={object} />;
     default: return <UnknownAsset />;
   }

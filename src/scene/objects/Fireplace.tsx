@@ -1,5 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber';
 
+import { paletteColor } from '@/home/palettes';
 import { requestMomentCameraFocus } from '@/scene/cameraState';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useSceneStore } from '@/state/sceneStore';
@@ -19,10 +20,12 @@ function brickAt(x: number, y: number): string {
 }
 
 // Local grid: 10 wide (x), 5 deep (z), body 10 high + chimney to 14.
-function buildFireplace(v: Vox) {
-  const stone = '#d7b98e';
+function buildFireplace(v: Vox, tier: number, style: Readonly<Record<string, unknown>>) {
+  const stone = paletteColor(style, 'stone', '#d7b98e');
   const stoneLight = '#ead1aa';
-  const woodLight = '#a86b3b';
+  const wood = paletteColor(style, 'wood', room.mantel);
+  const woodLight = paletteColor(style, 'wood', '#a86b3b');
+  const metal = paletteColor(style, 'metal', '#ad8a4e');
 
   // Brick body, mortar-jointed courses.
   for (let x = 0; x < 8; x++) {
@@ -55,9 +58,9 @@ function buildFireplace(v: Vox) {
 
   // Deep layered mantel with two block corbels underneath.
   v.box(0, 9, 0, 8, 1, 4, room.woodDark);
-  v.box(0, 8, 2, 2, 1, 2, room.mantel);
-  v.box(6, 8, 2, 2, 1, 2, room.mantel);
-  v.box(-1, 10, 0, 10, 1, 4, room.mantel);
+  v.box(0, 8, 2, 2, 1, 2, wood);
+  v.box(6, 8, 2, 2, 1, 2, wood);
+  v.box(-1, 10, 0, 10, 1, 4, wood);
   v.box(-1, 10, 3, 10, 1, 1, woodLight);
 
   // Brick chimney breast continuing to the wall top.
@@ -90,10 +93,36 @@ function buildFireplace(v: Vox) {
   for (const [x, y] of [[1, 7], [5, 8], [2, 12], [6, 6]] as const) {
     v.set(x, y, 3, '#ce6a4c');
   }
+
+  if (tier >= 2) {
+    // Tier II wraps the original working hearth in a carved stone facade.
+    v.box(0, 1, 4, 1, 7, 1, stone).box(7, 1, 4, 1, 7, 1, stone);
+    v.box(0, 6, 4, 8, 2, 1, stoneLight);
+    v.set(1, 7, 5, stone).set(3, 7, 5, stone).set(4, 7, 5, stone).set(6, 7, 5, stone);
+    v.set(0, 4, 5, metal).set(7, 4, 5, metal);
+  }
+
+  if (tier >= 3) {
+    // Tier III grows the architectural body and crown, without touching the
+    // Fire component below (the emotional flame remains server-state driven).
+    v.box(-1, 1, 1, 1, 9, 3, stone).box(8, 1, 1, 1, 9, 3, stone);
+    v.box(-1, 14, 0, 10, 1, 4, wood).box(0, 15, 1, 8, 1, 2, stoneLight);
+    v.set(1, 15, 3, metal).set(3, 15, 3, metal).set(4, 15, 3, metal).set(6, 15, 3, metal);
+    v.box(3, 11, 4, 2, 3, 1, metal).set(3, 12, 5, '#f0d7b8').set(4, 12, 5, '#cf6657');
+  }
 }
 
 /** Brick voxel fireplace; `position` is the min-corner of its local grid. */
-export function Fireplace({ position }: { position: [number, number, number] }) {
+export function Fireplace({
+  position,
+  tier = 1,
+  style = {},
+}: {
+  position: [number, number, number];
+  tier?: number;
+  style?: Readonly<Record<string, unknown>>;
+}) {
+  const bodyTier = Math.max(1, Math.min(3, Math.trunc(tier)));
   const openHearth = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
     const scene = useSceneStore.getState();
@@ -109,7 +138,11 @@ export function Fireplace({ position }: { position: [number, number, number] }) 
         <boxGeometry args={[3, 3.75, 1.8]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <VoxMesh build={buildFireplace} scale={0.25} />
+      <VoxMesh
+        build={(vox) => buildFireplace(vox, bodyTier, style)}
+        cacheKey={`fireplace:${bodyTier}:${JSON.stringify(style)}`}
+        scale={0.25}
+      />
       <Fire position={[1.0, 0.14, 0.42]} />
       <EmberColumn position={[1.0, 3.55, 0.38]} />
     </group>

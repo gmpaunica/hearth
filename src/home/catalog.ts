@@ -1,6 +1,6 @@
 import type { HomeAssetDefinition, HomeCoupleRig } from './types';
 
-export const HOME_CATALOG_VERSION = 'home-catalog-v3';
+export const HOME_CATALOG_VERSION = 'home-catalog-v4';
 
 const allRotations = [0, 1, 2, 3] as const;
 
@@ -231,6 +231,46 @@ export const GARDEN_HOME_ASSETS = [
   gardenAsset('scarecrow', 'decoration', { width: 1.2, depth: 0.45, height: 2.1 }, ['wood', 'fabric'], { day: 60, renderCost: 8 }),
 ] as const satisfies readonly HomeAssetDefinition[];
 
+const CENTERED_BED_RIG: HomeCoupleRig = {
+  a: { x: -0.42, z: -0.32, rotY: 0.24, seatY: 0.72, approach: { x: -0.42, z: 1.22 }, egress: { x: -0.42, z: 1.22, rotY: 0 } },
+  b: { x: 0.42, z: -0.32, rotY: -0.24, seatY: 0.72, approach: { x: 0.42, z: 1.22 }, egress: { x: 0.42, z: 1.22, rotY: 0 } },
+};
+
+const CENTERED_SETTEE_RIG: HomeCoupleRig = {
+  a: { x: -0.34, z: 0, rotY: 0, seatY: 0.48, approach: { x: -0.34, z: 0.72 }, egress: { x: -0.34, z: 0.72, rotY: 0 } },
+  b: { x: 0.34, z: 0, rotY: 0, seatY: 0.48, approach: { x: 0.34, z: 0.72 }, egress: { x: 0.34, z: 0.72, rotY: 0 } },
+};
+
+const CENTERED_TABLE_RIG: HomeCoupleRig = {
+  a: { x: 0, z: 0.67, rotY: Math.PI, seatY: 0.42, approach: { x: 0.92, z: 0.67 }, egress: { x: 0.92, z: 0.67, rotY: Math.PI / 2 } },
+  b: { x: 0, z: -0.67, rotY: 0, seatY: 0.42, approach: { x: 0.92, z: -0.67 }, egress: { x: 0.92, z: -0.67, rotY: Math.PI / 2 } },
+};
+
+const UPGRADE_FIREPLACE_FUNCTIONAL = {
+  role: 'fireplace', signals: ['fireplace'], poses: ['floor-left', 'floor-right'],
+  approach: [[-2.55, -1.95], [-1.55, -1.95]] as [number, number][],
+  exit: [[-2.55, -1.95], [-1.55, -1.95]] as [number, number][],
+  cameraTarget: [-2.6, 1.2, -3.6] as [number, number, number],
+  reactionAnchor: [1, 2.3, 0.6] as [number, number, number],
+  uiAnchor: [1, 2.9, 0.4] as [number, number, number],
+  clickBounds: { width: 2.5, depth: 1.5, height: 3.5 },
+  effectSockets: ['fire', 'mantel', 'floor-glow'],
+  coupleRig: FOUNDATION_COUPLE_RIGS['core-fireplace'],
+} satisfies HomeAssetDefinition['functional'];
+
+/** First upgrade family: functional replacements keep the same emotional roles. */
+export const HOME_UPGRADE_ASSETS = [
+  asset({ id: 'carved-stone-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 3 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 21, progression: { day: 14, tier: 2 }, functional: UPGRADE_FIREPLACE_FUNCTIONAL, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
+  asset({ id: 'grand-hearth-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 3.5 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 25, progression: { day: 90, tier: 3 }, functional: UPGRADE_FIREPLACE_FUNCTIONAL, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
+  asset({ id: 'cottage-double-bed', category: 'bed', renderer: 'BedroomCatalog', footprint: { width: 1.7, depth: 2.2, height: 1.45 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.15, paletteSlots: ['wood', 'fabric', 'metal'], attachmentSockets: ['bed-left', 'bed-right', 'headboard'], renderCost: 15, progression: { day: 21 }, functional: { role: 'romantic_rest_location', signals: ['romantic'], interactionRig: 'romantic-bed', coupleRig: CENTERED_BED_RIG, effectSockets: ['bed-left', 'bed-right', 'heart'] }, routeEndpoint: true }),
+  asset({ id: 'four-poster-bed', category: 'bed', renderer: 'BedroomCatalog', footprint: { width: 1.8, depth: 2.25, height: 2.35 }, compatibleRooms: ['bedroom'], compatibleSurfaces: ['floor'], collisionClearance: 0.18, paletteSlots: ['wood', 'fabric', 'metal'], attachmentSockets: ['bed-left', 'bed-right', 'headboard'], renderCost: 19, progression: { day: 21 }, functional: { role: 'romantic_rest_location', signals: ['romantic'], interactionRig: 'romantic-bed', coupleRig: CENTERED_BED_RIG, effectSockets: ['bed-left', 'bed-right', 'heart'] }, routeEndpoint: true }),
+  asset({ id: 'bedroom-settee', category: 'seating', renderer: 'BedroomCatalog', footprint: { width: 1.55, depth: 0.8, height: 1.05 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'fabric', 'metal'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 10, progression: { day: 21 }, functional: { role: 'conversation_seating', signals: ['sofa'], interactionRig: 'settee-couple', coupleRig: CENTERED_SETTEE_RIG, effectSockets: ['seat-left', 'seat-right'] }, routeEndpoint: true }),
+  asset({ id: 'slipper-chair', category: 'seating', renderer: 'BedroomCatalog', footprint: { width: 0.75, depth: 0.8, height: 1 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.08, paletteSlots: ['wood', 'fabric', 'metal'], attachmentSockets: [], renderCost: 7, progression: { day: 21 }, functional: {} }),
+  asset({ id: 'bedroom-writing-table', category: 'surface', renderer: 'BedroomCatalog', footprint: { width: 1.45, depth: 1.55, height: 1.05 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.12, paletteSlots: ['wood', 'fabric', 'metal'], attachmentSockets: ['tabletop'], renderCost: 12, progression: { day: 21 }, functional: { role: 'shared_table', signals: ['table'], interactionRig: 'writing-table-couple', coupleRig: CENTERED_TABLE_RIG, effectSockets: ['tabletop', 'chair-near', 'chair-far'] }, routeEndpoint: true }),
+  asset({ id: 'oak-double-wardrobe', category: 'storage', renderer: 'BedroomCatalog', footprint: { width: 1.4, depth: 0.75, height: 2.25 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: [], renderCost: 11, progression: { day: 21 }, functional: {} }),
+  asset({ id: 'linen-press', category: 'storage', renderer: 'BedroomCatalog', footprint: { width: 1.15, depth: 0.65, height: 1.85 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.08, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: ['shelf-top'], renderCost: 9, progression: { day: 21 }, functional: {} }),
+] as const satisfies readonly HomeAssetDefinition[];
+
 export const HOME_ASSETS = [
   asset({ id: 'core-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 2.8 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 18, progression: { day: 0, tier: 1 }, functional: { role: 'fireplace', signals: ['fireplace'], poses: ['floor-left', 'floor-right'], approach: [[-2.55, -1.95], [-1.55, -1.95]], exit: [[-2.55, -1.95], [-1.55, -1.95]], cameraTarget: [-2.6, 1.2, -3.6], reactionAnchor: [1, 2.3, 0.6], uiAnchor: [1, 2.9, 0.4], clickBounds: { width: 2.5, depth: 1.5, height: 3 }, effectSockets: ['fire', 'mantel', 'floor-glow'] }, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
   asset({ id: 'cottage-sofa', category: 'seating', renderer: 'Sofa', footprint: { width: 2.2, depth: 0.9, height: 1.15 }, compatibleRooms: ['living', 'bedroom'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 10, progression: { day: 0 }, functional: { role: 'conversation_seating', signals: ['sofa'], poses: ['sit-left', 'sit-right'], approach: [[0.65, 1.67], [1.55, 1.67]], exit: [[0.65, 1.67], [1.55, 1.67]], cameraTarget: [1.1, 0.8, 0.6], reactionAnchor: [1.1, 1.8, 0.5], uiAnchor: [1.1, 2.1, 0.5], clickBounds: { width: 2.8, depth: 1.4, height: 1.5 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 2.75, minZ: 0, maxZ: 1.25 } }),
@@ -252,6 +292,7 @@ export const HOME_ASSETS = [
   asset({ id: 'greenhouse-portal', category: 'structure', renderer: 'GardenGreenhousePortal', footprint: { width: 1.35, depth: 1.05, height: 1.55 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'foliage'], attachmentSockets: [], renderCost: 12, progression: { day: 30 }, functional: { role: 'greenhouse_portal', route: '/greenhouse' }, routeEndpoint: true }),
   ...INDOOR_HOME_ASSETS,
   ...GARDEN_HOME_ASSETS,
+  ...HOME_UPGRADE_ASSETS,
 ] as const satisfies readonly HomeAssetDefinition[];
 
 export const HOME_ASSET_REGISTRY: ReadonlyMap<string, HomeAssetDefinition> = new Map(
