@@ -242,7 +242,7 @@ begin
     case when p_legacy_full then 'standard' else 'compact' end,
     case when p_legacy_full
       then '{"minX":-4.75,"maxX":5.25,"minZ":-4.50,"maxZ":4.25}'::jsonb
-      else '{"minX":-4.25,"maxX":4.25,"minZ":-4.25,"maxZ":3.75}'::jsonb
+      else '{"minX":-4.75,"maxX":4.25,"minZ":-4.50,"maxZ":3.75}'::jsonb
     end
   ) returning id into living_id;
 
@@ -427,6 +427,30 @@ begin
 end;
 $$;
 
+create or replace function private.authored_home_bounds(
+  p_module text,
+  p_size text,
+  p_garden_tier text default null
+) returns jsonb language sql immutable security definer
+set search_path = pg_catalog as $$
+  select case
+    when p_module = 'living' and p_size = 'compact' then '{"minX":-4.75,"maxX":4.25,"minZ":-4.50,"maxZ":3.75}'::jsonb
+    when p_module = 'living' and p_size = 'standard' then '{"minX":-4.75,"maxX":5.25,"minZ":-4.50,"maxZ":4.25}'::jsonb
+    when p_module = 'living' and p_size = 'large' then '{"minX":-5.75,"maxX":6.25,"minZ":-5.50,"maxZ":5.25}'::jsonb
+    when p_module = 'bedroom' and p_size = 'compact' then '{"minX":2.25,"maxX":6.50,"minZ":-9.25,"maxZ":-4.25}'::jsonb
+    when p_module = 'bedroom' and p_size = 'standard' then '{"minX":1.75,"maxX":7.00,"minZ":-9.75,"maxZ":-4.25}'::jsonb
+    when p_module = 'bedroom' and p_size = 'large' then '{"minX":1.25,"maxX":7.75,"minZ":-10.75,"maxZ":-4.25}'::jsonb
+    when p_module = 'future-room' and p_size = 'compact' then '{"minX":5.00,"maxX":9.00,"minZ":-1.50,"maxZ":2.50}'::jsonb
+    when p_module = 'future-room' and p_size = 'standard' then '{"minX":5.00,"maxX":10.00,"minZ":-2.50,"maxZ":3.50}'::jsonb
+    when p_module = 'future-room' and p_size = 'large' then '{"minX":5.00,"maxX":11.00,"minZ":-3.50,"maxZ":4.50}'::jsonb
+    when p_module = 'garden' and p_garden_tier = 'courtyard' and p_size = 'compact' then '{"minX":-8.75,"maxX":-4.00,"minZ":0.00,"maxZ":5.00}'::jsonb
+    when p_module = 'garden' and p_garden_tier = 'standard' and p_size = 'standard' then '{"minX":-11.75,"maxX":-4.00,"minZ":-2.00,"maxZ":6.00}'::jsonb
+    when p_module = 'garden' and p_garden_tier = 'large' and p_size = 'large' then '{"minX":-15.75,"maxX":-4.00,"minZ":-3.75,"maxZ":7.75}'::jsonb
+    when p_module = 'garden' and p_garden_tier = 'grand' and p_size = 'large' then '{"minX":-18.75,"maxX":-4.00,"minZ":-5.75,"maxZ":9.75}'::jsonb
+    else null
+  end;
+$$;
+
 create or replace function private.validate_home_scene(p_couple_id uuid)
 returns void language plpgsql stable security definer
 set search_path = pg_catalog, public, private as $$
@@ -566,11 +590,14 @@ declare
   request_hash text;
   result jsonb;
   affected integer;
+  room_module text;
+  authored_bounds jsonb;
+  requested_garden_tier text;
 begin
   if uid is null then raise exception 'Authentication required' using errcode = '42501'; end if;
   if request_id is null then raise exception 'request_id is required'; end if;
-  if jsonb_typeof(operations) <> 'array' or jsonb_array_length(operations) > 64
-  then raise exception 'operations must be an array of at most 64 commands'; end if;
+  if jsonb_typeof(operations) <> 'array' or jsonb_array_length(operations) > 256
+  then raise exception 'operations must be an array of at most 256 commands'; end if;
 
   select * into home from public.couples
   where member_a = uid or member_b = uid order by created_at limit 1 for update;
@@ -683,13 +710,27 @@ begin
       if affected = 0 then raise exception 'Object is not part of this home'; end if;
     elsif action = 'resize' then
       room_uuid := (op ->> 'roomId')::uuid;
+      select module_id into room_module from public.home_rooms
+      where id = room_uuid and couple_id = home.id;
+      if room_module is null then raise exception 'Room is not part of this home'; end if;
+      requested_garden_tier := op ->> 'gardenTier';
+      authored_bounds := private.authored_home_bounds(
+        room_module, op ->> 'sizeTier', requested_garden_tier
+      );
+      if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
+        raise exception 'Room resize must use an authored cottage-v2 mask';
+      end if;
       update public.home_rooms set size_tier = op ->> 'sizeTier',
-        bounds = op -> 'bounds', updated_at = now()
+        bounds = authored_bounds, updated_at = now()
       where id = room_uuid and couple_id = home.id
         and op ->> 'sizeTier' in ('compact', 'standard', 'large')
         and jsonb_typeof(op -> 'bounds') = 'object';
       get diagnostics affected = row_count;
       if affected = 0 then raise exception 'Room resize request is invalid'; end if;
+      if room_module = 'garden' then
+        update public.home_states set garden_tier = requested_garden_tier, updated_at = now()
+        where couple_id = home.id;
+      end if;
       -- Objects outside the smaller authored mask are preserved for relocation.
       update public.home_objects o set placement_state = 'needs_spot', updated_at = now()
       from public.home_catalog_assets a, public.home_rooms r
@@ -715,12 +756,19 @@ begin
         op -> 'value'
       ), updated_at = now() where couple_id = home.id;
     elsif action = 'attach_module' then
-      if op ->> 'moduleId' not in ('bedroom', 'future-room')
-        or op ->> 'socketId' not in ('bedroom-north', 'future-east')
+      if (op ->> 'moduleId', op ->> 'socketId') not in (
+        ('bedroom', 'bedroom-north'), ('future-room', 'future-east')
+      )
       then raise exception 'Module does not match an authored cottage-v2 socket'; end if;
-      insert into public.home_rooms (couple_id, module_id, socket_id, size_tier, bounds)
-      values (home.id, op ->> 'moduleId', op ->> 'socketId',
-        coalesce(op ->> 'sizeTier', 'compact'), op -> 'bounds');
+      authored_bounds := private.authored_home_bounds(
+        op ->> 'moduleId', op ->> 'sizeTier', null
+      );
+      if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
+        raise exception 'Module must use an authored cottage-v2 mask';
+      end if;
+      insert into public.home_rooms (id, couple_id, module_id, socket_id, size_tier, bounds)
+      values ((op ->> 'roomId')::uuid, home.id, op ->> 'moduleId', op ->> 'socketId',
+        op ->> 'sizeTier', authored_bounds);
     else
       raise exception 'Unsupported home operation: %', coalesce(action, '<missing>');
     end if;
@@ -837,6 +885,7 @@ revoke execute on function private.ensure_home_state(uuid,boolean) from public, 
 revoke execute on function private.home_has_active_moment(uuid) from public, anon, authenticated;
 revoke execute on function private.home_capabilities(uuid) from public, anon, authenticated;
 revoke execute on function private.home_snapshot(uuid) from public, anon, authenticated;
+revoke execute on function private.authored_home_bounds(text,text,text) from public, anon, authenticated;
 revoke execute on function private.validate_home_scene(uuid) from public, anon, authenticated;
 
 alter table public.home_states replica identity full;

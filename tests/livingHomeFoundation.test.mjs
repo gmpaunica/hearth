@@ -9,6 +9,10 @@ const migration = readFileSync(join(
   root,
   'supabase/migrations/20260822120000_living_home_foundation.sql',
 ), 'utf8');
+const attachmentSafety = readFileSync(join(
+  root,
+  'supabase/migrations/20260822160000_home_attachment_safety.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -51,6 +55,7 @@ test('existing pairs receive cottage-v2 with their visible bedroom, garden, and 
   const ensure = functionBody('private', 'ensure_home_state');
   assert.match(migration, /layout_id\s+text not null default 'cottage-v2'/);
   assert.match(ensure, /p_legacy_full then 'large' else 'courtyard'/);
+  assert.match(ensure, /"minX":-4\.75,"maxX":4\.25,"minZ":-4\.50,"maxZ":3\.75/);
   assert.match(ensure, /'bedroom', 'bedroom-north', 'standard'/);
   for (const seed of [
     'fireplace', 'sofa', 'table', 'rest', 'easel', 'bookshelf', 'fern', 'bed',
@@ -74,11 +79,24 @@ test('snapshot and atomic edit RPCs enforce membership, moments, conflicts, and 
   assert.match(apply, /'catalog_version_mismatch'/);
   assert.match(apply, /private\.home_has_active_moment/);
   assert.match(apply, /private\.validate_home_scene/);
+  assert.match(apply, /private\.authored_home_bounds/);
+  assert.match(apply, /garden_tier = requested_garden_tier/);
   assert.match(apply, /revision = revision \+ 1/);
+  assert.match(apply, /at most 256 commands/);
   for (const operation of [
     'add', 'move', 'rotate', 'restyle', 'attach', 'store', 'replace',
     'resize', 'change_terrain', 'change_finish', 'attach_module',
   ]) assert.match(apply, new RegExp(`'${operation}'`));
+});
+
+test('attachment groups reject invalid graphs and move with their parent', () => {
+  assert.match(attachmentSafety, /unique index if not exists home_objects_attachment_socket_key/);
+  assert.match(attachmentSafety, /Attachment socket is not available on its parent/);
+  assert.match(attachmentSafety, /Attachments cannot form a cycle/);
+  assert.match(attachmentSafety, /Placed attachments must share their parent room/);
+  assert.match(attachmentSafety, /position_x = child\.position_x \+ \(new\.position_x - old\.position_x\)/);
+  assert.match(attachmentSafety, /where child\.parent_object_id = new\.id/);
+  assert.match(attachmentSafety, /sync_home_attachment_placement/);
 });
 
 test('server validation covers authored masks, collisions, routes, roles, water sockets, and budget', () => {
