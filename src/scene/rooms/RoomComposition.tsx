@@ -1,4 +1,4 @@
-import { useHomeProgress } from '@/state/homeProgress';
+import { useHomeStore } from '@/state/homeStore';
 import { room } from '@/theme/hearth';
 import { LockedBedroom, LockedGarden } from '../LockedRoom';
 import { S } from '../shell';
@@ -15,9 +15,11 @@ function buildBedroomThreshold(v: Vox) {
 
 /** Shared topology for the connected dollhouse. */
 export function Room() {
-  const { components } = useHomeProgress();
-  const hasBedroom = components.has('bed');
-  const hasGarden = components.has('garden');
+  const rooms = useHomeStore((state) => state.resolved.rooms);
+  const gardenTier = useHomeStore((state) => state.resolved.gardenTier);
+  const hasBedroom = rooms.some((candidate) => candidate.moduleId === 'bedroom');
+  const hasGarden = gardenTier !== 'courtyard'
+    && rooms.some((candidate) => candidate.moduleId === 'garden');
 
   return (
     <group>

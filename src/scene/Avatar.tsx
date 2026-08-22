@@ -6,7 +6,7 @@ import { CharacterRenderer } from '@/character/CharacterRenderer';
 import type { CharacterColors } from '@/character/characterTypes';
 import type { SignalType } from '@/copy';
 import { consequenceFor } from '@/moments/consequenceCatalog';
-import { useHomeProgress } from '@/state/homeProgress';
+import { useHomeStore } from '@/state/homeStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useSceneStore, type AvatarKey } from '@/state/sceneStore';
 import { atmo } from './atmoState';
@@ -20,7 +20,7 @@ import {
   randomLivingPoint,
   type GroundPoint,
 } from './sceneNavigation';
-import { SPOTS } from './spots';
+import { getSpotPose, SPOTS } from './spots';
 import { Vox } from './voxel';
 
 // A tiny 5×5 icon per signal so a glance across the room reads the *feeling*:
@@ -67,7 +67,7 @@ function chooseAmbientTarget(
   current: GroundPoint,
   tableAvailable: boolean,
 ): MotionTarget {
-  const chair = SPOTS.table[avatar];
+  const chair = getSpotPose('table', avatar);
   if (
     tableAvailable &&
     Math.random() < TABLE_ACTIVITY_CHANCE &&
@@ -103,7 +103,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
   const rightArmRef = useRef<THREE.Group>(null);
 
   const anim = useRef({
-    rotY: SPOTS.idle[avatar].rotY,
+    rotY: getSpotPose('idle', avatar).rotY,
     sit: 0,
     seatY: 0,
     seating: false,
@@ -128,7 +128,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     const active = s.snapshot?.active;
     return active?.author_id === userId ? active.destination : null;
   });
-  const tableAvailable = useHomeProgress().components.has('table');
+  const tableAvailable = useHomeStore((state) => Boolean(state.resolved.roles.shared_table));
   const bubbleRef = useRef<THREE.Group>(null);
 
   useFrame((state, rawDelta) => {
@@ -141,7 +141,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
 
     const scene = useSceneStore.getState();
     const spotId = scene.spots[avatar];
-    const basePose = SPOTS[spotId][avatar];
+    const basePose = getSpotPose(spotId, avatar);
     const actionEvent = [...scene.momentActionEvents]
       .reverse()
       .find((event) => {
@@ -168,7 +168,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     // to an upright body in the middle of a sofa, chair, bench, mat, or bed.
     const applyingSnap = scene.snapAt !== a.seenSnap;
     if (!applyingSnap && spotId !== a.lastSpot) {
-      const previousPose = SPOTS[a.lastSpot][avatar];
+      const previousPose = getSpotPose(a.lastSpot, avatar);
       if (previousPose.seatY > 0 && previousPose.egress) {
         const nearSeat = Math.hypot(
           root.position.x - previousPose.x,
@@ -506,7 +506,7 @@ export function Avatar({ avatar, colors }: { avatar: AvatarKey; colors: Characte
     }
   });
 
-  const start = SPOTS.idle[avatar];
+  const start = getSpotPose('idle', avatar);
   return (
     <group
       ref={rootRef}

@@ -18,6 +18,18 @@ interface WalkableZone {
   maxZ: number;
 }
 
+interface ResolvedNavigationSource {
+  walkableZones: readonly WalkableZone[];
+  colliders: readonly SceneCollider[];
+}
+
+let resolvedNavigationSource: (() => ResolvedNavigationSource) | null = null;
+
+/** Bind the runtime resolver without making this pure geometry module import app state. */
+export function setSceneNavigationSource(source: () => ResolvedNavigationSource) {
+  resolvedNavigationSource = source;
+}
+
 const AVATAR_RADIUS = 0.24;
 const GRID = 0.3;
 const WORLD_MIN_X = -15.7;
@@ -58,8 +70,11 @@ export const SCENE_COLLIDERS: readonly SceneCollider[] = [
   { id: 'bedroom.wardrobe', minX: 5.7, maxX: 6.5, minZ: -8.75, maxZ: -8.15 },
 ] as const;
 
+const activeWalkableZones = () => resolvedNavigationSource?.().walkableZones ?? WALKABLE_ZONES;
+const activeColliders = () => resolvedNavigationSource?.().colliders ?? SCENE_COLLIDERS;
+
 function inZone(point: GroundPoint) {
-  return WALKABLE_ZONES.some(
+  return activeWalkableZones().some(
     (zone) =>
       point.x >= zone.minX &&
       point.x <= zone.maxX &&
@@ -105,7 +120,7 @@ function segmentIntersectsCollider(
 }
 
 export function pointHitsCollider(point: GroundPoint, padding = AVATAR_RADIUS) {
-  return SCENE_COLLIDERS.find((collider) => pointInCollider(point, collider, padding)) ?? null;
+  return activeColliders().find((collider) => pointInCollider(point, collider, padding)) ?? null;
 }
 
 export function isWalkable(point: GroundPoint) {
@@ -177,7 +192,7 @@ export function nearestWalkablePoint(point: GroundPoint) {
 }
 
 function lineIsWalkable(from: GroundPoint, to: GroundPoint) {
-  if (SCENE_COLLIDERS.some((collider) => segmentIntersectsCollider(from, to, collider))) {
+  if (activeColliders().some((collider) => segmentIntersectsCollider(from, to, collider))) {
     return false;
   }
   const distance = Math.hypot(to.x - from.x, to.z - from.z);
@@ -278,7 +293,7 @@ export function segmentHitsCollider(
   to: GroundPoint,
   padding = AVATAR_RADIUS,
 ) {
-  return SCENE_COLLIDERS.find(
+  return activeColliders().find(
     (collider) => segmentIntersectsCollider(from, to, collider, padding),
   ) ?? null;
 }

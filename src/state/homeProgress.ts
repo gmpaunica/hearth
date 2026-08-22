@@ -84,7 +84,7 @@ export const HOME_STAGES: HomeStage[] = [
   },
 ];
 
-/** Fractional days since the home was created (the couple's "together" anchor). */
+/** Fractional active-growth days since pairing completed. */
 export function daysTogether(since: string | null | undefined): number {
   if (!since) return 0;
   const ms = Date.now() - Date.parse(since);
@@ -131,7 +131,7 @@ export function progressForDays(days: number): HomeProgress {
  * reflects the new day), which keeps the scene from re-rendering needlessly.
  */
 export function useHomeProgress(): HomeProgress {
-  const since = useAuthStore((s) => s.couple?.created_at ?? null);
+  const since = useAuthStore((s) => s.couple?.paired_at ?? null);
   return useMemo(
     () => progressForDays(PREVIEW_UNLOCK_ALL ? Infinity : daysTogether(since)),
     [since],

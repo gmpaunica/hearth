@@ -13,6 +13,7 @@ import { useMomentV2Store } from './momentV2Store';
 import { useMomentsSurfaceStore } from './momentsSurfaceStore';
 import { useAvatarStore } from './avatarStore';
 import { useDailyMediaStore } from '@/daily/store';
+import { useHomeStore } from './homeStore';
 
 /**
  * The app's realtime spine. Mounted once at the root, it:
@@ -83,6 +84,32 @@ export function useHearthSync() {
     };
   }, [coupleId, memberB, refreshCouple]);
 
+  // Home edits use a single revision row as their realtime invalidation key.
+  // Either phone refetches the authoritative snapshot after that revision
+  // changes; object tables are never merged piecemeal on the client.
+  useEffect(() => {
+    const home = useHomeStore.getState();
+    if (!coupleId || !memberA || !memberB) {
+      home.reset();
+      return;
+    }
+    void home.refresh();
+    const channel = supabase
+      .channel(`home-revision:${coupleId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'home_states', filter: `couple_id=eq.${coupleId}` },
+        (payload) => {
+          const revision = Number((payload.new as { revision?: unknown }).revision);
+          useHomeStore.getState().invalidate(Number.isFinite(revision) ? revision : undefined);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [coupleId, memberA, memberB]);
+
   // Once both members are present, sync the single v2 moment live. Realtime
   // refreshes data only; it never expands the Moments surface.
   useEffect(() => {
@@ -122,6 +149,7 @@ export function useHearthSync() {
       useMomentsSurfaceStore.getState().setAppVisible(s === 'active');
       if (s === 'active') {
         void refreshCouple();
+        void useHomeStore.getState().refresh();
         void hydrateNow(false);
         void useDailyRitualStore.getState().refresh()
           .then(() => useDrawingStore.getState().load())

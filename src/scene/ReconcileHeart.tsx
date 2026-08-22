@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import { useSceneStore } from '@/state/sceneStore';
 import { atmo } from './atmoState';
-import { SPOTS } from './spots';
+import { getSpotPose } from './spots';
 import { Vox } from './voxel';
 
 const HEART = ['11011', '11111', '11111', '01110', '00100'] as const;
@@ -42,8 +42,8 @@ export function ReconcileHeart() {
     const progress = age / duration;
     const pop = atmo.reduceMotion ? 1 : Math.min(1, progress * 5) * (1 + 0.15 * Math.max(0, 1 - progress * 5));
     group.scale.setScalar(0.85 * pop);
-    const a = SPOTS.romantic.a;
-    const b = SPOTS.romantic.b;
+    const a = getSpotPose('romantic', 'a');
+    const b = getSpotPose('romantic', 'b');
     group.position.set(
       (a.x + b.x) / 2,
       1.55 + (atmo.reduceMotion ? 0 : progress * 0.12),

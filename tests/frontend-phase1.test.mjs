@@ -857,8 +857,13 @@ test('dollhouse uses shared-wall rooms with the garden at the west doorway', () 
   assert.match(livingSource, /const bedroomSocket = ROOM_SOCKETS\.bedroom/);
   assert.match(bedroomSource, /showFrontEdge=\{false\}/);
   assert.doesNotMatch(homeSource, /Kitchen/);
-  assert.match(homeSource, /position=\{\[-4\.28, 1\.2, 1\.08\]\} rotation=\{\[0, Math\.PI \/ 2, 0\]\}/);
-  assert.match(homeSource, /Bookshelf position=\{\[-4\.18, 0, -2\.35\]\}/);
+  const homeLayoutSource = read('src/home/layouts.ts');
+  const homeCatalogSource = read('src/home/catalog.ts');
+  assert.match(homeSource, /position=\{easel\.renderPosition\} rotation=\{\[0, easel\.rotationY, 0\]\}/);
+  assert.match(homeLayoutSource, /'drawing-easel', \[-4\.28, 0, 1\.08\], 1/);
+  assert.match(homeCatalogSource, /renderOffset: \[0, 1\.2, 0\]/);
+  assert.match(homeSource, /Bookshelf position=\{bookshelf\.renderPosition\}/);
+  assert.match(homeLayoutSource, /'cottage-bookshelf', \[-4\.18, 0, -2\.35\]/);
   const drawingWidth = 16 * 0.125;
   const drawingMinZ = 1.08 - drawingWidth;
   const bookshelfMaxZ = -2.35 + 7 * 0.2;
@@ -1004,7 +1009,7 @@ test('daily drawing is immediate and avatars walk briskly to random safe idle po
   assert.match(avatarSource, /const WALK_CADENCE = 10\.2/);
   assert.match(avatarSource, /randomLivingPoint\(/);
   assert.match(avatarSource, /const TABLE_ACTIVITY_CHANCE = 0\.3/);
-  assert.match(avatarSource, /const chair = SPOTS\.table\[avatar\]/);
+  assert.match(avatarSource, /const chair = getSpotPose\('table', avatar\)/);
   assert.doesNotMatch(avatarSource, /AMBIENT_ROUTES|ambientIndex/);
   assert.match(avatarSource, /a\.ambientWait = 5 \+ Math\.random\(\) \* 4/);
   assert.match(avatarSource, /planPath\(/);

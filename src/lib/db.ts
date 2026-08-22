@@ -8,6 +8,8 @@ export interface Couple {
   member_a: string;
   member_b: string | null;
   home_timezone?: string | null;
+  /** Server-owned relationship growth anchor, set when member B joins. */
+  paired_at?: string | null;
   created_at: string;
 }
 

@@ -2,8 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect } from 'react';
 import * as THREE from 'three';
 
-import { useHomeProgress } from '@/state/homeProgress';
 import { useAvatarStore } from '@/state/avatarStore';
+import { useHomeStore } from '@/state/homeStore';
 import { appearanceToAvatarColors } from '@/state/avatarAppearance';
 import { Atmosphere } from './Atmosphere';
 import { HOME_CAMERA_FRAME, camState, publishFocusedRoom } from './cameraState';
@@ -25,6 +25,7 @@ import { Sofa } from './objects/Sofa';
 import { TableSet } from './objects/TableSet';
 import { Easel } from './objects/Easel';
 import { GardenGreenhousePortal } from './objects/GardenGreenhousePortal';
+import { Bed } from './objects/Bed';
 
 // Frame the floor slightly above screen centre so the detailed home occupies
 // the visual field beneath the quiet header instead of sitting low in empty sky.
@@ -104,11 +105,25 @@ function CameraRig() {
 
 /** Everything inside the Canvas: the shared voxel home. */
 export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) {
-  // The home fills in as the relationship grows (see homeProgress). Day 0 is
-  // just the room and the fire; the rest arrives at milestones.
-  const { components } = useHomeProgress();
+  const scene = useHomeStore((state) => state.resolved);
   const avatarA = useAvatarStore((s) => s.appearances.a);
   const avatarB = useAvatarStore((s) => s.appearances.b);
+  const placed = (assetId: string) => scene.objects.find(
+    (object) => object.assetId === assetId && object.placementState === 'placed',
+  );
+  const fireplace = placed('core-fireplace');
+  const restNook = placed('rest-nook');
+  const sofa = placed('cottage-sofa');
+  const table = placed('shared-table');
+  const bookshelf = placed('cottage-bookshelf');
+  const easel = placed('drawing-easel');
+  const fern = placed('potted-fern');
+  const greenhouse = placed('greenhouse-portal');
+  const compactBed = scene.objects.find((object) =>
+    object.assetId === 'romantic-daybed'
+    && object.placementState === 'placed'
+    && scene.rooms.find((room) => room.id === object.roomId)?.moduleId === 'living',
+  );
 
   // Scene identity is global, not device-relative: member A is always the red
   // A avatar and member B is always the green B avatar on both phones.
@@ -116,7 +131,7 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
   // the edges. Free pan and pinch remain available whether rooms are locked or
   // furnished, so progression stays visible from day one.
   useEffect(() => {
-    const initialFocus = ROOM_STOPS[initialRoom];
+    const initialFocus = scene.cameraStops[initialRoom] ?? ROOM_STOPS[initialRoom];
     camState.offX = initialFocus.x;
     camState.offZ = initialFocus.z;
     camState.velocityX = 0;
@@ -129,26 +144,31 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
     // living-room position, so it cannot appear as a clipped triangle.
     camState.viewW = HOME_CAMERA_FRAME.viewW;
     camState.viewH = HOME_CAMERA_FRAME.viewH;
-  }, [initialRoom]);
+  }, [initialRoom, scene.cameraStops]);
   return (
     <>
       <CameraRig />
       <Atmosphere />
       <Room />
-      {components.has('garden') && <GardenGreenhousePortal />}
-      {components.has('fireplace') && <Fireplace position={[-3.2, 0, -3.85]} />}
-      {components.has('fireplace') && <FireplaceOutcomes />}
+      {greenhouse && <GardenGreenhousePortal />}
+      {fireplace && <Fireplace position={fireplace.renderPosition} />}
+      {fireplace && <FireplaceOutcomes />}
       {/* Tucked away from the dining and doorway zones; the coral sofa stays primary. */}
-      {components.has('restnook') && <RestNook position={[-3.15, 0, 3.2]} />}
-      {components.has('sofa') && <Sofa position={[-0.4, 0, -3.95]} />}
-      {components.has('table') && <TableSet position={[-0.35, 0, 0.5]} />}
-      {components.has('bookshelf') && <Bookshelf position={[-4.18, 0, -2.35]} />}
-      {components.has('easel') && (
-        <group position={[-4.28, 1.2, 1.08]} rotation={[0, Math.PI / 2, 0]}>
+      {restNook && <RestNook position={restNook.renderPosition} />}
+      {sofa && <Sofa position={sofa.renderPosition} />}
+      {table && <TableSet position={table.renderPosition} />}
+      {bookshelf && <Bookshelf position={bookshelf.renderPosition} />}
+      {easel && (
+        <group position={easel.renderPosition} rotation={[0, easel.rotationY, 0]}>
           <Easel position={[0, 0, 0]} />
         </group>
       )}
-      {components.has('plants') && <Plant position={[4.25, 0, 0.7]} phase={2.1} scale={0.4} />}
+      {fern && <Plant position={fern.renderPosition} phase={2.1} scale={0.4} />}
+      {compactBed && (
+        <group position={compactBed.renderPosition} rotation={[0, compactBed.rotationY, 0]}>
+          <Bed position={[0, 0, 0]} />
+        </group>
+      )}
       <Rain />
       <Sparkles />
       <MomentSceneDetails />

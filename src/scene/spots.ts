@@ -14,6 +14,18 @@ export interface SpotPose {
   egress?: { x: number; z: number; rotY: number };
 }
 
+let resolvedSpotSource: (() => Partial<Record<SpotId, Record<AvatarKey, SpotPose>>>) | null = null;
+
+export function setSpotSource(
+  source: () => Partial<Record<SpotId, Record<AvatarKey, SpotPose>>>,
+) {
+  resolvedSpotSource = source;
+}
+
+export function getSpotPose(spot: SpotId, avatar: AvatarKey): SpotPose {
+  return resolvedSpotSource?.()[spot]?.[avatar] ?? SPOTS[spot][avatar];
+}
+
 // Isometric corner room: back wall at z=-3.25, left wall at x=-3.25,
 // floor open toward +x/+z (the camera looks in from (+,+)).
 export const SPOTS: Record<SpotId, Record<AvatarKey, SpotPose>> = {

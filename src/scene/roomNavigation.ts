@@ -14,12 +14,22 @@ export const ROOM_STOPS: Record<RoomId, RoomStop> = {
   bedroom: { id: 'bedroom', x: 4.5, z: -6.5 },
 };
 
+let resolvedRoomStops: (() => Partial<Record<RoomId, RoomStop>>) | null = null;
+
+/** Runtime rooms come from resolveHomeScene; constants remain the safe 1.0.4 frame. */
+export function setRoomNavigationSource(source: () => Partial<Record<RoomId, RoomStop>>) {
+  resolvedRoomStops = source;
+}
+
 export const ROOM_UNLOCK_DAYS: Record<Exclude<RoomId, 'living'>, number> = {
   bedroom: 21,
   garden: 30,
 };
 
-const roomStops = Object.values(ROOM_STOPS);
+const activeRoomStops = () => {
+  const resolved = resolvedRoomStops?.();
+  return resolved ? Object.values(resolved) : Object.values(ROOM_STOPS);
+};
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -50,7 +60,7 @@ export function clampCameraOffset(
 export function nearestRoom(x: number, z: number): { stop: RoomStop; distance: number } {
   let stop = ROOM_STOPS.living;
   let distance = Number.POSITIVE_INFINITY;
-  for (const candidate of roomStops) {
+  for (const candidate of activeRoomStops()) {
     const nextDistance = Math.hypot(x - candidate.x, z - candidate.z);
     if (nextDistance < distance) {
       stop = candidate;
