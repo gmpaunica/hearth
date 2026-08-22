@@ -25,6 +25,10 @@ const upgradeCatalog = readFileSync(join(
   root,
   'supabase/migrations/20260822190000_home_upgrade_catalog.sql',
 ), 'utf8');
+const advancedGardenCatalog = readFileSync(join(
+  root,
+  'supabase/migrations/20260822200000_advanced_garden_catalog.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -169,6 +173,20 @@ test('catalog v4 adds functional fireplace and bedroom replacement families', ()
     assert.match(upgradeCatalog, new RegExp(`"role":"${role}"`));
   }
   assert.match(upgradeCatalog, /"effectSockets":\["fire","mantel","floor-glow"\]/);
+});
+
+test('catalog v5 adds grand landmarks and seasonal garden families', () => {
+  assert.equal((advancedGardenCatalog.match(/"id":"/g) ?? []).length, 8);
+  for (const id of [
+    'rose-gazebo', 'stone-pergola', 'moon-gate-sculpture', 'dove-garden-sculpture',
+    'spring-tulip-bed', 'summer-sunflower-bed', 'autumn-mum-bed', 'winter-holly-planter',
+  ]) assert.match(advancedGardenCatalog, new RegExp(`"id":"${id}"`));
+  for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+    assert.match(advancedGardenCatalog, new RegExp(`"season":"${season}"`));
+  }
+  assert.match(advancedGardenCatalog, /'home-catalog-v5'/);
+  assert.match(advancedGardenCatalog, /"interactionRig":"garden-couple"/);
+  assert.match(advancedGardenCatalog, /"style_variants":"cottage,brass,forest"/);
 });
 
 test('paired_at is server-owned and every membership epoch purge clears all shared home state', () => {
