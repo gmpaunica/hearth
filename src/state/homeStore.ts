@@ -15,8 +15,11 @@ interface HomeState {
   resolved: ResolvedHomeScene;
   status: HomeLoadStatus;
   error: string | null;
+  previewing: boolean;
   refresh: () => Promise<void>;
   ingestSnapshot: (snapshot: HomeSnapshot) => void;
+  previewSnapshot: (snapshot: HomeSnapshot) => void;
+  clearPreview: () => void;
   invalidate: (revision?: number) => void;
   reset: () => void;
 }
@@ -34,6 +37,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   resolved: fallbackResolved,
   status: 'fallback',
   error: null,
+  previewing: false,
 
   refresh: async () => {
     if (refreshInFlight) return refreshInFlight;
@@ -60,12 +64,22 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     return request;
   },
 
-  ingestSnapshot: (snapshot) => set({
+  ingestSnapshot: (snapshot) => set((state) => ({
     snapshot,
-    resolved: resolveHomeScene(snapshot),
+    resolved: state.previewing ? state.resolved : resolveHomeScene(snapshot),
     status: 'ready',
     error: null,
+  })),
+
+  previewSnapshot: (snapshot) => set({
+    resolved: resolveHomeScene(snapshot),
+    previewing: true,
   }),
+
+  clearPreview: () => set((state) => ({
+    resolved: resolveHomeScene(state.snapshot),
+    previewing: false,
+  })),
 
   invalidate: (revision) => {
     if (revision !== undefined && revision <= get().snapshot.revision) return;
@@ -80,6 +94,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       resolved: fallbackResolved,
       status: 'fallback',
       error: null,
+      previewing: false,
     });
   },
 }));

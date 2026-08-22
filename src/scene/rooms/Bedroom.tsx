@@ -1,4 +1,3 @@
-import { Bed } from '../objects/Bed';
 import { PlatformFx } from '../PlatformFx';
 import { BEDROOM_OFFSET, S, buildCornerShell } from '../shell';
 import { VoxMesh } from '../VoxMesh';
@@ -48,32 +47,6 @@ export function Bedroom() {
         <meshBasicMaterial color="#ffd89a" toneMapped={false} />
       </mesh>
       <VoxMesh build={buildNookRug} scale={S} meshScale={[1, 0.22, 1]} position={[-1.25, 0, -0.75]} />
-      <Bed position={[-0.875, 0, -2.25]} />
-      <VoxMesh
-        scale={0.18}
-        position={[-2.05, 0, -2.0]}
-        build={(v) => {
-          v.box(0, 0, 0, 4, 3, 3, '#754830');
-          v.box(-1, 3, -1, 6, 1, 5, '#9b6041');
-          v.box(1, 1, 3, 2, 1, 1, '#c58d63');
-          v.box(1, 4, 1, 2, 2, 2, '#e6c8aa');
-          v.set(1, 6, 1, '#ffc977');
-        }}
-      />
-      <VoxMesh
-        scale={0.2}
-        position={[1.2, 0, -2.25]}
-        build={(v) => {
-          v.box(0, 0, 0, 5, 11, 4, '#75472f');
-          v.box(-1, 11, -1, 7, 1, 6, '#955a3b');
-          v.box(1, 1, 4, 1, 8, 1, '#9e6549');
-          v.box(3, 1, 4, 1, 8, 1, '#9e6549');
-          v.box(2, 1, 4, 1, 8, 1, '#5f3b2d');
-          v.set(1, 5, 5, '#dfb26e');
-          v.set(3, 5, 5, '#dfb26e');
-          v.box(0, 0, 4, 5, 1, 1, '#5e392b');
-        }}
-      />
       <PlatformFx x0={-2.75} x1={2.5} z0={-2.75} z1={2.25} showFrontEdge={false} />
     </group>
   );

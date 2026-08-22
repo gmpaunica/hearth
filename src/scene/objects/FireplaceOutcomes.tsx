@@ -114,15 +114,21 @@ function MoreTime({ complete, returned }: { complete: boolean; returned: boolean
 }
 
 const SOCKETS: Record<FireplacePathwayId, [number, number, number]> = {
-  stay_close: [-3.45, 0.16, -2.52],
-  talk_through: [-2.95, 2.92, -3.0],
-  hear_first: [-2.35, 2.92, -3.0],
-  acknowledge_hurt: [-2.55, 1.65, -2.86],
-  apologize: [-1.72, 2.92, -3.0],
-  more_time: [-1.28, 0.12, -2.7],
+  stay_close: [-0.25, 0.16, 1.33],
+  talk_through: [0.25, 2.92, 0.85],
+  hear_first: [0.85, 2.92, 0.85],
+  acknowledge_hurt: [0.65, 1.65, 0.99],
+  apologize: [1.48, 2.92, 0.85],
+  more_time: [1.92, 0.12, 1.15],
 };
 
-export function FireplaceOutcomes() {
+export function FireplaceOutcomes({
+  position,
+  rotationY,
+}: {
+  position: [number, number, number];
+  rotationY: number;
+}) {
   const snapshot = useMomentV2Store((state) => state.snapshot);
   const complete = useMemo(() => new Set(
     (snapshot?.today_outcomes ?? [])
@@ -134,7 +140,7 @@ export function FireplaceOutcomes() {
     : null;
 
   return (
-    <>
+    <group position={position} rotation={[0, rotationY, 0]}>
       {(Object.keys(SOCKETS) as FireplacePathwayId[]).map((pathway) => {
         const isComplete = complete.has(pathway);
         const isOpen = activePathway === pathway;
@@ -159,6 +165,6 @@ export function FireplaceOutcomes() {
           </group>
         );
       })}
-    </>
+    </group>
   );
 }

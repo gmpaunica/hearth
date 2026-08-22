@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
 
+import { useHomeStore } from '@/state/homeStore';
 import { useWorldAnchorStore, type ProjectedWorldAnchor, type WorldAnchorId } from '@/state/worldAnchorStore';
 
 const WORLD_ANCHORS: Record<WorldAnchorId, [number, number, number]> = {
@@ -23,12 +24,28 @@ export function WorldAnchorProjector() {
   const size = useThree((state) => state.size);
   const vector = useRef(new THREE.Vector3());
   const frame = useRef(0);
+  const scene = useHomeStore((state) => state.resolved);
+  const resolvedAnchor = (role: keyof typeof scene.roles, fallback: [number, number, number]) => {
+    const object = scene.roles[role];
+    return object ? scene.overlayAnchors[object.id] ?? fallback : fallback;
+  };
+  const fireplace = resolvedAnchor('fireplace', WORLD_ANCHORS.fireplace);
+  const worldAnchors: Record<WorldAnchorId, [number, number, number]> = {
+    fireplace,
+    garden: resolvedAnchor('garden_portal', WORLD_ANCHORS.garden),
+    sofa: resolvedAnchor('conversation_seating', WORLD_ANCHORS.sofa),
+    table: resolvedAnchor('shared_table', WORLD_ANCHORS.table),
+    rest: resolvedAnchor('rest_location', WORLD_ANCHORS.rest),
+    romantic: resolvedAnchor('romantic_rest_location', WORLD_ANCHORS.romantic),
+    drawing: resolvedAnchor('drawing_portal', WORLD_ANCHORS.drawing),
+    fireplace_readiness: [fireplace[0], fireplace[1] + 0.38, fireplace[2]],
+  };
 
   useFrame(() => {
     frame.current += 1;
     if (frame.current % 3 !== 0) return;
     const projected: Partial<Record<WorldAnchorId, ProjectedWorldAnchor>> = {};
-    for (const [anchor, world] of Object.entries(WORLD_ANCHORS) as [WorldAnchorId, [number, number, number]][]) {
+    for (const [anchor, world] of Object.entries(worldAnchors) as [WorldAnchorId, [number, number, number]][]) {
       vector.current.set(...world).project(camera);
       projected[anchor] = {
         x: (vector.current.x * 0.5 + 0.5) * size.width,

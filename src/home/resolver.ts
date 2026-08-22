@@ -134,8 +134,9 @@ export function resolveHomeScene(snapshot: HomeSnapshot): ResolvedHomeScene {
     const role = object.definition.functional.role;
     if (role && !roles[role]) roles[role] = object;
     const anchor = object.definition.functional.uiAnchor;
-    overlayAnchors[object.id] = anchor
-      ? [object.position[0] + anchor[0], object.position[1] + anchor[1], object.position[2] + anchor[2]]
+    const rotatedAnchor = anchor ? rotatePoint(anchor[0], anchor[2], object.rotationY) : null;
+    overlayAnchors[object.id] = anchor && rotatedAnchor
+      ? [object.position[0] + rotatedAnchor.x, object.position[1] + anchor[1], object.position[2] + rotatedAnchor.z]
       : [object.position[0], object.position[1] + object.definition.footprint.height, object.position[2]];
     const rig = object.definition.functional.coupleRig;
     if (rig) {

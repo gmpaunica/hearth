@@ -1,7 +1,6 @@
 import { room } from '@/theme/hearth';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
-import { DailyCamera } from './MediaConsole';
 
 // Rich but warm spine colors: enough variation to read as a treasured, lived-in
 // collection without fighting the room's coral/sage focal points.
@@ -52,12 +51,5 @@ function buildShelf(v: Vox) {
 
 /** Tall packed bookshelf against the left wall (finer 0.2 grid for spines). */
 export function Bookshelf({ position }: { position: [number, number, number] }) {
-  const [x, y, z] = position;
-  return (
-    <group>
-      <VoxMesh build={buildShelf} scale={0.2} position={position} />
-      {/* The instant camera replaces the oversized trailing plant on the crown. */}
-      <DailyCamera position={[x + 0.52, y + 3.04, z + 0.2]} rotation={[0, -Math.PI / 2, 0]} />
-    </group>
-  );
+  return <VoxMesh build={buildShelf} scale={0.2} position={position} />;
 }

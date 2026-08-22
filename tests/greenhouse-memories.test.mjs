@@ -47,12 +47,14 @@ test('garden and accessible home controls both open the greenhouse route', () =>
   const portal = read('src/scene/objects/GardenGreenhousePortal.tsx');
   const button = read('src/components/GreenhouseButton.tsx');
   const home = read('src/scene/HomeScene.tsx');
+  const renderer = read('src/scene/HomeObjectRenderer.tsx');
   const index = read('src/app/index.tsx');
   assert.match(portal, /router\.push\('\/greenhouse'/);
-  assert.match(portal, /GARDEN_OFFSET/);
+  assert.match(portal, /position\?: \[number, number, number\]/);
   assert.match(button, /router\.push\('\/greenhouse'/);
   assert.match(button, /components\.has\('garden'\)/);
-  assert.match(home, /<GardenGreenhousePortal/);
+  assert.match(home, /<HomeObjectRenderer/);
+  assert.match(renderer, /case 'GardenGreenhousePortal'/);
   assert.match(index, /<GreenhouseButton/);
 });
 

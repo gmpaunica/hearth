@@ -1,5 +1,6 @@
 import type { RoomId } from './roomNavigation';
 import type { MomentDestination } from '@/lib/db';
+import { getResolvedHomeScene } from '@/state/homeStore';
 
 /** Close, readable default frame. Neighbouring rooms remain discoverable by
  * panning; the home no longer shrinks to a thumbnail just to fit every edge. */
@@ -49,16 +50,26 @@ const FOCUS_OFFSETS: Record<MomentDestination, { x: number; z: number }> = {
   romantic: { x: 4.5, z: -6.5 },
 };
 
+function resolvedFocus(destination: MomentDestination) {
+  const spot = getResolvedHomeScene().interactionSpots[destination];
+  if (!spot) return FOCUS_OFFSETS[destination];
+  return {
+    x: (spot.a.x + spot.b.x) / 2,
+    z: (spot.a.z + spot.b.z) / 2,
+  };
+}
+
 export function requestMomentCameraFocus(destination: MomentDestination, instant = false) {
   if (!momentRestore) {
     momentRestore = { x: camState.offX, z: camState.offZ, zoomMul: camState.zoomMul, instant };
   }
+  const focus = resolvedFocus(destination);
   if (instant) {
-    camState.offX = FOCUS_OFFSETS[destination].x;
-    camState.offZ = FOCUS_OFFSETS[destination].z;
+    camState.offX = focus.x;
+    camState.offZ = focus.z;
     camState.focusTarget = null;
   } else {
-    camState.focusTarget = FOCUS_OFFSETS[destination];
+    camState.focusTarget = focus;
   }
   camState.velocityX = 0;
   camState.velocityZ = 0;

@@ -10,6 +10,31 @@ import { HOME_CATALOG_VERSION } from './catalog';
 
 export const COTTAGE_V2_LAYOUT_ID = 'cottage-v2' as const;
 
+export const COTTAGE_V2_ROOM_MASKS = {
+  living: {
+    compact: { minX: -4.75, maxX: 4.25, minZ: -4.5, maxZ: 3.75 },
+    standard: { minX: -4.75, maxX: 5.25, minZ: -4.5, maxZ: 4.25 },
+    large: { minX: -5.75, maxX: 6.25, minZ: -5.5, maxZ: 5.25 },
+  },
+  bedroom: {
+    compact: { minX: 2.25, maxX: 6.5, minZ: -9.25, maxZ: -4.25 },
+    standard: { minX: 1.75, maxX: 7, minZ: -9.75, maxZ: -4.25 },
+    large: { minX: 1.25, maxX: 7.75, minZ: -10.75, maxZ: -4.25 },
+  },
+  'future-room': {
+    compact: { minX: 5, maxX: 9, minZ: -1.5, maxZ: 2.5 },
+    standard: { minX: 5, maxX: 10, minZ: -2.5, maxZ: 3.5 },
+    large: { minX: 5, maxX: 11, minZ: -3.5, maxZ: 4.5 },
+  },
+} as const;
+
+export const COTTAGE_V2_GARDEN_MASKS = {
+  courtyard: { sizeTier: 'compact', bounds: { minX: -8.75, maxX: -4, minZ: 0, maxZ: 5 } },
+  standard: { sizeTier: 'standard', bounds: { minX: -11.75, maxX: -4, minZ: -2, maxZ: 6 } },
+  large: { sizeTier: 'large', bounds: { minX: -15.75, maxX: -4, minZ: -3.75, maxZ: 7.75 } },
+  grand: { sizeTier: 'large', bounds: { minX: -18.75, maxX: -4, minZ: -5.75, maxZ: 9.75 } },
+} as const;
+
 export const COTTAGE_V2_ROOMS: readonly HomeRoomSnapshot[] = [
   { id: 'fallback-room-living', moduleId: 'living', socketId: 'hub', sizeTier: 'standard', bounds: { minX: -4.75, maxX: 5.25, minZ: -4.5, maxZ: 4.25 }, finish: {} },
   { id: 'fallback-room-bedroom', moduleId: 'bedroom', socketId: 'bedroom-north', sizeTier: 'standard', bounds: { minX: 1.75, maxX: 7, minZ: -9.75, maxZ: -4.25 }, finish: {} },

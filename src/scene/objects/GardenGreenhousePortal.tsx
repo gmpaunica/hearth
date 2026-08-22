@@ -1,7 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { router } from 'expo-router';
 
-import { GARDEN_OFFSET } from '../shell';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
 
@@ -28,7 +27,11 @@ function buildGardenGreenhousePortal(v: Vox) {
   v.set(4, 3, 6, '#e4b96f');
 }
 
-export function GardenGreenhousePortal() {
+export function GardenGreenhousePortal({
+  position = [0, 0, 0],
+}: {
+  position?: [number, number, number];
+}) {
   const openGreenhouse = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
     router.push('/greenhouse' as never);
@@ -36,11 +39,7 @@ export function GardenGreenhousePortal() {
 
   return (
     <group
-      position={[
-        GARDEN_OFFSET[0] - 6.25,
-        GARDEN_OFFSET[1],
-        GARDEN_OFFSET[2] - 2.25,
-      ]}
+      position={position}
       rotation={[0, Math.PI / 7, 0]}
       onClick={openGreenhouse}
     >

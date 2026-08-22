@@ -277,7 +277,13 @@ const sunbeamFragment = /* glsl */ `
 
 const decalVertex = voidVertex;
 
-function FireGlowDecal() {
+export function FireGlowDecal({
+  position,
+  rotationY,
+}: {
+  position: [number, number, number];
+  rotationY: number;
+}) {
   const poolMat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -311,16 +317,18 @@ function FireGlowDecal() {
     streakMat.uniforms.uIntensity.value = atmo.fire * flicker;
   });
   return (
-    <group>
-      <mesh position={[-2.2, 0.02, -3.15]} rotation={[-Math.PI / 2, 0, 0]} material={poolMat}>
-        <planeGeometry args={[2.9, 2.1]} />
-      </mesh>
-      <mesh position={[-2.2, 0.018, -1.85]} rotation={[-Math.PI / 2, 0, 0]} material={streakMat}>
-        <planeGeometry args={[1.1, 2.6]} />
-      </mesh>
-      <mesh position={[-2.2, 1.35, -4.23]} material={poolMat}>
-        <planeGeometry args={[3.4, 2.7]} />
-      </mesh>
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <group position={[3.2, 0, 3.85]}>
+        <mesh position={[-2.2, 0.02, -3.15]} rotation={[-Math.PI / 2, 0, 0]} material={poolMat}>
+          <planeGeometry args={[2.9, 2.1]} />
+        </mesh>
+        <mesh position={[-2.2, 0.018, -1.85]} rotation={[-Math.PI / 2, 0, 0]} material={streakMat}>
+          <planeGeometry args={[1.1, 2.6]} />
+        </mesh>
+        <mesh position={[-2.2, 1.35, -4.23]} material={poolMat}>
+          <planeGeometry args={[3.4, 2.7]} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -363,7 +371,6 @@ export function LivingRoom() {
       <VoxMesh build={buildFireRug} scale={S} meshScale={[1, 0.22, 1]} position={[-2.85, 0, -2.9]} />
       <VoxMesh build={buildCenterRug} scale={S} meshScale={[1, 0.22, 1]} position={[-1.2, 0, -0.55]} />
       <SkyBackdrop />
-      <FireGlowDecal />
       <WindowSunbeams />
       <PlatformFx x0={-4.5} x1={5.25} z0={-4.5} z1={4.25} />
     </group>

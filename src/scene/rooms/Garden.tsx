@@ -2,8 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import type { GardenTier } from '@/home/types';
 import { atmo } from '../atmoState';
-import { Bench } from '../objects/Bench';
 import { PlatformFx } from '../PlatformFx';
 import { GARDEN_OFFSET, S } from '../shell';
 import { VoxMesh } from '../VoxMesh';
@@ -211,7 +211,7 @@ function placeKoi(
   fish.rotation.y = Math.atan2(-dz, dx);
 }
 
-function KoiPond() {
+export function KoiPond({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
   const sunset = useRef<THREE.Group>(null);
   const blush = useRef<THREE.Group>(null);
   const golden = useRef<THREE.Group>(null);
@@ -243,7 +243,7 @@ function KoiPond() {
   });
 
   return (
-    <group position={[-1.7, 0.02, 2.05]}>
+    <group position={position}>
       <VoxMesh build={buildKoiPond} scale={0.21} jitter={0.025} />
       <mesh position={[1.68, 0.195, 1.05]} rotation={[-Math.PI / 2, 0, 0]} material={waterMaterial}>
         <planeGeometry args={[2.74, 1.42]} />
@@ -317,7 +317,7 @@ function buildGardenLantern(v: Vox) {
   v.box(2, 13, 2, 2, 1, 2, '#7a4b37');
 }
 
-function GardenLantern({ position }: { position: [number, number, number] }) {
+export function GardenLantern({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <VoxMesh build={buildGardenLantern} scale={0.105} />
@@ -344,19 +344,47 @@ function buildRoseBush(v: Vox) {
   ] as const) v.set(x, y, z, c);
 }
 
-export function Garden() {
+function buildCourtyardPlatform(v: Vox) {
+  const x0 = -5, x1 = 14, z0 = -10, z1 = 10;
+  v.box(x0 - 1, -4, z0 - 1, x1 - x0 + 2, 3, z1 - z0 + 2, '#54362a');
+  for (let x = x0; x <= x1; x++) {
+    for (let z = z0; z <= z1; z++) {
+      const clover = ((x * 7 + z * 11) % 9 + 9) % 9;
+      v.set(x, -1, z, clover < 2 ? '#788b49' : (x + z) % 2 ? '#6f8244' : '#667a3e');
+    }
+  }
+  v.box(x0 - 1, 0, z0 - 1, x1 - x0 + 2, 3, 1, '#3f6638');
+  v.box(x0 - 1, 0, z0 - 1, 1, 3, z1 - z0 + 2, '#395f35');
+  v.box(x0, 0, z1, x1 - x0 + 1, 2, 1, '#42693a');
+  for (const [x, z] of [[11, 0], [7, 0], [3, 1], [-1, 1]] as const) {
+    v.box(x, 0, z, 3, 1, 2, '#dfc3a1');
+  }
+}
+
+export function RoseBush({ position }: { position: [number, number, number] }) {
+  return <VoxMesh build={buildRoseBush} scale={0.12} position={position} />;
+}
+
+export function BlossomTree({ position }: { position: [number, number, number] }) {
+  return <VoxMesh build={buildCherryTree} scale={0.17} position={position} />;
+}
+
+export function GardenThreshold() {
+  return <VoxMesh build={buildGardenGateway} scale={S} position={[-3.05, 0, 0]} />;
+}
+
+export function Garden({ tier }: { tier: GardenTier }) {
+  const courtyard = tier === 'courtyard';
   return (
     <group position={[...GARDEN_OFFSET]}>
-      <VoxMesh build={buildGardenPlatform} scale={S} />
-      <VoxMesh build={buildGardenGateway} scale={S} />
-      <VoxMesh build={buildCherryTree} scale={0.17} position={[-7, 0, -5.2]} />
-      <KoiPond />
-      <VoxMesh build={buildRoseBush} scale={0.12} position={[-7.2, 0, 2.7]} />
-      <VoxMesh build={buildRoseBush} scale={0.12} position={[1.7, 0, -4.7]} rotation={[0, Math.PI / 2, 0]} />
-      <GardenLantern position={[-3.2, 0, -0.8]} />
-      <GardenLantern position={[0.5, 0, -0.7]} />
-      <Bench position={[-5.3, 0, 1.1]} />
-      <PlatformFx x0={-8.25} x1={3.25} z0={-6.25} z1={5.25} showRightEdge={false} />
+      <VoxMesh build={courtyard ? buildCourtyardPlatform : buildGardenPlatform} scale={S} />
+      <PlatformFx
+        x0={courtyard ? -1.5 : -8.25}
+        x1={3.5}
+        z0={courtyard ? -2.75 : -6.25}
+        z1={courtyard ? 2.75 : 5.25}
+        showRightEdge={false}
+      />
     </group>
   );
 }

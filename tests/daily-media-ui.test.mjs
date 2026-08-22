@@ -91,6 +91,7 @@ test('the two daily media objects are independently tappable without navigating 
   const consoleObject = read('src/scene/objects/MediaConsole.tsx');
   const bookshelf = read('src/scene/objects/Bookshelf.tsx');
   const table = read('src/scene/objects/TableSet.tsx');
+  const placedConsole = read('src/scene/objects/DailyMediaConsole.tsx');
   const livingRoom = read('src/scene/rooms/LivingRoom.tsx');
   const actions = read('src/components/daily/DailyMediaHomeActions.tsx');
   assert.match(consoleObject, /export function DailyRecordPlayer/);
@@ -108,9 +109,11 @@ test('the two daily media objects are independently tappable without navigating 
   assert.doesNotMatch(consoleObject, /<mesh[^>]+onClick=/);
   assert.match(consoleObject, /buildRecordBubble/);
   assert.match(consoleObject, /buildPhotoBubble/);
-  assert.match(bookshelf, /DailyCamera position=\{\[x \+ 0\.52, y \+ 3\.04, z \+ 0\.2\]\}/);
+  assert.match(placedConsole, /DailyCamera position=/);
+  assert.match(placedConsole, /DailyRecordPlayer position=/);
+  assert.doesNotMatch(bookshelf, /DailyCamera/);
   assert.doesNotMatch(bookshelf, /room\.plantLeaf|#9d5938|#79ad63|#648f54/);
-  assert.match(table, /DailyRecordPlayer position=\{\[x \+ 0\.3, y \+ 0\.82, z \+ 0\.32\]\}/);
+  assert.doesNotMatch(table, /DailyRecordPlayer/);
   assert.doesNotMatch(table, /#de8890|#f0b59d|#d66f7b/);
   assert.doesNotMatch(livingRoom, /MediaConsole/);
   assert.match(actions, /record player voice prompt/);

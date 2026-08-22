@@ -18,8 +18,7 @@ export function Room() {
   const rooms = useHomeStore((state) => state.resolved.rooms);
   const gardenTier = useHomeStore((state) => state.resolved.gardenTier);
   const hasBedroom = rooms.some((candidate) => candidate.moduleId === 'bedroom');
-  const hasGarden = gardenTier !== 'courtyard'
-    && rooms.some((candidate) => candidate.moduleId === 'garden');
+  const hasGarden = rooms.some((candidate) => candidate.moduleId === 'garden');
 
   return (
     <group>
@@ -29,7 +28,7 @@ export function Room() {
         <VoxMesh build={buildBedroomThreshold} scale={S} position={[2.75, 0.01, -4.5]} />
       )}
       {hasBedroom ? <Bedroom /> : <LockedBedroom />}
-      {hasGarden ? <Garden /> : <LockedGarden />}
+      {hasGarden ? <Garden tier={gardenTier} /> : <LockedGarden />}
     </group>
   );
 }

@@ -4,32 +4,48 @@ import * as THREE from 'three';
 
 import { useAvatarStore } from '@/state/avatarStore';
 import { useHomeStore } from '@/state/homeStore';
+import { useHomeStudioStore } from '@/state/homeStudioStore';
+import { HOME_ASSET_REGISTRY } from '@/home/catalog';
 import { appearanceToAvatarColors } from '@/state/avatarAppearance';
 import { Atmosphere } from './Atmosphere';
 import { HOME_CAMERA_FRAME, camState, publishFocusedRoom } from './cameraState';
 import { Avatar } from './Avatar';
 import { HOME_ART_RESOLUTION, PixelPass } from './PixelPass';
+import { HomeObjectRenderer } from './HomeObjectRenderer';
 import { Rain } from './Rain';
 import { ReconcileHeart } from './ReconcileHeart';
 import { WorldAnchorProjector } from './WorldAnchorProjector';
 import { MomentSceneDetails } from './MomentSceneDetails';
 import { Room } from './Room';
+import { FireGlowDecal } from './rooms/LivingRoom';
 import { Sparkles } from './Sparkles';
 import { clampCameraOffset, nearestRoom, ROOM_STOPS, type RoomId } from './roomNavigation';
-import { Bookshelf } from './objects/Bookshelf';
-import { Fireplace } from './objects/Fireplace';
 import { FireplaceOutcomes } from './objects/FireplaceOutcomes';
-import { Plant } from './objects/Plant';
-import { RestNook } from './objects/RestNook';
-import { Sofa } from './objects/Sofa';
-import { TableSet } from './objects/TableSet';
-import { Easel } from './objects/Easel';
-import { GardenGreenhousePortal } from './objects/GardenGreenhousePortal';
-import { Bed } from './objects/Bed';
 
 // Frame the floor slightly above screen centre so the detailed home occupies
 // the visual field beneath the quiet header instead of sitting low in empty sky.
 const LOOK_AT_Y = 0.2;
+
+function PlacementGhost() {
+  const ghost = useHomeStudioStore((state) => state.placementGhost);
+  if (!ghost) return null;
+  const definition = HOME_ASSET_REGISTRY.get(ghost.assetId);
+  if (!definition) return null;
+  const swapped = ghost.rotation % 2 === 1;
+  const width = swapped ? definition.footprint.depth : definition.footprint.width;
+  const depth = swapped ? definition.footprint.width : definition.footprint.depth;
+  return (
+    <mesh position={[ghost.position[0], ghost.position[1] + 0.045, ghost.position[2]]}>
+      <boxGeometry args={[width, 0.09, depth]} />
+      <meshBasicMaterial
+        color={ghost.valid ? '#75b66f' : '#c95f56'}
+        transparent
+        opacity={0.58}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
 
 /**
  * Fixed isometric camera (45° azimuth, ~30° elevation). The framing (centre +
@@ -108,22 +124,7 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
   const scene = useHomeStore((state) => state.resolved);
   const avatarA = useAvatarStore((s) => s.appearances.a);
   const avatarB = useAvatarStore((s) => s.appearances.b);
-  const placed = (assetId: string) => scene.objects.find(
-    (object) => object.assetId === assetId && object.placementState === 'placed',
-  );
-  const fireplace = placed('core-fireplace');
-  const restNook = placed('rest-nook');
-  const sofa = placed('cottage-sofa');
-  const table = placed('shared-table');
-  const bookshelf = placed('cottage-bookshelf');
-  const easel = placed('drawing-easel');
-  const fern = placed('potted-fern');
-  const greenhouse = placed('greenhouse-portal');
-  const compactBed = scene.objects.find((object) =>
-    object.assetId === 'romantic-daybed'
-    && object.placementState === 'placed'
-    && scene.rooms.find((room) => room.id === object.roomId)?.moduleId === 'living',
-  );
+  const fireplace = scene.roles.fireplace;
 
   // Scene identity is global, not device-relative: member A is always the red
   // A avatar and member B is always the green B avatar on both phones.
@@ -150,24 +151,15 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
       <CameraRig />
       <Atmosphere />
       <Room />
-      {greenhouse && <GardenGreenhousePortal />}
-      {fireplace && <Fireplace position={fireplace.renderPosition} />}
-      {fireplace && <FireplaceOutcomes />}
-      {/* Tucked away from the dining and doorway zones; the coral sofa stays primary. */}
-      {restNook && <RestNook position={restNook.renderPosition} />}
-      {sofa && <Sofa position={sofa.renderPosition} />}
-      {table && <TableSet position={table.renderPosition} />}
-      {bookshelf && <Bookshelf position={bookshelf.renderPosition} />}
-      {easel && (
-        <group position={easel.renderPosition} rotation={[0, easel.rotationY, 0]}>
-          <Easel position={[0, 0, 0]} />
-        </group>
-      )}
-      {fern && <Plant position={fern.renderPosition} phase={2.1} scale={0.4} />}
-      {compactBed && (
-        <group position={compactBed.renderPosition} rotation={[0, compactBed.rotationY, 0]}>
-          <Bed position={[0, 0, 0]} />
-        </group>
+      <PlacementGhost />
+      {scene.objects
+        .filter((object) => object.placementState === 'placed')
+        .map((object) => <HomeObjectRenderer key={object.id} object={object} />)}
+      {fireplace && (
+        <>
+          <FireplaceOutcomes position={fireplace.renderPosition} rotationY={fireplace.rotationY} />
+          <FireGlowDecal position={fireplace.renderPosition} rotationY={fireplace.rotationY} />
+        </>
       )}
       <Rain />
       <Sparkles />

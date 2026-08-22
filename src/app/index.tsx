@@ -17,6 +17,7 @@ import { Pairing } from '@/components/Pairing';
 import { RitualsButton } from '@/components/RitualsButton';
 import { DailyMediaHomeActions } from '@/components/daily/DailyMediaHomeActions';
 import { Settings } from '@/components/Settings';
+import { HomeStudio } from '@/components/HomeStudio';
 import { HomeScene } from '@/scene/HomeScene';
 import { LockedRoomNotice } from '@/scene/LockedRoomNotice';
 import { SceneCanvas } from '@/scene/SceneCanvas';
@@ -37,7 +38,7 @@ export default function HomeScreen() {
   // Drag to scroll the home around.
   const panHandlers = useScenePan();
   const paired = useAuthStore((s) => s.phase === 'paired');
-  const togetherSince = useAuthStore((s) => s.couple?.created_at ?? null);
+  const togetherSince = useAuthStore((s) => s.couple?.paired_at ?? s.couple?.created_at ?? null);
   const togetherDay = Math.max(1, Math.floor(daysTogether(togetherSince)) + 1);
   const settingsOpen = useMomentsSurfaceStore((state) => state.settingsOpen);
   const controlsHidden = useHomeUiStore((state) => state.controlsHidden);
@@ -82,6 +83,7 @@ export default function HomeScreen() {
             {!settingsOpen && <GreenhouseButton />}
           </View>
           <Settings />
+          <HomeStudio />
           {!settingsOpen && <DailyDrawing />}
           {!settingsOpen && <HomeGrewCard />}
           {!settingsOpen && <DailyMediaHomeActions />}

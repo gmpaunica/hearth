@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { clearPushToken, registerPushToken } from '@/lib/notifications';
 import { getNotificationsEnabled, setNotificationsEnabledPref } from '@/lib/prefs';
 import { useAuthStore } from '@/state/authStore';
 import { useHomeUiStore } from '@/state/homeUiStore';
+import { useHomeStore } from '@/state/homeStore';
+import { useHomeStudioStore } from '@/state/homeStudioStore';
 import { MUSIC_VOLUME_OPTIONS, useMusicStore } from '@/state/musicStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
@@ -19,6 +21,7 @@ export function Settings() {
   const [open, setOpen] = useState(false);
   const [notify, setNotify] = useState(true);
   const [confirming, setConfirming] = useState<null | 'unpair' | 'signout'>(null);
+  const [developerMessage, setDeveloperMessage] = useState<string | null>(null);
 
   const userId = useAuthStore((s) => s.userId);
   const signOut = useAuthStore((s) => s.signOut);
@@ -36,6 +39,10 @@ export function Settings() {
   const setSettingsOpen = useMomentsSurfaceStore((state) => state.setSettingsOpen);
   const completeMomentMinimize = useMomentsSurfaceStore((state) => state.completeMinimize);
   const resumeMomentPlayback = useMomentV2Store((state) => state.resumePlayback);
+  const activeMoment = useMomentV2Store((state) => Boolean(state.snapshot?.active));
+  const homeBlockedByMoment = useHomeStore((state) =>
+    Boolean(state.resolved?.capabilities.blockedByMoment),
+  );
 
   // Reflect the stored preference when the sheet opens.
   useEffect(() => {
@@ -56,6 +63,7 @@ export function Settings() {
     setOpen(false);
     setSettingsOpen(false);
     setConfirming(null);
+    setDeveloperMessage(null);
     resumeMomentPlayback();
   };
 
@@ -63,6 +71,18 @@ export function Settings() {
     completeMomentMinimize();
     setSettingsOpen(true);
     setOpen(true);
+  };
+
+  const openHomeStudio = () => {
+    if (activeMoment || homeBlockedByMoment) {
+      setDeveloperMessage('Finish the active Moment before editing the shared home.');
+      return;
+    }
+
+    setDeveloperMessage(null);
+    setConfirming(null);
+    setOpen(false);
+    void useHomeStudioStore.getState().open();
   };
 
   return (
@@ -78,6 +98,11 @@ export function Settings() {
 
       {open && (
         <View style={styles.overlay}>
+          <ScrollView
+            style={styles.overlayScroll}
+            contentContainerStyle={styles.overlayContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.card}>
             <Text style={styles.title}>Settings</Text>
 
@@ -197,6 +222,26 @@ export function Settings() {
 
             <View style={styles.divider} />
 
+            <Text style={styles.developerTitle}>Developer</Text>
+            <Text style={styles.developerBody}>
+              Home Studio exposes every registered component and expansion tier while this section is public.
+            </Text>
+            <Pressable
+              style={styles.studioButton}
+              onPress={openHomeStudio}
+              accessibilityRole="button"
+              accessibilityLabel="Open Developer Home Studio"
+            >
+              <Text style={styles.studioButtonText}>Open Home Studio</Text>
+            </Pressable>
+            {developerMessage && (
+              <Text style={styles.developerMessage} accessibilityRole="alert">
+                {developerMessage}
+              </Text>
+            )}
+
+            <View style={styles.divider} />
+
             <Text style={styles.privacyTitle}>Your privacy</Text>
             <Text style={styles.privacyBody}>
               Hearth only ever shares where you are in the room — never why. Your
@@ -261,6 +306,7 @@ export function Settings() {
               <Text style={styles.doneText}>Done</Text>
             </Pressable>
           </View>
+          </ScrollView>
         </View>
       )}
     </>
@@ -294,11 +340,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: editorial.paperStrong,
+    zIndex: 200,
+    elevation: 50,
+  },
+  overlayScroll: { width: '100%' },
+  overlayContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    zIndex: 200,
-    elevation: 50,
   },
   card: {
     width: '100%',
@@ -365,6 +415,27 @@ const styles = StyleSheet.create({
     backgroundColor: editorial.line,
     marginVertical: 16,
   },
+  developerTitle: {
+    color: editorial.clay,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 7,
+  },
+  developerBody: { color: editorial.inkSoft, fontSize: 12, lineHeight: 18 },
+  studioButton: {
+    minHeight: 42,
+    marginTop: 11,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: editorial.paperTint,
+    borderColor: editorial.clay,
+    borderWidth: 1,
+  },
+  studioButtonText: { color: editorial.clay, fontSize: 13, fontWeight: '800' },
+  developerMessage: { color: editorial.danger, fontSize: 11, lineHeight: 16, marginTop: 8 },
   privacyTitle: {
     color: editorial.clay,
     fontSize: 11,

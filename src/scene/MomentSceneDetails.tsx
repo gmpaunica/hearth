@@ -1,8 +1,10 @@
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type * as THREE from 'three';
 
+import type { ResolvedHomeObject } from '@/home/types';
 import type { MomentActionEventV2 } from '@/lib/db';
+import { useHomeStore } from '@/state/homeStore';
 import { useSceneStore } from '@/state/sceneStore';
 
 function Block({ position, scale, color, rotation }: {
@@ -134,6 +136,32 @@ const newestProp = (events: MomentActionEventV2[], propType: string) =>
     .filter((event) => event.prop_type === propType)
     .sort((left, right) => Date.parse(right.occurred_at) - Date.parse(left.occurred_at))[0] ?? null;
 
+function FollowObject({
+  object,
+  legacyOrigin,
+  children,
+}: {
+  object: ResolvedHomeObject;
+  legacyOrigin: [number, number, number];
+  children: ReactNode;
+}) {
+  return (
+    <group position={object.position} rotation={[0, object.rotationY, 0]}>
+      <group position={[-legacyOrigin[0], -legacyOrigin[1], -legacyOrigin[2]]}>
+        {children}
+      </group>
+    </group>
+  );
+}
+
+const LEGACY_ORIGINS = {
+  sofa: [-0.4, 0, -3.95],
+  table: [-0.35, 0, 0.5],
+  rest: [-3.15, 0, 3.2],
+  romantic: [3.625, 0, -8.75],
+  garden: [-4.45, 0, 2.5],
+} as const satisfies Record<string, [number, number, number]>;
+
 export function MomentSceneDetails() {
   const active = useSceneStore((state) => state.momentAtmosphere);
   const activeEvents = useSceneStore((state) => state.momentActionEvents);
@@ -147,27 +175,45 @@ export function MomentSceneDetails() {
   const romanticGift = newestPropAtDestination(todayEvents, 'romantic');
   const tableCue = newestPropAtDestination(activeEvents, 'table');
   const restCue = newestPropAtDestination(activeEvents, 'rest');
+  const roles = useHomeStore((state) => state.resolved.roles);
+  const garden = roles.garden_portal;
+  const sofa = roles.conversation_seating;
+  const table = roles.shared_table;
+  const rest = roles.rest_location;
+  const romantic = roles.romantic_rest_location;
 
   return (
     <>
-      {gardenGift?.prop_type === 'rose' && <Rose />}
-      {sofaGift?.prop_type === 'tea_tray' && <TeaTray />}
-      {sofaGift?.prop_type === 'heart_cushion' && <HeartCushion />}
-      {restBlanket && <Blanket />}
-      {restDoodle && <RestDoodle event={restDoodle} />}
-      {restVisitor && <SillyVisitor event={restVisitor} />}
-      {restHug && <RestHeartToken />}
-      <RestHugWave />
-      {romanticGift?.prop_type === 'paired_lanterns' && (
-        <><Lantern position={[3.65, 0.95, -7.55]} /><Lantern position={[5.35, 0.95, -7.55]} rose /></>
+      {gardenGift?.prop_type === 'rose' && garden && (
+        <FollowObject object={garden} legacyOrigin={LEGACY_ORIGINS.garden}><Rose /></FollowObject>
       )}
-      {active?.destination === 'table' && <Mug />}
-      {tableCue?.prop_type === 'second_mug' && <Mug second />}
-      {active?.destination === 'rest' && (
-        <Block position={[-2.45, 0.23, 3.05]} scale={[0.48, 0.2, 0.34]} color={restCue?.prop_type === 'soft_light' ? '#bcae89' : '#9b7656'} />
+      {sofaGift?.prop_type === 'tea_tray' && sofa && (
+        <FollowObject object={sofa} legacyOrigin={LEGACY_ORIGINS.sofa}><TeaTray /></FollowObject>
       )}
-      {active?.destination === 'romantic' && !romanticGift && (
-        <Lantern position={[3.65, 0.95, -7.55]} />
+      {sofaGift?.prop_type === 'heart_cushion' && sofa && (
+        <FollowObject object={sofa} legacyOrigin={LEGACY_ORIGINS.sofa}><HeartCushion /></FollowObject>
+      )}
+      {rest && restBlanket && <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}><Blanket /></FollowObject>}
+      {rest && restDoodle && <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}><RestDoodle event={restDoodle} /></FollowObject>}
+      {rest && restVisitor && <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}><SillyVisitor event={restVisitor} /></FollowObject>}
+      {rest && restHug && <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}><RestHeartToken /></FollowObject>}
+      {rest && <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}><RestHugWave /></FollowObject>}
+      {romantic && romanticGift?.prop_type === 'paired_lanterns' && (
+        <FollowObject object={romantic} legacyOrigin={LEGACY_ORIGINS.romantic}>
+          <><Lantern position={[3.65, 0.95, -7.55]} /><Lantern position={[5.35, 0.95, -7.55]} rose /></>
+        </FollowObject>
+      )}
+      {table && active?.destination === 'table' && <FollowObject object={table} legacyOrigin={LEGACY_ORIGINS.table}><Mug /></FollowObject>}
+      {table && tableCue?.prop_type === 'second_mug' && <FollowObject object={table} legacyOrigin={LEGACY_ORIGINS.table}><Mug second /></FollowObject>}
+      {rest && active?.destination === 'rest' && (
+        <FollowObject object={rest} legacyOrigin={LEGACY_ORIGINS.rest}>
+          <Block position={[-2.45, 0.23, 3.05]} scale={[0.48, 0.2, 0.34]} color={restCue?.prop_type === 'soft_light' ? '#bcae89' : '#9b7656'} />
+        </FollowObject>
+      )}
+      {romantic && active?.destination === 'romantic' && !romanticGift && (
+        <FollowObject object={romantic} legacyOrigin={LEGACY_ORIGINS.romantic}>
+          <Lantern position={[3.65, 0.95, -7.55]} />
+        </FollowObject>
       )}
     </>
   );

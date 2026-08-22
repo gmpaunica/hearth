@@ -178,10 +178,10 @@ export type HomeOperation =
   | { type: 'attach'; objectId: string; parentObjectId: string; socket: string }
   | { type: 'store'; objectId: string }
   | { type: 'replace'; objectId: string; assetId: string; style?: Record<string, unknown> }
-  | { type: 'resize'; roomId: string; sizeTier: HomeRoomSize; bounds: HomeBounds }
+  | { type: 'resize'; roomId: string; sizeTier: HomeRoomSize; bounds: HomeBounds; gardenTier?: GardenTier }
   | { type: 'change_terrain'; target: string; value: unknown }
   | { type: 'change_finish'; target: string; value: unknown }
-  | { type: 'attach_module'; moduleId: 'bedroom' | 'future-room'; socketId: 'bedroom-north' | 'future-east'; sizeTier: HomeRoomSize; bounds: HomeBounds };
+  | { type: 'attach_module'; roomId: string; moduleId: 'bedroom' | 'future-room'; socketId: 'bedroom-north' | 'future-east'; sizeTier: HomeRoomSize; bounds: HomeBounds };
 
 export interface HomeApplySuccess {
   ok: true;

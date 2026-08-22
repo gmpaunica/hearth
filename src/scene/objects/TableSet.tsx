@@ -1,7 +1,6 @@
 import { room } from '@/theme/hearth';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
-import { DailyRecordPlayer } from './MediaConsole';
 
 // Table local grid: 6 x 6 top, stepped pedestal base.
 function buildTable(v: Vox) {
@@ -77,7 +76,6 @@ export function TableSet({ position }: { position: [number, number, number] }) {
   return (
     <group>
       <VoxMesh build={buildTable} scale={s} position={[x, y, z]} />
-      <DailyRecordPlayer position={[x + 0.3, y + 0.82, z + 0.32]} />
       {/* Front chair faces the table, backrest toward camera. */}
       <VoxMesh build={buildChair} scale={s} position={[x + 0.2, y, z + 1.35]} />
       {/* Back chair rotates 180 degrees so its backrest faces the wall. */}
