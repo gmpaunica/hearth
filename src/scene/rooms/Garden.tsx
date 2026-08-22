@@ -21,8 +21,12 @@ const srgb2lin = /* glsl */ `
   vec3 srgb2lin(vec3 c) { return pow((c + 0.055) / 1.055, vec3(2.4)); }
 `;
 
-function buildGardenPlatform(v: Vox) {
-  const x0 = -32, x1 = 12, z0 = -24, z1 = 20;
+function buildGardenPlatform(v: Vox, tier: GardenTier) {
+  const { x0, x1, z0, z1 } = tier === 'standard'
+    ? { x0: -17, x1: 14, z0: -18, z1: 14 }
+    : tier === 'grand'
+      ? { x0: -45, x1: 14, z0: -33, z1: 29 }
+      : { x0: -33, x1: 14, z0: -25, z1: 21 };
   const wx = x0 - 1, wz = z0 - 1;
   const spanX = x1 - wx + 1, spanZ = z1 - wz + 1;
   v.box(wx, -4, wz, spanX, 3, spanZ, '#54362a');
@@ -56,15 +60,17 @@ function buildGardenPlatform(v: Vox) {
     [-2, -2, 3, 2], [-5, -2, 2, 2], [-8, -1, 3, 2], [-11, 0, 2, 2],
     [-14, 0, 3, 2], [-17, 1, 2, 2], [-20, 2, 3, 2],
   ];
-  stones.forEach(([x, z, w, d], index) => {
-    v.box(x, 0, z, w, 1, d, index % 3 === 0 ? '#e2c6a3' : index % 3 === 1 ? '#cfaa88' : '#edd6b7');
-    if (w === 3) v.set(x + 1, 1, z, '#f1dcc0');
-  });
+  stones
+    .filter(([x, z, w, d]) => x >= x0 && x + w - 1 <= x1 && z >= z0 && z + d - 1 <= z1)
+    .forEach(([x, z, w, d], index) => {
+      v.box(x, 0, z, w, 1, d, index % 3 === 0 ? '#e2c6a3' : index % 3 === 1 ? '#cfaa88' : '#edd6b7');
+      if (w === 3) v.set(x + 1, 1, z, '#f1dcc0');
+    });
 
-  for (const [x, z, tone] of [
+  for (const [x, z, tone] of ([
     [-28, -20, '#54723e'], [6, -20, '#607d43'],
     [-28, 15, '#66854a'], [7, 15, '#58743f'],
-  ] as const) {
+  ] as const).filter(([x, z]) => x >= x0 && x + 3 <= x1 && z >= z0 && z + 2 <= z1)) {
     v.box(x, 0, z, 4, 2, 3, tone);
     v.remove(x, 1, z); v.remove(x + 3, 1, z + 2);
   }
@@ -74,7 +80,7 @@ function buildGardenPlatform(v: Vox) {
     [-30, -12], [-30, 0], [-30, 12],
     [-26, 18], [-15, 18], [-4, 18], [8, 18],
   ];
-  flowerSpots.forEach(([x, z], index) => {
+  flowerSpots.filter(([x, z]) => x >= x0 && x <= x1 && z >= z0 && z <= z1).forEach(([x, z], index) => {
     v.set(x, 0, z, '#4a7a3e');
     v.box(x, 1, z, 1, 1 + (index % 2), 1, '#5d8248');
     v.set(x, 2 + (index % 2), z, bloom[index % bloom.length]);
@@ -152,6 +158,7 @@ function buildKoiPond(v: Vox) {
 
 const pondFragment = /* glsl */ `
   uniform float uTime;
+  uniform vec3 uWaterTint;
   varying vec2 vUv;
   ${srgb2lin}
   void main() {
@@ -160,6 +167,7 @@ const pondFragment = /* glsl */ `
     float ripple = sin((vUv.x * 13.0 + vUv.y * 7.0) + uTime) * 0.5 + 0.5;
     float ribbon = smoothstep(0.72, 1.0, ripple) * edge;
     vec3 col = srgb2lin(mix(vec3(0.64, 0.87, 0.8), vec3(1.0, 0.91, 0.7), vUv.y));
+    col = mix(col, uWaterTint, 0.28);
     gl_FragColor = vec4(col, ribbon * 0.16);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -211,7 +219,13 @@ function placeKoi(
   fish.rotation.y = Math.atan2(-dz, dx);
 }
 
-export function KoiPond({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
+export function KoiPond({
+  position = [0, 0, 0],
+  waterColor = '#70aeb8',
+}: {
+  position?: [number, number, number];
+  waterColor?: string;
+}) {
   const sunset = useRef<THREE.Group>(null);
   const blush = useRef<THREE.Group>(null);
   const golden = useRef<THREE.Group>(null);
@@ -222,12 +236,15 @@ export function KoiPond({ position = [0, 0, 0] }: { position?: [number, number, 
       new THREE.ShaderMaterial({
         vertexShader: shaderVertex,
         fragmentShader: pondFragment,
-        uniforms: { uTime: { value: 0 } },
+        uniforms: {
+          uTime: { value: 0 },
+          uWaterTint: { value: new THREE.Color(waterColor) },
+        },
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
-    [],
+    [waterColor],
   );
 
   // eslint-disable-next-line react-hooks/immutability
@@ -375,14 +392,25 @@ export function GardenThreshold() {
 
 export function Garden({ tier }: { tier: GardenTier }) {
   const courtyard = tier === 'courtyard';
+  const platformFx = courtyard
+    ? { x0: -1.5, x1: 3.5, z0: -2.75, z1: 2.75 }
+    : tier === 'standard'
+      ? { x0: -4.25, x1: 3.5, z0: -4.5, z1: 3.5 }
+      : tier === 'grand'
+        ? { x0: -11.25, x1: 3.5, z0: -8.25, z1: 7.25 }
+        : { x0: -8.25, x1: 3.5, z0: -6.25, z1: 5.25 };
   return (
     <group position={[...GARDEN_OFFSET]}>
-      <VoxMesh build={courtyard ? buildCourtyardPlatform : buildGardenPlatform} scale={S} />
+      <VoxMesh
+        build={courtyard ? buildCourtyardPlatform : (vox) => buildGardenPlatform(vox, tier)}
+        cacheKey={`garden-platform:${tier}`}
+        scale={S}
+      />
       <PlatformFx
-        x0={courtyard ? -1.5 : -8.25}
-        x1={3.5}
-        z0={courtyard ? -2.75 : -6.25}
-        z1={courtyard ? 2.75 : 5.25}
+        x0={platformFx.x0}
+        x1={platformFx.x1}
+        z0={platformFx.z0}
+        z1={platformFx.z1}
         showRightEdge={false}
       />
     </group>

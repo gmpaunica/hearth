@@ -1,6 +1,6 @@
 import type { HomeAssetDefinition, HomeCoupleRig } from './types';
 
-export const HOME_CATALOG_VERSION = 'home-catalog-v4';
+export const HOME_CATALOG_VERSION = 'home-catalog-v5';
 
 const allRotations = [0, 1, 2, 3] as const;
 
@@ -271,6 +271,18 @@ export const HOME_UPGRADE_ASSETS = [
   asset({ id: 'linen-press', category: 'storage', renderer: 'BedroomCatalog', footprint: { width: 1.15, depth: 0.65, height: 1.85 }, compatibleRooms: ['bedroom', 'living'], compatibleSurfaces: ['floor'], collisionClearance: 0.08, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: ['shelf-top'], renderCost: 9, progression: { day: 21 }, functional: {} }),
 ] as const satisfies readonly HomeAssetDefinition[];
 
+/** Grand-garden landmarks and seasonal planting variants. */
+export const ADVANCED_GARDEN_ASSETS = [
+  gardenAsset('rose-gazebo', 'structure', { width: 3.2, depth: 3, height: 3.2 }, ['wood', 'metal', 'fabric', 'flower', 'foliage'], { day: 180, renderCost: 27, clearance: 0.25, routeEndpoint: true, functional: { interactionRig: 'garden-couple', poses: ['sit-left', 'sit-right'], approach: [[-0.34, 0.72], [0.34, 0.72]], exit: [[-0.34, 0.72], [0.34, 0.72]], cameraTarget: [0, 1, 0], reactionAnchor: [0, 2, 0], uiAnchor: [0, 2.5, 0], clickBounds: { width: 3.2, depth: 3, height: 3.2 }, effectSockets: ['seat-left', 'seat-right', 'canopy-lights'], coupleRig: GARDEN_COUPLE_RIG } }),
+  gardenAsset('stone-pergola', 'structure', { width: 2.8, depth: 2.2, height: 2.65 }, ['stone', 'metal', 'foliage'], { day: 180, renderCost: 21, clearance: 0.22, routeEndpoint: true }),
+  gardenAsset('moon-gate-sculpture', 'structure', { width: 2.2, depth: 0.7, height: 2.7 }, ['stone', 'metal', 'foliage'], { day: 180, renderCost: 18, clearance: 0.18, routeEndpoint: true }),
+  gardenAsset('dove-garden-sculpture', 'decoration', { width: 1, depth: 0.85, height: 1.8 }, ['stone', 'metal'], { day: 180, renderCost: 11, clearance: 0.1 }),
+  gardenAsset('spring-tulip-bed', 'planting', { width: 1.6, depth: 1, height: 0.75 }, ['flower', 'foliage', 'stone'], { day: 60, renderCost: 8, progression: { season: 'spring' } }),
+  gardenAsset('summer-sunflower-bed', 'planting', { width: 1.6, depth: 1, height: 1.25 }, ['flower', 'foliage', 'stone'], { day: 60, renderCost: 9, progression: { season: 'summer' } }),
+  gardenAsset('autumn-mum-bed', 'planting', { width: 1.6, depth: 1, height: 0.8 }, ['flower', 'foliage', 'stone'], { day: 60, renderCost: 8, progression: { season: 'autumn' } }),
+  gardenAsset('winter-holly-planter', 'planting', { width: 1.2, depth: 0.8, height: 1.05 }, ['flower', 'foliage', 'wood', 'stone'], { day: 60, renderCost: 8, progression: { season: 'winter' } }),
+] as const satisfies readonly HomeAssetDefinition[];
+
 export const HOME_ASSETS = [
   asset({ id: 'core-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 2.8 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 18, progression: { day: 0, tier: 1 }, functional: { role: 'fireplace', signals: ['fireplace'], poses: ['floor-left', 'floor-right'], approach: [[-2.55, -1.95], [-1.55, -1.95]], exit: [[-2.55, -1.95], [-1.55, -1.95]], cameraTarget: [-2.6, 1.2, -3.6], reactionAnchor: [1, 2.3, 0.6], uiAnchor: [1, 2.9, 0.4], clickBounds: { width: 2.5, depth: 1.5, height: 3 }, effectSockets: ['fire', 'mantel', 'floor-glow'] }, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
   asset({ id: 'cottage-sofa', category: 'seating', renderer: 'Sofa', footprint: { width: 2.2, depth: 0.9, height: 1.15 }, compatibleRooms: ['living', 'bedroom'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 10, progression: { day: 0 }, functional: { role: 'conversation_seating', signals: ['sofa'], poses: ['sit-left', 'sit-right'], approach: [[0.65, 1.67], [1.55, 1.67]], exit: [[0.65, 1.67], [1.55, 1.67]], cameraTarget: [1.1, 0.8, 0.6], reactionAnchor: [1.1, 1.8, 0.5], uiAnchor: [1.1, 2.1, 0.5], clickBounds: { width: 2.8, depth: 1.4, height: 1.5 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 2.75, minZ: 0, maxZ: 1.25 } }),
@@ -289,10 +301,11 @@ export const HOME_ASSETS = [
   asset({ id: 'rose-bush', category: 'plant', renderer: 'RoseBush', footprint: { width: 0.85, depth: 0.75, height: 0.7 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.08, paletteSlots: ['foliage', 'flower'], attachmentSockets: [], renderCost: 4, progression: { day: 30 }, functional: {} }),
   asset({ id: 'garden-lantern', category: 'lighting', renderer: 'GardenLantern', footprint: { width: 0.55, depth: 0.55, height: 1.45 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.05, paletteSlots: ['wood', 'metal'], attachmentSockets: [], renderCost: 5, progression: { day: 30 }, functional: {}, collisionBounds: { minX: 0, maxX: 0.63, minZ: 0, maxZ: 0.63 } }),
   asset({ id: 'garden-bench', category: 'seating', renderer: 'Bench', footprint: { width: 1.7, depth: 0.75, height: 1.1 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.12, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 8, progression: { day: 30 }, functional: { interactionRig: 'garden-couple', poses: ['sit-left', 'sit-right'], approach: [[1.15, 0.33], [1.15, 1.17]], exit: [[1.15, 0.33], [1.15, 1.17]], cameraTarget: [0.4, 0.8, 0.75], reactionAnchor: [0.4, 1.7, 0.75], uiAnchor: [0.4, 2, 0.75], clickBounds: { width: 1, depth: 1.7, height: 1.3 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 0.75, minZ: 0, maxZ: 1.5 } }),
-  asset({ id: 'greenhouse-portal', category: 'structure', renderer: 'GardenGreenhousePortal', footprint: { width: 1.35, depth: 1.05, height: 1.55 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'foliage'], attachmentSockets: [], renderCost: 12, progression: { day: 30 }, functional: { role: 'greenhouse_portal', route: '/greenhouse' }, routeEndpoint: true }),
+  asset({ id: 'greenhouse-portal', category: 'structure', renderer: 'GardenGreenhousePortal', footprint: { width: 1.35, depth: 1.05, height: 1.55 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'foliage'], attachmentSockets: [], renderCost: 12, progression: { day: 30, style_variants: 'cottage,brass,forest' }, functional: { role: 'greenhouse_portal', route: '/greenhouse' }, routeEndpoint: true }),
   ...INDOOR_HOME_ASSETS,
   ...GARDEN_HOME_ASSETS,
   ...HOME_UPGRADE_ASSETS,
+  ...ADVANCED_GARDEN_ASSETS,
 ] as const satisfies readonly HomeAssetDefinition[];
 
 export const HOME_ASSET_REGISTRY: ReadonlyMap<string, HomeAssetDefinition> = new Map(

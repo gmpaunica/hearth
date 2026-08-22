@@ -92,6 +92,16 @@ function walkableZones(snapshot: HomeSnapshot): ResolvedWalkableZone[] {
       const kind = zone.id.startsWith('bedroom') ? 'bedroom'
         : zone.id.startsWith('garden') ? 'garden' : 'living';
       const room = snapshot.rooms.find((candidate) => candidate.moduleId === kind);
+      if (zone.id === 'garden-floor' && room) {
+        return {
+          ...zone,
+          roomId: room.id,
+          minX: room.bounds.minX + 0.49,
+          maxX: room.bounds.maxX - 0.49,
+          minZ: room.bounds.minZ + 0.49,
+          maxZ: room.bounds.maxZ - 0.49,
+        };
+      }
       return { ...zone, roomId: room?.id ?? zone.roomId };
     });
 }
@@ -163,7 +173,11 @@ export function resolveHomeScene(snapshot: HomeSnapshot): ResolvedHomeScene {
     const stop = room.moduleId === 'living' ? COTTAGE_V2_CAMERA_STOPS.living
       : room.moduleId === 'bedroom' ? COTTAGE_V2_CAMERA_STOPS.bedroom
         : room.moduleId === 'garden' && snapshot.gardenTier !== 'courtyard'
-          ? COTTAGE_V2_CAMERA_STOPS.garden : null;
+          ? {
+            ...COTTAGE_V2_CAMERA_STOPS.garden,
+            x: (room.bounds.minX + room.bounds.maxX) / 2,
+            z: (room.bounds.minZ + room.bounds.maxZ) / 2,
+          } : null;
     return { ...room, cameraStop: stop };
   });
   const cameraStops: ResolvedHomeScene['cameraStops'] = {};

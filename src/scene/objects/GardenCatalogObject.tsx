@@ -1,7 +1,13 @@
+import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import * as THREE from 'three';
+
 import type { ResolvedHomeObject } from '@/home/types';
 import { paletteColor } from '@/home/palettes';
+import { atmo } from '../atmoState';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
+import { KoiPond } from '../rooms/Garden';
 
 type GardenColors = ReturnType<typeof colorsFor>;
 
@@ -195,13 +201,58 @@ function buildGarden(v: Vox, object: ResolvedHomeObject, c: GardenColors) {
     case 'scarecrow':
       v.box(5, 0, 2, 2, 16, 2, c.woodDark).box(0, 10, 2, 12, 2, 2, c.wood).box(2, 8, 1, 8, 6, 4, c.fabric).box(4, 14, 1, 4, 4, 4, c.cream).box(2, 17, 0, 8, 2, 6, c.fabric);
       break;
+    case 'rose-gazebo':
+      fourLegs(v, 22, 20, 17, c.woodDark); v.box(0, 0, 0, 22, 1, 20, c.stone);
+      v.box(2, 16, 2, 18, 1, 16, c.wood).box(5, 17, 5, 12, 2, 10, c.fabric).box(8, 19, 7, 6, 3, 6, c.fabric);
+      for (const [x, z] of [[0, 1], [21, 2], [0, 16], [21, 17]] as const) {
+        v.box(x, 4, z, 1, 9, 1, c.foliage).set(x, 8, z, c.flower).set(x, 12, z, c.cream);
+      }
+      break;
+    case 'stone-pergola':
+      fourLegs(v, 20, 15, 17, c.stoneDark);
+      for (let x = 0; x < 20; x += 4) v.box(x, 16, 0, 2, 2, 15, c.stone);
+      for (let z = 1; z < 15; z += 5) v.box(0, 18, z, 20, 1, 1, c.metal);
+      v.box(0, 7, 0, 2, 1, 15, c.foliage).box(18, 10, 0, 2, 1, 15, c.foliage);
+      break;
+    case 'moon-gate-sculpture':
+      v.box(0, 0, 0, 4, 18, 5, c.stone).box(14, 0, 0, 4, 18, 5, c.stone);
+      v.box(2, 14, 0, 14, 4, 5, c.stone).box(5, 18, 0, 8, 4, 5, c.stoneDark);
+      v.remove(4, 5, 0, 10, 11, 5).box(3, 0, 0, 12, 2, 5, c.stoneDark);
+      v.box(1, 6, 4, 2, 8, 1, c.foliage).box(15, 4, 4, 2, 9, 1, c.foliage);
+      break;
+    case 'dove-garden-sculpture':
+      v.box(0, 0, 0, 8, 2, 7, c.stoneDark).box(2, 2, 2, 4, 7, 3, c.stone);
+      v.box(0, 6, 2, 3, 2, 3, c.stone).box(5, 6, 2, 3, 2, 3, c.stone);
+      v.box(3, 9, 2, 3, 3, 3, c.stone).set(5, 11, 4, c.metal);
+      break;
+    case 'spring-tulip-bed':
+    case 'autumn-mum-bed':
+      v.box(0, 0, 0, 13, 2, 8, c.stone).box(1, 1, 1, 11, 2, 6, c.terrain);
+      flowers(v, 12, 7, c, 2);
+      break;
+    case 'summer-sunflower-bed':
+      v.box(0, 0, 0, 13, 2, 8, c.stone).box(1, 1, 1, 11, 2, 6, c.terrain);
+      for (let x = 2; x < 12; x += 3) for (let z = 2; z < 7; z += 3) {
+        v.box(x, 2, z, 1, 7, 1, c.foliage).box(x - 1, 9, z - 1, 3, 3, 3, c.flower).set(x, 10, z, c.dark);
+      }
+      break;
+    case 'winter-holly-planter':
+      v.box(0, 0, 0, 10, 4, 6, c.wood).box(1, 3, 1, 8, 2, 4, c.terrain);
+      v.box(2, 4, 1, 6, 5, 4, c.foliage).box(3, 9, 2, 4, 2, 2, c.foliageLight);
+      v.set(2, 7, 1, c.flower).set(7, 6, 4, c.flower).set(5, 9, 2, c.cream);
+      break;
     default:
       v.box(0, 0, 0, 6, 6, 6, c.foliage).set(2, 6, 2, c.flower);
   }
 }
 
-export function GardenCatalogObject({ object }: { object: ResolvedHomeObject }) {
-  const colors = colorsFor(object.style);
+const SWAYING_ASSETS = new Set([
+  'hydrangea', 'lavender', 'hedge', 'topiary', 'fern-cluster',
+  'fruit-tree', 'willow', 'small-evergreen', 'wind-chime', 'scarecrow',
+  'spring-tulip-bed', 'summer-sunflower-bed', 'autumn-mum-bed', 'winter-holly-planter',
+]);
+
+function GardenVoxModel({ object, colors }: { object: ResolvedHomeObject; colors: GardenColors }) {
   const flat = ['straight-path', 'corner-path', 'junction-path', 'stepping-stones', 'gravel-patch', 'patio-tile', 'picnic-blanket'].includes(object.assetId);
   return (
     <VoxMesh
@@ -211,5 +262,88 @@ export function GardenCatalogObject({ object }: { object: ResolvedHomeObject }) 
       position={[-object.definition.footprint.width / 2, flat ? 0.01 : 0, -object.definition.footprint.depth / 2]}
       meshScale={flat ? [1, 0.24, 1] : undefined}
     />
+  );
+}
+
+function SwayingGardenModel({ object, colors }: { object: ResolvedHomeObject; colors: GardenColors }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    if (atmo.reduceMotion) {
+      ref.current.rotation.x = 0;
+      ref.current.rotation.z = 0;
+      return;
+    }
+    const phase = object.id.length * 0.31;
+    const amplitude = object.assetId === 'wind-chime' ? 0.045
+      : object.definition.category === 'tree' ? 0.012 : 0.022;
+    ref.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.72 + phase) * amplitude;
+    ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.51 + phase * 1.7) * amplitude * 0.55;
+  });
+  return <group ref={ref}><GardenVoxModel object={object} colors={colors} /></group>;
+}
+
+function FountainSpray({ object, color }: { object: ResolvedHomeObject; color: string }) {
+  const spray = useRef<THREE.Group>(null);
+  const tall = object.style.variant === 'tall';
+  useFrame((state) => {
+    if (!spray.current) return;
+    const wave = atmo.reduceMotion ? 0 : Math.sin(state.clock.elapsedTime * 2.4 + object.id.length);
+    spray.current.scale.y = 1 + wave * 0.08;
+    spray.current.rotation.y = atmo.reduceMotion ? 0 : state.clock.elapsedTime * 0.18;
+  });
+  const height = tall ? 1.45 : 0.78;
+  const y = tall ? 1.23 : 0.72;
+  return (
+    <group ref={spray} position={[-0.1, y, -0.1]}>
+      <mesh>
+        <cylinderGeometry args={[0.025, 0.055, height, 6]} />
+        <meshBasicMaterial color={color} transparent opacity={0.58} depthWrite={false} />
+      </mesh>
+      {[-1, 1].map((direction) => (
+        <mesh key={direction} position={[direction * 0.22, -height * 0.08, 0]} rotation={[0, 0, direction * 0.52]}>
+          <cylinderGeometry args={[0.018, 0.032, height * 0.62, 5]} />
+          <meshBasicMaterial color={color} transparent opacity={0.38} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function GardenLightGlow({ object, color }: { object: ResolvedHomeObject; color: string }) {
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  useFrame((state) => {
+    if (!material.current) return;
+    material.current.opacity = atmo.reduceMotion
+      ? 0.13
+      : 0.12 + Math.sin(state.clock.elapsedTime * 2.1 + object.id.length) * 0.035;
+  });
+  const stringLights = object.assetId === 'string-light-set';
+  return (
+    <mesh position={stringLights ? [0, 1.72, 0] : [0, 0.28, 0]}>
+      <boxGeometry args={stringLights ? [2.05, 0.16, 0.32] : [0.42, 0.36, 0.42]} />
+      <meshBasicMaterial ref={material} color={color} transparent opacity={0.13} depthWrite={false} />
+    </mesh>
+  );
+}
+
+export function GardenCatalogObject({ object }: { object: ResolvedHomeObject }) {
+  const colors = colorsFor(object.style);
+  if (object.assetId === 'koi-pond-large') {
+    return (
+      <group position={[-2.2, 0.02, -1.42]} scale={[1.23, 1.05, 1.23]}>
+        <KoiPond waterColor={colors.water} />
+      </group>
+    );
+  }
+  return (
+    <group>
+      {SWAYING_ASSETS.has(object.assetId)
+        ? <SwayingGardenModel object={object} colors={colors} />
+        : <GardenVoxModel object={object} colors={colors} />}
+      {object.assetId === 'fountain' && <FountainSpray object={object} color={colors.water} />}
+      {['string-light-set', 'ground-light'].includes(object.assetId)
+        && <GardenLightGlow object={object} color={colors.light} />}
+    </group>
   );
 }

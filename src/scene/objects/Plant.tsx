@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 
 import { room } from '@/theme/hearth';
+import { atmo } from '../atmoState';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
 
@@ -68,6 +69,11 @@ export function Plant({ position, scale = 1, phase = 0 }: PlantProps) {
   useFrame((state) => {
     const foliage = foliageRef.current;
     if (foliage) {
+      if (atmo.reduceMotion) {
+        foliage.rotation.z = 0;
+        foliage.rotation.x = 0;
+        return;
+      }
       const t = state.clock.elapsedTime;
       foliage.rotation.z = Math.sin(t * 0.9 + phase) * 0.05;
       foliage.rotation.x = Math.sin(t * 0.7 + phase * 2.0) * 0.035;

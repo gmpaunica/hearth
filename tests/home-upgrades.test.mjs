@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('catalog v4 adds reviewed fireplace and bedroom upgrade silhouettes', () => {
+test('the v4 upgrade family remains registered in the current catalog', () => {
   const catalog = read('src/home/catalog.ts');
   const renderer = read('src/scene/objects/BedroomCatalogObject.tsx');
   const ids = [
@@ -17,7 +17,7 @@ test('catalog v4 adds reviewed fireplace and bedroom upgrade silhouettes', () =>
   ];
   for (const id of ids) assert.match(catalog, new RegExp(`['"]${id}['"]`));
   for (const id of ids.slice(2)) assert.match(renderer, new RegExp(`['"]${id}['"]`));
-  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v4'/);
+  assert.match(catalog, /HOME_CATALOG_VERSION = 'home-catalog-v5'/);
   assert.match(catalog, /HOME_UPGRADE_ASSETS/);
 });
 

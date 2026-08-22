@@ -79,16 +79,20 @@ test('camera uses one close stable frame and keeps all rooms reachable', () => {
   assert.doesNotMatch(homeSource, /state\.size\.width \/ camState\.viewW/);
   assert.doesNotMatch(homeSource, /gardenFrameInfluence|gardenFocused|GARDEN_VIEW/);
   assert.doesNotMatch(homeSource, /MathUtils\.damp\(cam\.zoom/);
-  assert.match(roomSource, /const x0 = -32, x1 = 12, z0 = -24, z1 = 20/);
+  assert.match(roomSource, /tier === 'standard'/);
+  assert.match(roomSource, /x0: -17, x1: 14, z0: -18, z1: 14/);
+  assert.match(roomSource, /x0: -33, x1: 14, z0: -25, z1: 21/);
+  assert.match(roomSource, /x0: -45, x1: 14, z0: -33, z1: 29/);
   assert.match(roomSource, /v\.box\(x0, 0, z1, x1 - x0 \+ 1, 2, 2/);
   assert.match(roomSource, /v\.box\(x0, 2, z1, x1 - x0 \+ 1, 1, 2/);
   assert.match(roomSource, /v\.box\(x1, 0, exposedEastZ, 2, 3, z1 - exposedEastZ \+ 1/);
   assert.match(roomSource, /v\.box\(x1, 3, exposedEastZ, 2, 1, z1 - exposedEastZ \+ 1/);
   assert.doesNotMatch(roomSource, /v\.box\(x1, 0, z0, 1, 3, z1 - z0 \+ 1/);
-  assert.match(roomSource, /x0=\{courtyard \? -1\.5 : -8\.25\}/);
-  assert.match(roomSource, /x1=\{3\.5\}/);
-  assert.match(roomSource, /z0=\{courtyard \? -2\.75 : -6\.25\}/);
-  assert.match(roomSource, /z1=\{courtyard \? 2\.75 : 5\.25\}/);
+  assert.match(roomSource, /cacheKey=\{`garden-platform:\$\{tier\}`\}/);
+  assert.match(roomSource, /x0=\{platformFx\.x0\}/);
+  assert.match(roomSource, /x1=\{platformFx\.x1\}/);
+  assert.match(roomSource, /z0=\{platformFx\.z0\}/);
+  assert.match(roomSource, /z1=\{platformFx\.z1\}/);
 
   const { clampCameraOffset, nearestRoom, ROOM_STOPS } = loadNavigation();
   const platformWidth = -4.25 - -15.75;

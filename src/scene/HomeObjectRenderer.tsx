@@ -1,4 +1,5 @@
 import type { ResolvedHomeObject } from '@/home/types';
+import { paletteColor } from '@/home/palettes';
 import { Bed } from './objects/Bed';
 import { BedsideTable, PaneledWardrobe } from './objects/BedroomFurniture';
 import { Bench } from './objects/Bench';
@@ -52,12 +53,19 @@ function Renderer({ object }: { object: ResolvedHomeObject }) {
     case 'Plant': return <Plant position={[0, 0, 0]} phase={object.id.length * 0.37} scale={0.4} />;
     case 'BedsideTable': return <BedsideTable position={[0, 0, 0]} />;
     case 'Wardrobe': return <PaneledWardrobe position={[0, 0, 0]} />;
-    case 'KoiPond': return <KoiPond position={[0, 0.02, 0]} />;
+    case 'KoiPond': return (
+      <KoiPond
+        position={[0, 0.02, 0]}
+        waterColor={paletteColor(object.style, 'water', '#70aeb8')}
+      />
+    );
     case 'BlossomTree': return <BlossomTree position={[0, 0, 0]} />;
     case 'RoseBush': return <RoseBush position={[0, 0, 0]} />;
     case 'GardenLantern': return <GardenLantern position={[0, 0, 0]} />;
     case 'Bench': return <Bench position={[0, 0, 0]} />;
-    case 'GardenGreenhousePortal': return <GardenGreenhousePortal position={[0, 0, 0]} />;
+    case 'GardenGreenhousePortal': return (
+      <GardenGreenhousePortal position={[0, 0, 0]} style={object.style} />
+    );
     case 'IndoorCatalog': return <IndoorCatalogObject object={object} />;
     case 'BedroomCatalog': return <BedroomCatalogObject object={object} />;
     case 'GardenCatalog': return <GardenCatalogObject object={object} />;
