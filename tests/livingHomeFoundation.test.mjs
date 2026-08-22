@@ -21,6 +21,10 @@ const gardenCatalog = readFileSync(join(
   root,
   'supabase/migrations/20260822180000_garden_home_catalog.sql',
 ), 'utf8');
+const upgradeCatalog = readFileSync(join(
+  root,
+  'supabase/migrations/20260822190000_home_upgrade_catalog.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -149,6 +153,22 @@ test('the complete garden taxonomy advances catalog v3 without replacing install
   assert.match(gardenCatalog, /'home-catalog-v3'/);
   assert.match(gardenCatalog, /"style_variants":"low,tall"/);
   assert.match(gardenCatalog, /"path_connector":true/);
+});
+
+test('catalog v4 adds functional fireplace and bedroom replacement families', () => {
+  assert.equal((upgradeCatalog.match(/"id":"/g) ?? []).length, 9);
+  for (const id of [
+    'carved-stone-fireplace', 'grand-hearth-fireplace',
+    'cottage-double-bed', 'four-poster-bed', 'bedroom-settee',
+    'slipper-chair', 'bedroom-writing-table', 'oak-double-wardrobe', 'linen-press',
+  ]) assert.match(upgradeCatalog, new RegExp(`"id":"${id}"`));
+  assert.match(upgradeCatalog, /'home-catalog-v4'/);
+  assert.match(upgradeCatalog, /"tier":2/);
+  assert.match(upgradeCatalog, /"tier":3/);
+  for (const role of ['fireplace', 'romantic_rest_location', 'conversation_seating', 'shared_table']) {
+    assert.match(upgradeCatalog, new RegExp(`"role":"${role}"`));
+  }
+  assert.match(upgradeCatalog, /"effectSockets":\["fire","mantel","floor-glow"\]/);
 });
 
 test('paired_at is server-owned and every membership epoch purge clears all shared home state', () => {
