@@ -171,8 +171,8 @@ export interface HomeSnapshot {
 }
 
 export type HomeOperation =
-  | { type: 'add'; objectId: string; roomId: string; assetId: string; surface: HomeSurface; position: [number, number, number]; rotation: HomeRotation; style?: Record<string, unknown> }
-  | { type: 'move'; objectId: string; roomId: string; surface: HomeSurface; position: [number, number, number] }
+  | { type: 'add'; objectId: string; roomId: string; assetId: string; surface: HomeSurface; position: [number, number, number]; rotation: HomeRotation; style?: Record<string, unknown>; parentObjectId?: string; attachmentSocket?: string }
+  | { type: 'move'; objectId: string; roomId: string; surface: HomeSurface; position: [number, number, number]; parentObjectId?: string | null; attachmentSocket?: string | null }
   | { type: 'rotate'; objectId: string; rotation: HomeRotation }
   | { type: 'restyle'; objectId: string; style: Record<string, unknown> }
   | { type: 'attach'; objectId: string; parentObjectId: string; socket: string }

@@ -18,6 +18,7 @@ import { RitualsButton } from '@/components/RitualsButton';
 import { DailyMediaHomeActions } from '@/components/daily/DailyMediaHomeActions';
 import { Settings } from '@/components/Settings';
 import { HomeStudio } from '@/components/HomeStudio';
+import { DecorateButton } from '@/components/DecorateButton';
 import { HomeScene } from '@/scene/HomeScene';
 import { LockedRoomNotice } from '@/scene/LockedRoomNotice';
 import { SceneCanvas } from '@/scene/SceneCanvas';
@@ -81,6 +82,7 @@ export default function HomeScreen() {
             {!settingsOpen && <CharacterButton />}
             {!settingsOpen && <RitualsButton />}
             {!settingsOpen && <GreenhouseButton />}
+            {!settingsOpen && <DecorateButton />}
           </View>
           <Settings />
           <HomeStudio />

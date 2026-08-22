@@ -1,6 +1,6 @@
 import type { HomeAssetDefinition, HomeCoupleRig } from './types';
 
-export const HOME_CATALOG_VERSION = 'home-catalog-v1';
+export const HOME_CATALOG_VERSION = 'home-catalog-v2';
 
 const allRotations = [0, 1, 2, 3] as const;
 
@@ -52,6 +52,82 @@ function asset(
   };
 }
 
+interface IndoorAssetOptions {
+  rooms?: HomeAssetDefinition['compatibleRooms'];
+  surfaces?: HomeAssetDefinition['compatibleSurfaces'];
+  sockets?: HomeAssetDefinition['attachmentSockets'];
+  day?: number;
+  renderCost?: number;
+  walkable?: boolean;
+}
+
+function indoorAsset(
+  id: string,
+  category: string,
+  footprint: HomeAssetDefinition['footprint'],
+  paletteSlots: HomeAssetDefinition['paletteSlots'],
+  options: IndoorAssetOptions = {},
+) {
+  return asset({
+    id,
+    category,
+    renderer: 'IndoorCatalog',
+    footprint,
+    compatibleRooms: options.rooms ?? ['living', 'bedroom'],
+    compatibleSurfaces: options.surfaces ?? ['floor'],
+    collisionClearance: options.walkable ? 0 : 0.05,
+    paletteSlots,
+    attachmentSockets: options.sockets ?? [],
+    renderCost: options.renderCost ?? 5,
+    progression: { day: options.day ?? 3, ...(options.walkable ? { walkable: true } : {}) },
+    functional: {},
+  });
+}
+
+/** The first complete indoor content pack: 31 new silhouettes plus potted-fern. */
+export const INDOOR_HOME_ASSETS = [
+  // Storage
+  indoorAsset('cottage-wardrobe', 'storage', { width: 1.2, depth: 0.7, height: 2.2 }, ['wood', 'metal'], { day: 21, renderCost: 9 }),
+  indoorAsset('paneled-armoire', 'storage', { width: 1.4, depth: 0.75, height: 2.25 }, ['wood', 'metal'], { day: 21, renderCost: 10 }),
+  indoorAsset('clothes-rail', 'storage', { width: 1.35, depth: 0.55, height: 1.75 }, ['wood', 'metal', 'fabric'], { day: 21, renderCost: 7 }),
+  indoorAsset('low-cubby', 'storage', { width: 1.4, depth: 0.55, height: 0.85 }, ['wood', 'fabric'], { day: 21, sockets: ['shelf-left', 'shelf-right'], renderCost: 7 }),
+  indoorAsset('blanket-chest', 'storage', { width: 1.15, depth: 0.65, height: 0.65 }, ['wood', 'fabric', 'metal'], { day: 21, sockets: ['chest-top'], renderCost: 6 }),
+
+  // Seating and small surfaces
+  indoorAsset('reading-chair', 'seating', { width: 0.9, depth: 0.9, height: 1.15 }, ['wood', 'fabric'], { renderCost: 7 }),
+  indoorAsset('rocking-chair', 'seating', { width: 0.9, depth: 1.05, height: 1.25 }, ['wood', 'fabric'], { renderCost: 8 }),
+  indoorAsset('pouf', 'seating', { width: 0.7, depth: 0.7, height: 0.5 }, ['fabric'], { renderCost: 4 }),
+  indoorAsset('side-table', 'surface', { width: 0.65, depth: 0.65, height: 0.72 }, ['wood', 'metal', 'stone'], { sockets: ['tabletop'], renderCost: 5 }),
+  indoorAsset('narrow-bench', 'seating', { width: 1.35, depth: 0.55, height: 0.78 }, ['wood', 'fabric', 'metal'], { sockets: ['bench-top'], renderCost: 6 }),
+
+  // Keepsakes
+  indoorAsset('teddy-bear', 'keepsake', { width: 0.45, depth: 0.4, height: 0.6 }, ['fabric'], { surfaces: ['floor', 'shelf', 'table', 'bed'], renderCost: 4 }),
+  indoorAsset('trophy-cup', 'keepsake', { width: 0.3, depth: 0.3, height: 0.5 }, ['metal', 'wood'], { surfaces: ['shelf', 'table', 'mantel'], renderCost: 3 }),
+  indoorAsset('rosette', 'keepsake', { width: 0.35, depth: 0.12, height: 0.55 }, ['fabric', 'metal'], { surfaces: ['wall', 'shelf'], renderCost: 3 }),
+  indoorAsset('couple-statuette', 'keepsake', { width: 0.4, depth: 0.3, height: 0.65 }, ['stone', 'metal'], { surfaces: ['shelf', 'table', 'mantel'], renderCost: 4 }),
+  indoorAsset('animal-figurine', 'keepsake', { width: 0.4, depth: 0.28, height: 0.35 }, ['stone', 'wood'], { surfaces: ['shelf', 'table', 'mantel'], renderCost: 3 }),
+  indoorAsset('snow-globe', 'keepsake', { width: 0.38, depth: 0.38, height: 0.5 }, ['glass', 'stone', 'metal'], { surfaces: ['shelf', 'table', 'mantel'], renderCost: 5 }),
+  indoorAsset('travel-trunk', 'keepsake', { width: 1.05, depth: 0.65, height: 0.65 }, ['wood', 'fabric', 'metal'], { sockets: ['trunk-top'], renderCost: 6 }),
+  indoorAsset('shell-jar', 'keepsake', { width: 0.32, depth: 0.32, height: 0.5 }, ['glass', 'stone'], { surfaces: ['shelf', 'table', 'mantel'], renderCost: 4 }),
+  indoorAsset('book-stack', 'keepsake', { width: 0.48, depth: 0.36, height: 0.3 }, ['fabric', 'paper'], { surfaces: ['shelf', 'table', 'mantel', 'bed'], renderCost: 3 }),
+
+  // Wall pieces
+  indoorAsset('botanical-print', 'wall', { width: 0.85, depth: 0.12, height: 1.05 }, ['wood', 'foliage', 'paper'], { surfaces: ['wall'], renderCost: 4 }),
+  indoorAsset('landscape-print', 'wall', { width: 1.15, depth: 0.12, height: 0.8 }, ['wood', 'wall', 'foliage'], { surfaces: ['wall'], renderCost: 5 }),
+  indoorAsset('heart-print', 'wall', { width: 0.7, depth: 0.12, height: 0.85 }, ['wood', 'fabric', 'paper'], { surfaces: ['wall'], renderCost: 4 }),
+  indoorAsset('memory-frame', 'wall', { width: 0.65, depth: 0.12, height: 0.75 }, ['wood', 'metal', 'paper'], { surfaces: ['wall'], renderCost: 4 }),
+  indoorAsset('tall-mirror', 'wall', { width: 0.7, depth: 0.16, height: 1.75 }, ['wood', 'metal', 'glass'], { surfaces: ['wall'], renderCost: 6 }),
+
+  // Lighting, textiles, and tabletop greenery
+  indoorAsset('table-lamp', 'lighting', { width: 0.42, depth: 0.42, height: 0.72 }, ['metal', 'fabric'], { surfaces: ['table', 'shelf'], renderCost: 5 }),
+  indoorAsset('floor-lamp', 'lighting', { width: 0.5, depth: 0.5, height: 1.75 }, ['metal', 'fabric', 'wood'], { renderCost: 6 }),
+  indoorAsset('lantern', 'lighting', { width: 0.42, depth: 0.42, height: 0.62 }, ['metal', 'glass'], { surfaces: ['floor', 'table', 'shelf'], renderCost: 5 }),
+  indoorAsset('round-rug', 'textile', { width: 1.8, depth: 1.8, height: 0.04 }, ['fabric'], { walkable: true, renderCost: 4 }),
+  indoorAsset('runner', 'textile', { width: 0.8, depth: 2.3, height: 0.04 }, ['fabric'], { walkable: true, renderCost: 4 }),
+  indoorAsset('cushion-basket', 'textile', { width: 0.65, depth: 0.6, height: 0.65 }, ['wood', 'fabric'], { renderCost: 5 }),
+  indoorAsset('flower-vase', 'plant', { width: 0.38, depth: 0.38, height: 0.65 }, ['flower', 'foliage', 'stone'], { surfaces: ['table', 'shelf', 'mantel'], renderCost: 5 }),
+] as const satisfies readonly HomeAssetDefinition[];
+
 export const HOME_ASSETS = [
   asset({ id: 'core-fireplace', category: 'fireplace', renderer: 'Fireplace', footprint: { width: 2, depth: 1.1, height: 2.8 }, compatibleRooms: ['living'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'stone', 'metal'], attachmentSockets: ['mantel-left', 'mantel-center', 'mantel-right'], renderCost: 18, progression: { day: 0, tier: 1 }, functional: { role: 'fireplace', signals: ['fireplace'], poses: ['floor-left', 'floor-right'], approach: [[-2.55, -1.95], [-1.55, -1.95]], exit: [[-2.55, -1.95], [-1.55, -1.95]], cameraTarget: [-2.6, 1.2, -3.6], reactionAnchor: [1, 2.3, 0.6], uiAnchor: [1, 2.9, 0.4], clickBounds: { width: 2.5, depth: 1.5, height: 3 }, effectSockets: ['fire', 'mantel', 'floor-glow'] }, routeEndpoint: true, collisionBounds: { minX: -0.25, maxX: 2.25, minZ: -0.23, maxZ: 1.25 } }),
   asset({ id: 'cottage-sofa', category: 'seating', renderer: 'Sofa', footprint: { width: 2.2, depth: 0.9, height: 1.15 }, compatibleRooms: ['living', 'bedroom'], compatibleSurfaces: ['floor'], collisionClearance: 0.1, paletteSlots: ['wood', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 10, progression: { day: 0 }, functional: { role: 'conversation_seating', signals: ['sofa'], poses: ['sit-left', 'sit-right'], approach: [[0.65, 1.67], [1.55, 1.67]], exit: [[0.65, 1.67], [1.55, 1.67]], cameraTarget: [1.1, 0.8, 0.6], reactionAnchor: [1.1, 1.8, 0.5], uiAnchor: [1.1, 2.1, 0.5], clickBounds: { width: 2.8, depth: 1.4, height: 1.5 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 2.75, minZ: 0, maxZ: 1.25 } }),
@@ -71,6 +147,7 @@ export const HOME_ASSETS = [
   asset({ id: 'garden-lantern', category: 'lighting', renderer: 'GardenLantern', footprint: { width: 0.55, depth: 0.55, height: 1.45 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.05, paletteSlots: ['wood', 'metal'], attachmentSockets: [], renderCost: 5, progression: { day: 30 }, functional: {}, collisionBounds: { minX: 0, maxX: 0.63, minZ: 0, maxZ: 0.63 } }),
   asset({ id: 'garden-bench', category: 'seating', renderer: 'Bench', footprint: { width: 1.7, depth: 0.75, height: 1.1 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.12, paletteSlots: ['wood', 'metal', 'fabric'], attachmentSockets: ['seat-left', 'seat-right'], renderCost: 8, progression: { day: 30 }, functional: { interactionRig: 'garden-couple', poses: ['sit-left', 'sit-right'], approach: [[1.15, 0.33], [1.15, 1.17]], exit: [[1.15, 0.33], [1.15, 1.17]], cameraTarget: [0.4, 0.8, 0.75], reactionAnchor: [0.4, 1.7, 0.75], uiAnchor: [0.4, 2, 0.75], clickBounds: { width: 1, depth: 1.7, height: 1.3 }, effectSockets: ['seat-left', 'seat-right', 'center'] }, routeEndpoint: true, collisionBounds: { minX: 0, maxX: 0.75, minZ: 0, maxZ: 1.5 } }),
   asset({ id: 'greenhouse-portal', category: 'structure', renderer: 'GardenGreenhousePortal', footprint: { width: 1.35, depth: 1.05, height: 1.55 }, compatibleRooms: ['garden'], compatibleSurfaces: ['terrain'], collisionClearance: 0.1, paletteSlots: ['wood', 'metal', 'foliage'], attachmentSockets: [], renderCost: 12, progression: { day: 30 }, functional: { role: 'greenhouse_portal', route: '/greenhouse' }, routeEndpoint: true }),
+  ...INDOOR_HOME_ASSETS,
 ] as const satisfies readonly HomeAssetDefinition[];
 
 export const HOME_ASSET_REGISTRY: ReadonlyMap<string, HomeAssetDefinition> = new Map(

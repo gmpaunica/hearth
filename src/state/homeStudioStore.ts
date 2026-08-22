@@ -24,6 +24,8 @@ export type HomeStudioTray =
   | 'stored'
   | 'needs_spot';
 
+export type HomeStudioMode = 'developer' | 'decorate';
+
 interface DraftHistoryEntry {
   snapshot: HomeSnapshot;
   operations: HomeOperation[];
@@ -46,6 +48,7 @@ export interface HomePlacementGhost {
 
 interface HomeStudioState {
   isOpen: boolean;
+  mode: HomeStudioMode;
   baseSnapshot: HomeSnapshot | null;
   draftSnapshot: HomeSnapshot | null;
   operations: HomeOperation[];
@@ -62,7 +65,7 @@ interface HomeStudioState {
   simulateFrozen: boolean;
   placementGhost: HomePlacementGhost | null;
 
-  open: () => Promise<void>;
+  open: (mode?: HomeStudioMode) => Promise<void>;
   cancel: () => Promise<void>;
   execute: (operation: HomeOperation) => void;
   undo: () => void;
@@ -168,6 +171,7 @@ function validationFor(snapshot: HomeSnapshot, simulateFrozen: boolean) {
 
 export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
   isOpen: false,
+  mode: 'developer',
   baseSnapshot: null,
   draftSnapshot: null,
   operations: [],
@@ -184,7 +188,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
   simulateFrozen: false,
   placementGhost: null,
 
-  open: async () => {
+  open: async (mode = 'developer') => {
     const authoritative = cloneHomeSnapshot(useHomeStore.getState().snapshot);
     let draft = authoritative;
     let operations: HomeOperation[] = [];
@@ -213,6 +217,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       ?? draft.rooms[0]?.id ?? null;
     set({
       isOpen: true,
+      mode,
       baseSnapshot: authoritative,
       draftSnapshot: draft,
       operations,
@@ -220,6 +225,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       redoStack: [],
       selectedRoomId,
       selectedObjectId: null,
+      tray: 'furnish',
       issues: validationFor(draft, get().simulateFrozen),
       conflictMessages: [],
       message,

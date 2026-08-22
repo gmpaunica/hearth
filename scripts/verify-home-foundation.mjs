@@ -9,7 +9,7 @@ const near = (actual, expected) => assert.ok(
   Math.abs(actual - expected) < 1e-9,
   `expected ${actual} to be near ${expected}`,
 );
-assert.equal(HOME_ASSETS.length, 18);
+assert.equal(HOME_ASSETS.length, 49);
 assert.equal(scene.rooms.length, 3);
 assert.equal(scene.diagnostics.length, 0);
 for (const role of [

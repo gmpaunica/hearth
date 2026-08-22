@@ -178,6 +178,7 @@ export function resolveHomeScene(snapshot: HomeSnapshot): ResolvedHomeScene {
     objects,
     colliders: placed
       .filter((object) => object.parentObjectId === null)
+      .filter((object) => object.surface !== 'wall' && object.definition.progression.walkable !== true)
       .filter((object) => !['DailyMediaConsole', 'GardenThreshold'].includes(object.definition.renderer))
       .map((object) => ({
         id: `${object.definition.category}.${object.id}`,

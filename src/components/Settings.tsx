@@ -82,7 +82,7 @@ export function Settings() {
     setDeveloperMessage(null);
     setConfirming(null);
     setOpen(false);
-    void useHomeStudioStore.getState().open();
+    void useHomeStudioStore.getState().open('developer');
   };
 
   return (

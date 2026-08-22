@@ -114,8 +114,8 @@ export function applyHomeOperation(snapshot: HomeSnapshot, operation: HomeOperat
         position: operation.position,
         rotation: operation.rotation,
         style: operation.style ?? {},
-        parentObjectId: null,
-        attachmentSocket: null,
+        parentObjectId: operation.parentObjectId ?? null,
+        attachmentSocket: operation.attachmentSocket ?? null,
       });
       break;
     }
@@ -129,7 +129,11 @@ export function applyHomeOperation(snapshot: HomeSnapshot, operation: HomeOperat
           : member.position.map((value, index) => value + delta[index]) as [number, number, number];
         member.roomId = operation.roomId;
         member.placementState = 'placed';
-        if (member.id === object.id) member.surface = operation.surface;
+        if (member.id === object.id) {
+          member.surface = operation.surface;
+          if (operation.parentObjectId !== undefined) member.parentObjectId = operation.parentObjectId;
+          if (operation.attachmentSocket !== undefined) member.attachmentSocket = operation.attachmentSocket;
+        }
       }
       break;
     }
@@ -249,6 +253,8 @@ export function validateHomeDraft(snapshot: HomeSnapshot): HomeValidationIssue[]
       if (second.parentObjectId || second.roomId !== first.roomId) continue;
       const secondDefinition = HOME_ASSET_REGISTRY.get(second.assetId);
       if (!secondDefinition) continue;
+      if (firstDefinition.progression.walkable === true || secondDefinition.progression.walkable === true) continue;
+      if ((first.surface === 'wall') !== (second.surface === 'wall')) continue;
       const clearance = Math.max(firstDefinition.collisionClearance, secondDefinition.collisionClearance);
       if (overlaps(objectBounds(first), objectBounds(second), clearance)) {
         issues.push(issue('collision', `${firstDefinition.id} overlaps ${secondDefinition.id}.`, [first.id, second.id]));
@@ -258,7 +264,8 @@ export function validateHomeDraft(snapshot: HomeSnapshot): HomeValidationIssue[]
 
   for (const object of placed) {
     const definition = HOME_ASSET_REGISTRY.get(object.assetId);
-    if (!definition || definition.routeEndpoint) continue;
+    if (!definition || definition.routeEndpoint || object.parentObjectId || object.surface === 'wall'
+      || definition.progression.walkable === true) continue;
     for (const route of snapshot.reservedRoutes.filter((candidate) => candidate.roomId === object.roomId)) {
       if (overlaps(objectBounds(object), route)) {
         issues.push(issue('route_blocked', `${definition.id} blocks ${route.key}.`, [object.id]));
@@ -324,13 +331,65 @@ export function findOpenPlacement(
   snapshot: HomeSnapshot,
   assetId: string,
   roomId: string,
-): { position: [number, number, number]; surface: HomeSurface } | null {
+): { position: [number, number, number]; surface: HomeSurface; parentObjectId?: string; attachmentSocket?: string } | null {
   const room = roomFor(snapshot, roomId);
   const definition = HOME_ASSET_REGISTRY.get(assetId);
   if (!room || !definition) return null;
   const surface = surfaceForRoom(assetId, room);
   if (!surface) return null;
   const temporaryId = '__placement_candidate__';
+
+  if (['shelf', 'table', 'mantel', 'bed'].includes(surface)) {
+    const socketMatches = (socket: string) => surface === 'shelf' ? socket.includes('shelf')
+      : surface === 'mantel' ? socket.includes('mantel')
+        : surface === 'bed' ? socket.includes('bed')
+          : socket.includes('table') || socket.endsWith('top');
+    for (const parent of snapshot.objects.filter((object) =>
+      object.roomId === roomId && object.placementState === 'placed' && !object.parentObjectId)) {
+      const parentDefinition = HOME_ASSET_REGISTRY.get(parent.assetId);
+      if (!parentDefinition) continue;
+      const sockets = parentDefinition.attachmentSockets.filter(socketMatches);
+      for (let index = 0; index < sockets.length; index += 1) {
+        const socket = sockets[index];
+        const occupied = snapshot.objects.some((object) =>
+          object.parentObjectId === parent.id && object.attachmentSocket === socket);
+        if (occupied) continue;
+        const localX = (index - (sockets.length - 1) / 2) * 0.42;
+        const angle = parent.rotation * Math.PI / 2;
+        const position: [number, number, number] = [
+          snapHomeCoordinate(parent.position[0] + localX * Math.cos(angle)),
+          surface === 'shelf'
+            ? Math.min(1.45, 0.45 + index * 0.42)
+            : surface === 'mantel' ? 1.85
+              : surface === 'bed' ? 0.72
+                : Math.max(0.55, Math.min(1.15, parentDefinition.footprint.height)),
+          snapHomeCoordinate(parent.position[2] - localX * Math.sin(angle)),
+        ];
+        const candidate = applyHomeOperation(snapshot, {
+          type: 'add', objectId: temporaryId, roomId, assetId, surface, position,
+          rotation: parent.rotation, parentObjectId: parent.id, attachmentSocket: socket,
+        });
+        const invalid = validateHomeDraft(candidate).some((problem) => problem.objectIds.includes(temporaryId));
+        if (!invalid) return { position, surface, parentObjectId: parent.id, attachmentSocket: socket };
+      }
+    }
+    return null;
+  }
+
+  if (surface === 'wall') {
+    const z = snapHomeCoordinate(room.bounds.minZ + definition.footprint.depth / 2 + 0.05);
+    for (let x = room.bounds.minX + definition.footprint.width / 2;
+      x <= room.bounds.maxX - definition.footprint.width / 2; x += HOME_GRID) {
+      const position: [number, number, number] = [snapHomeCoordinate(x), 0.5, z];
+      const candidate = applyHomeOperation(snapshot, {
+        type: 'add', objectId: temporaryId, roomId, assetId, surface, position, rotation: 0,
+      });
+      const invalid = validateHomeDraft(candidate).some((problem) => problem.objectIds.includes(temporaryId));
+      if (!invalid) return { position, surface };
+    }
+    return null;
+  }
+
   for (let z = room.bounds.minZ + 0.5; z <= room.bounds.maxZ - 0.5; z += HOME_GRID) {
     for (let x = room.bounds.minX + 0.5; x <= room.bounds.maxX - 0.5; x += HOME_GRID) {
       const position: [number, number, number] = [snapHomeCoordinate(x), 0, snapHomeCoordinate(z)];

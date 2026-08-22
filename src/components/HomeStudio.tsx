@@ -13,6 +13,7 @@ import {
 
 import { HOME_ASSETS, HOME_ASSET_REGISTRY } from '@/home/catalog';
 import { COTTAGE_V2_GARDEN_MASKS, COTTAGE_V2_ROOM_MASKS } from '@/home/layouts';
+import { paletteChoices } from '@/home/palettes';
 import {
   applyHomeOperation,
   createHomeObjectId,
@@ -21,6 +22,7 @@ import {
   validateHomeDraft,
 } from '@/home/editor';
 import type { GardenTier, HomeAssetDefinition, HomeObjectSnapshot, HomeRoomSize } from '@/home/types';
+import { daysTogether } from '@/state/homeProgress';
 import { useHomeStore } from '@/state/homeStore';
 import { useHomeStudioStore, type HomeStudioTray } from '@/state/homeStudioStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
@@ -47,9 +49,14 @@ const friendly = (value: string) => value
   .replaceAll('_', ' ')
   .replace(/\b\w/g, (character) => character.toUpperCase());
 
-function catalogForTray(tray: HomeStudioTray, roomKind: string | null) {
+function catalogForTray(
+  tray: HomeStudioTray,
+  roomKind: string | null,
+  unlockedDays: number,
+) {
   return HOME_ASSETS.filter((asset) => {
     if (roomKind && !asset.compatibleRooms.includes(roomKind as never)) return false;
+    if (Number(asset.progression.day ?? 0) > unlockedDays) return false;
     if (tray === 'build') return BUILD_CATEGORIES.has(asset.category);
     if (tray === 'furnish') return FURNISH_CATEGORIES.has(asset.category);
     if (tray === 'decorate') return DECORATE_CATEGORIES.has(asset.category);
@@ -88,6 +95,7 @@ function ObjectRow({
 
 export function HomeStudio() {
   const isOpen = useHomeStudioStore((state) => state.isOpen);
+  const mode = useHomeStudioStore((state) => state.mode);
   const draft = useHomeStudioStore((state) => state.draftSnapshot);
   const base = useHomeStudioStore((state) => state.baseSnapshot);
   const operations = useHomeStudioStore((state) => state.operations);
@@ -107,6 +115,7 @@ export function HomeStudio() {
   const execute = useHomeStudioStore((state) => state.execute);
   const setMessage = useHomeStudioStore((state) => state.setMessage);
   const setGhost = useHomeStudioStore((state) => state.setPlacementGhost);
+  const isDeveloper = mode === 'developer';
 
   const room = draft?.rooms.find((candidate) => candidate.id === selectedRoomId) ?? null;
   const selected = draft?.objects.find((object) => object.id === selectedObjectId) ?? null;
@@ -141,6 +150,10 @@ export function HomeStudio() {
       setMessage('Finish the active Moment before saving the home.');
       return;
     }
+    if (!isDeveloper && !draft?.capabilities.edit) {
+      setMessage('Your shared world is currently view-only. Everything remains safe and visible.');
+      return;
+    }
     const saved = await useHomeStudioStore.getState().save();
     if (saved) exitStudioSurface();
   };
@@ -160,6 +173,8 @@ export function HomeStudio() {
       surface: placement.surface,
       position: placement.position,
       rotation: 0,
+      parentObjectId: placement.parentObjectId,
+      attachmentSocket: placement.attachmentSocket,
     });
   };
 
@@ -288,8 +303,14 @@ export function HomeStudio() {
     object.placementState === 'needs_spot' && !object.parentObjectId);
   const trayObjects = tray === 'stored' ? storedObjects
     : tray === 'needs_spot' ? needsSpotObjects : null;
-  const catalog = catalogForTray(tray, room?.moduleId ?? null);
+  const growthDays = daysTogether(draft.pairedAt);
+  const unlockedDays = isDeveloper ? Infinity : growthDays;
+  const availableTrays = isDeveloper
+    ? TRAYS
+    : TRAYS.filter((candidate) => ['furnish', 'decorate', 'stored', 'needs_spot'].includes(candidate.id));
+  const catalog = catalogForTray(tray, room?.moduleId ?? null, unlockedDays);
   const blockingIssues = issues.filter((problem) => problem.code !== 'frozen_simulation');
+  const effectiveSection = isDeveloper ? section : 'catalog';
   const sceneCost = draft.objects
     .filter((object) => object.placementState === 'placed')
     .reduce((total, object) => total + (HOME_ASSET_REGISTRY.get(object.assetId)?.renderCost ?? 2), 0);
@@ -301,8 +322,8 @@ export function HomeStudio() {
           <Text style={styles.toolbarButtonText}>Cancel</Text>
         </Pressable>
         <View style={styles.toolbarTitleWrap}>
-          <Text style={styles.eyebrow}>Developer</Text>
-          <Text style={styles.toolbarTitle}>Home Studio</Text>
+          <Text style={styles.eyebrow}>{isDeveloper ? 'Developer' : `Day ${Math.floor(growthDays) + 1}`}</Text>
+          <Text style={styles.toolbarTitle}>{isDeveloper ? 'Home Studio' : 'Decorate'}</Text>
         </View>
         <View style={styles.historyRow}>
           <Pressable
@@ -319,9 +340,9 @@ export function HomeStudio() {
           ><Text style={styles.iconText}>↷</Text></Pressable>
         </View>
         <Pressable
-          style={[styles.saveButton, (saving || activeMoment || blockingIssues.length > 0 || conflicts.length > 0) && styles.buttonDisabled]}
+          style={[styles.saveButton, (saving || activeMoment || (!isDeveloper && !draft.capabilities.edit) || blockingIssues.length > 0 || conflicts.length > 0) && styles.buttonDisabled]}
           onPress={() => void save()}
-          disabled={saving || activeMoment || blockingIssues.length > 0 || conflicts.length > 0}
+          disabled={saving || activeMoment || (!isDeveloper && !draft.capabilities.edit) || blockingIssues.length > 0 || conflicts.length > 0}
           accessibilityLabel="Save home atomically"
         >
           <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text>
@@ -349,21 +370,23 @@ export function HomeStudio() {
       <View style={styles.workArea} pointerEvents="box-none">
         <View style={styles.sceneHint} pointerEvents="none">
           <Text style={styles.sceneHintText}>
-            The mounted home is your preview. Use the grid pad or accessible nudges to move a selection.
+            {isDeveloper
+              ? 'The mounted home is your preview. Use the grid pad or accessible nudges to move a selection.'
+              : 'Arrange the pieces you have grown into together. New choices unlock with active time.'}
           </Text>
         </View>
 
         <View style={styles.panel}>
-          <View style={styles.sectionTabs}>
+          {isDeveloper && <View style={styles.sectionTabs}>
             <Pressable onPress={() => setSection('catalog')} style={[styles.sectionTab, section === 'catalog' && styles.sectionTabSelected]}>
               <Text style={styles.sectionTabText}>Edit</Text>
             </Pressable>
             <Pressable onPress={() => setSection('diagnostics')} style={[styles.sectionTab, section === 'diagnostics' && styles.sectionTabSelected]}>
               <Text style={styles.sectionTabText}>Diagnostics</Text>
             </Pressable>
-          </View>
+          </View>}
 
-          {section === 'diagnostics' ? (
+          {effectiveSection === 'diagnostics' ? (
             <ScrollView style={styles.panelScroll} contentContainerStyle={styles.diagnostics}>
               <Text style={styles.panelTitle}>Current snapshot</Text>
               <Text style={styles.diagnosticLine}>Revision {base?.revision ?? 0} · {homeStatus}</Text>
@@ -406,7 +429,7 @@ export function HomeStudio() {
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trays}>
-                {TRAYS.map((candidate) => (
+                {availableTrays.map((candidate) => (
                   <Pressable
                     key={candidate.id}
                     style={[styles.tray, tray === candidate.id && styles.traySelected]}
@@ -505,13 +528,15 @@ export function HomeStudio() {
                         onPress={() => {
                           const placement = room && findOpenPlacement(draft, selected.assetId, room.id);
                           if (!placement || !room) return setMessage('No open spot is available for a duplicate.');
-                          execute({ type: 'add', objectId: createHomeObjectId(), roomId: room.id, assetId: selected.assetId, surface: placement.surface, position: placement.position, rotation: selected.rotation, style: selected.style });
+                          execute({
+                            type: 'add', objectId: createHomeObjectId(), roomId: room.id,
+                            assetId: selected.assetId, surface: placement.surface,
+                            position: placement.position, rotation: selected.rotation,
+                            style: selected.style, parentObjectId: placement.parentObjectId,
+                            attachmentSocket: placement.attachmentSocket,
+                          });
                         }}
                       ><Text style={styles.miniActionText}>Duplicate</Text></Pressable>
-                      <Pressable
-                        style={styles.miniAction}
-                        onPress={() => execute({ type: 'restyle', objectId: selected.id, style: { variant: ((Number(selected.style.variant) || 0) + 1) % 3 } })}
-                      ><Text style={styles.miniActionText}>Style</Text></Pressable>
                       <Pressable
                         style={[styles.miniAction, styles.storeAction]}
                         onPress={() => Alert.alert(
@@ -524,6 +549,33 @@ export function HomeStudio() {
                         )}
                       ><Text style={styles.storeActionText}>Store</Text></Pressable>
                     </View>
+                    {definition.paletteSlots.map((slot) => {
+                      const choices = paletteChoices(slot);
+                      if (!choices.length) return null;
+                      return (
+                        <View key={slot} style={styles.paletteBlock}>
+                          <Text style={styles.paletteLabel}>{friendly(slot)}</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.paletteRow}>
+                            {choices.map((choice) => {
+                              const paletteSelected = selected.style[slot] === choice.id;
+                              return (
+                                <Pressable
+                                  key={choice.id}
+                                  style={[styles.paletteChoice, paletteSelected && styles.paletteChoiceSelected]}
+                                  onPress={() => execute({ type: 'restyle', objectId: selected.id, style: { [slot]: choice.id } })}
+                                  accessibilityRole="radio"
+                                  accessibilityState={{ selected: paletteSelected }}
+                                  accessibilityLabel={`${choice.label} ${friendly(slot)}`}
+                                >
+                                  <View style={[styles.paletteSwatch, { backgroundColor: choice.color }]} />
+                                  <Text style={styles.paletteChoiceText}>{choice.label}</Text>
+                                </Pressable>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      );
+                    })}
                   </View>
                 )}
 
@@ -542,7 +594,7 @@ export function HomeStudio() {
 
                 {!trayObjects && (
                   <>
-                    <Text style={styles.listHeading}>All developer-unlocked pieces</Text>
+                    <Text style={styles.listHeading}>{isDeveloper ? 'Every registered piece' : 'Unlocked pieces'}</Text>
                     {catalog.map((asset) => (
                       <View key={asset.id} style={styles.catalogRow}>
                         <View style={styles.catalogCopy}>
@@ -646,6 +698,13 @@ const styles = StyleSheet.create({
   miniActionText: { color: editorial.ink, fontSize: 9, fontWeight: '900' },
   storeAction: { backgroundColor: 'rgba(167,66,50,0.08)' },
   storeActionText: { color: editorial.danger, fontSize: 9, fontWeight: '900' },
+  paletteBlock: { gap: 4 },
+  paletteLabel: { color: editorial.inkSoft, fontSize: 8, fontWeight: '900', letterSpacing: 0.7, textTransform: 'uppercase' },
+  paletteRow: { gap: 6, paddingRight: 6 },
+  paletteChoice: { minWidth: 82, minHeight: 34, paddingHorizontal: 7, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
+  paletteChoiceSelected: { borderColor: editorial.clay, backgroundColor: 'rgba(177,103,76,0.10)' },
+  paletteSwatch: { width: 18, height: 18, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(76,54,45,0.18)' },
+  paletteChoiceText: { color: editorial.ink, fontSize: 8, fontWeight: '800' },
   listHeading: { color: editorial.clay, fontSize: 9, fontWeight: '900', letterSpacing: 0.9, textTransform: 'uppercase', marginTop: 7 },
   objectRow: { minHeight: 46, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: editorial.paper, borderWidth: 1, borderColor: editorial.line },
   objectRowSelected: { borderColor: editorial.clay, backgroundColor: 'rgba(177,103,76,0.10)' },
