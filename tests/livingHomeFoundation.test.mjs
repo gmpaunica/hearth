@@ -29,6 +29,10 @@ const advancedGardenCatalog = readFileSync(join(
   root,
   'supabase/migrations/20260822200000_advanced_garden_catalog.sql',
 ), 'utf8');
+const milestoneKeepsakes = readFileSync(join(
+  root,
+  'supabase/migrations/20260822210000_home_milestone_keepsakes.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -189,6 +193,17 @@ test('catalog v5 adds grand landmarks and seasonal garden families', () => {
   assert.match(advancedGardenCatalog, /"style_variants":"cottage,brass,forest"/);
 });
 
+test('the deployed catalog chain contains 112 stable IDs without server duplicates', () => {
+  const baseIds = [...migration.matchAll(/\('([^']+)', 'home-catalog-v1'/g)]
+    .map((match) => match[1]);
+  const addedIds = [indoorCatalog, gardenCatalog, upgradeCatalog, advancedGardenCatalog]
+    .flatMap((catalog) => [...catalog.matchAll(/"id":"([^"]+)"/g)].map((match) => match[1]));
+  const ids = [...baseIds, ...addedIds];
+  assert.equal(baseIds.length, 18);
+  assert.equal(ids.length, 112);
+  assert.equal(new Set(ids).size, 112);
+});
+
 test('paired_at is server-owned and every membership epoch purge clears all shared home state', () => {
   assert.match(migration, /add column if not exists paired_at timestamptz/);
   const maintain = functionBody('private', 'maintain_home_couple_epoch');
@@ -224,4 +239,25 @@ test('active growth is authoritative, pauseable, irreversible, and gates normal 
   assert.match(apply, /state\.world_frozen_at is not null and not developer_bypass/);
   assert.match(apply, /growth < coalesce\(\(asset\.progression->>'day'\)::numeric, 0\) \* 86400/);
   assert.match(apply, /growth < case requested_garden_tier/);
+});
+
+test('positive shared milestones mint unique, placeable, irreversible keepsakes', () => {
+  for (const milestone of [
+    'first-planted-memory', 'first-shared-photo', 'first-diary-entry',
+    'pairing-anniversary',
+  ]) assert.match(milestoneKeepsakes, new RegExp(`'${milestone}'`));
+  for (const asset of ['flower-vase', 'memory-frame', 'book-stack', 'couple-statuette']) {
+    assert.match(milestoneKeepsakes, new RegExp(`'${asset}'`));
+  }
+  assert.match(milestoneKeepsakes, /pg_advisory_xact_lock/);
+  assert.match(milestoneKeepsakes, /p_once_per_kind/);
+  assert.match(milestoneKeepsakes, /'stored'/);
+  assert.match(milestoneKeepsakes, /'sourceLinked', true/);
+  assert.match(milestoneKeepsakes, /revision = revision \+ 1/);
+  assert.match(milestoneKeepsakes, /world_frozen_at is not null/);
+  assert.match(milestoneKeepsakes, /private\.active_home_growth_seconds/);
+  assert.match(milestoneKeepsakes, /31536000/);
+  assert.match(milestoneKeepsakes, /private\.refresh_home_milestone_keepsakes\(home\.id\)/);
+  assert.match(milestoneKeepsakes, /to_regclass\('public\.drawings'\)/);
+  assert.doesNotMatch(milestoneKeepsakes, /author_id|from_user/);
 });
