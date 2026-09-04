@@ -39,6 +39,7 @@ yarn-error.*
 /supabase/.temp/
 /skills-lock.json
 /output/playwright/
+/.impeccable/review/
 
 # Third-party agent packages are installed locally.
 /.agents/*

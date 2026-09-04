@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { MUSIC_VOLUME_VALUES, useMusicStore } from '@/state/musicStore';
+import { useAuthStore } from '@/state/authStore';
 
 const HOME_TEAM = require('../../assets/audio/home-team-loop.mp3');
 
@@ -22,6 +23,7 @@ export function BackgroundMusic() {
   const retryToken = useMusicStore((state) => state.retryToken);
   const mediaSessionBusy = useMusicStore((state) => state.mediaSessionBusy);
   const setPlaybackStatus = useMusicStore((state) => state.setPlaybackStatus);
+  const paired = useAuthStore((state) => state.phase === 'paired');
 
   useEffect(() => {
     let mounted = true;
@@ -54,7 +56,7 @@ export function BackgroundMusic() {
     player.loop = true;
     player.volume = MUSIC_VOLUME_VALUES[volume];
 
-    if (audioReady && playerStatus.isLoaded && hydrated && enabled && appState === 'active' && !mediaSessionBusy) {
+    if (paired && audioReady && playerStatus.isLoaded && hydrated && enabled && appState === 'active' && !mediaSessionBusy) {
       player.play();
     } else {
       player.pause();
@@ -65,6 +67,7 @@ export function BackgroundMusic() {
     enabled,
     hydrated,
     mediaSessionBusy,
+    paired,
     player,
     playerStatus.isLoaded,
     retryToken,

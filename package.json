@@ -10,6 +10,7 @@
     "expo": "~57.0.20",
     "expo-asset": "~57.0.15",
     "expo-audio": "~57.0.4",
+    "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.16",
     "expo-device": "57.0.1",
     "expo-font": "~57.0.2",

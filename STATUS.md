@@ -9,18 +9,20 @@
 
 ## Current program checkpoint — 4 September 2026
 
-Milestone 1 of the comprehensive improvement program is locally complete and
-awaiting owner review. The installed `1.0.4` client is the technical baseline;
-the `1.0.3` gate below is historical. The canonical phone checkout has been
-repaired and revalidated on Expo SDK 57, client-controlled living-home bypasses
-have been removed, and production-facing developer studios are development-only.
+Milestones 1 and 2 of the comprehensive improvement program are locally
+complete. The installed `1.0.4` client remains the technical baseline; the
+`1.0.3` gate below is historical. Milestone 2 delivers the semantic storybook
+design system, reusable accessible primitives, redesigned first-use and pairing
+journey, typed safe errors, coherent loading/reconnect states, and a global
+error boundary. Its finish review disposition is `ship` for the local surface.
 
-No OTA was published for this technical milestone. No native build or database
-migration was deployed. The SDK-compatible local fingerprint
-`ab09d5bf76edb19294a174f3f1dc760234fe993a` differs from installed versionCode
-8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
-the next phone preview requires explicit authorization for a new APK. Full
-results and owner gates are in `MILESTONE_1_BASELINE.md`.
+No OTA, native build, or database migration was deployed. The new Clipboard
+module and prior SDK-compatible patches produce local Android fingerprint
+`c18575ecc50bc654d231f0024cf36ddc83b00e3a`, which differs from installed
+versionCode 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`.
+Do not OTA this local client; the next phone preview requires explicit owner
+authorization for a new APK. Read `MILESTONE_1_BASELINE.md` and
+`MILESTONE_2_STORYBOOK_FRONT_DOOR.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

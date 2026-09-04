@@ -1,229 +1,286 @@
-import { useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
+  Share,
   StyleSheet,
   Text,
-  TextInput,
+  type TextInput,
   View,
 } from 'react-native';
 
+import {
+  HearthButton,
+  HearthNotice,
+  HearthScreen,
+  HearthTextField,
+  StoryActions,
+  StoryBody,
+  StoryHeading,
+  StoryHearthMark,
+  StoryProgress,
+} from '@/components/ui/HearthPrimitives';
+import { readFrontDoorPreview } from '@/components/frontDoorPreview';
+import type { Couple } from '@/lib/db';
+import { DomainError } from '@/lib/domainError';
 import { useAuthStore } from '@/state/authStore';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
-/**
- * The full-screen gate shown until two people share a home. It sits above the
- * scene and covers every pre-paired phase: connecting, choosing to create or
- * join, waiting on a partner with the invite code, and connection errors.
- * Once paired it renders nothing and the app proper shows through.
- */
+type PairingMode = 'choose' | 'join';
+
 export function Pairing() {
-  const phase = useAuthStore((s) => s.phase);
-  const couple = useAuthStore((s) => s.couple);
-  const busy = useAuthStore((s) => s.busy);
-  const error = useAuthStore((s) => s.error);
-  const createHome = useAuthStore((s) => s.createHome);
-  const joinHome = useAuthStore((s) => s.joinHome);
-  const unpair = useAuthStore((s) => s.unpair);
-  const init = useAuthStore((s) => s.init);
+  const preview = readFrontDoorPreview();
+  const phase = useAuthStore((state) => state.phase);
+  const couple = useAuthStore((state) => state.couple);
+  const busy = useAuthStore((state) => state.busy);
+  const error = useAuthStore((state) => state.error);
+  const createHome = useAuthStore((state) => state.createHome);
+  const joinHome = useAuthStore((state) => state.joinHome);
+  const unpair = useAuthStore((state) => state.unpair);
+  const init = useAuthStore((state) => state.init);
+  const clearError = useAuthStore((state) => state.clearError);
 
-  const [mode, setMode] = useState<'choose' | 'join'>('choose');
+  const [mode, setMode] = useState<PairingMode>(preview === 'join' ? 'join' : 'choose');
   const [code, setCode] = useState('');
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const codeRef = useRef<TextInput>(null);
 
-  if (phase === 'paired') return null;
+  const previewCouple: Couple | null = preview === 'waiting' || preview === 'waiting-error'
+    ? {
+      id: 'visual-qa-home',
+      invite_code: 'HEARTH',
+      member_a: 'visual-qa-owner',
+      member_b: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+    }
+    : null;
+  const effectivePhase = preview === 'waiting-error'
+    ? 'waiting'
+    : preview === 'loading' || preview === 'waiting' || preview === 'error'
+      ? preview
+    : preview === 'choose' || preview === 'join'
+      ? 'noHome'
+      : phase;
+  const effectiveCouple = previewCouple ?? couple;
+  const effectiveError = preview === 'error' || preview === 'waiting-error'
+    ? new DomainError('offline', preview === 'waiting-error' ? 'leave_home' : 'start', null)
+    : error;
+  const previewAction = (action: () => void) => preview ? undefined : action();
+
+  useEffect(() => {
+    if (effectivePhase === 'noHome' && mode === 'join') {
+      const task = setTimeout(() => codeRef.current?.focus(), HearthTheme.motion.calm);
+      return () => clearTimeout(task);
+    }
+  }, [effectivePhase, mode]);
+
+  if (preview === 'welcome' || preview === 'name') return null;
+  if (effectivePhase === 'paired') return null;
+
+  if (effectivePhase === 'loading') {
+    return (
+      <HearthScreen>
+        <View style={styles.loadingBody}>
+          <StoryHearthMark />
+          <StoryHeading focusKey="loading">Finding your way home…</StoryHeading>
+          <ActivityIndicator color={HearthTheme.color.clay} size="large" />
+          <StoryBody>Checking this phone and reconnecting securely.</StoryBody>
+        </View>
+      </HearthScreen>
+    );
+  }
+
+  if (effectivePhase === 'error') {
+    return (
+      <HearthScreen>
+        <StoryHearthMark />
+        <StoryHeading focusKey="error">The path home is quiet.</StoryHeading>
+        <StoryBody>{effectiveError?.message ?? 'Hearth couldn’t connect just now.'}</StoryBody>
+        <HearthNotice
+          tone="error"
+          message="Your shared home has not been changed. Check your connection and try again."
+        />
+        <StoryActions>
+          <HearthButton label="Try again" onPress={() => previewAction(() => void init())} busy={busy} />
+        </StoryActions>
+      </HearthScreen>
+    );
+  }
+
+  if (effectivePhase === 'waiting' && effectiveCouple) {
+    const inviteCode = effectiveCouple.invite_code;
+    const copyCode = async () => {
+      try {
+        await Clipboard.setStringAsync(inviteCode);
+        setFeedback('Code copied.');
+      } catch {
+        setFeedback('Couldn’t copy automatically. Press and hold the code to select it.');
+      }
+    };
+    const shareCode = async () => {
+      try {
+        await Share.share({
+          title: 'Join our Hearth home',
+          message: `Join our private Hearth home with this code: ${inviteCode}`,
+        });
+      } catch {
+        setFeedback('Sharing didn’t open. You can copy the code instead.');
+      }
+    };
+
+    return (
+      <HearthScreen>
+        <StoryProgress current={3} total={3} />
+        <StoryHeading focusKey="waiting">Leave the door open for them.</StoryHeading>
+        <StoryBody>
+          Send this one-time home code to your partner. Hearth will open when
+          they arrive.
+        </StoryBody>
+        <View style={styles.codePanel} accessible accessibilityLabel={`Home code ${inviteCode.split('').join(' ')}`}>
+          <Text selectable style={styles.code}>{inviteCode}</Text>
+          <Text style={styles.codeCaption}>Private home code</Text>
+        </View>
+        <View style={styles.inlineActions}>
+          <HearthButton label="Copy code" variant="secondary" onPress={() => void copyCode()} style={styles.flexButton} />
+          <HearthButton label="Share code" variant="secondary" onPress={() => void shareCode()} style={styles.flexButton} />
+        </View>
+        {!!feedback && <HearthNotice tone={feedback === 'Code copied.' ? 'success' : 'error'} message={feedback} />}
+        {!!effectiveError && <HearthNotice tone="error" message={effectiveError.message} />}
+        <View style={styles.waitingRow} accessibilityLiveRegion="polite">
+          <ActivityIndicator color={HearthTheme.color.sage} size="small" />
+          <Text style={styles.waitingText}>Waiting for your partner…</Text>
+        </View>
+        <StoryActions>
+          <HearthButton
+            label="Start over"
+            variant="quiet"
+            onPress={() => previewAction(() => void unpair())}
+            disabled={busy}
+            accessibilityHint="Leaves this empty home and returns to pairing choices"
+          />
+        </StoryActions>
+      </HearthScreen>
+    );
+  }
+
+  if (mode === 'join') {
+    const ready = code.length === 6;
+    return (
+      <HearthScreen>
+        <StoryProgress current={3} total={3} />
+        <StoryHeading focusKey="join">Enter their home code.</StoryHeading>
+        <StoryBody>Use the six letters and numbers your partner shared.</StoryBody>
+        <HearthTextField
+          ref={codeRef}
+          label="Home code"
+          value={code}
+          onChangeText={(value) => {
+            setCode(value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
+            if (error) clearError();
+          }}
+          placeholder="ABC123"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          autoComplete="off"
+          maxLength={6}
+          editable={!busy}
+          returnKeyType="join"
+          onSubmitEditing={() => ready && !preview && void joinHome(code)}
+          accessibilityHint="Six-character code from your partner"
+          style={styles.codeInput}
+          hint="Codes use letters and numbers only."
+          error={effectiveError?.message}
+        />
+        <StoryActions>
+          <HearthButton
+            label="Join our home"
+            onPress={() => previewAction(() => void joinHome(code))}
+            disabled={!ready}
+            busy={busy}
+          />
+          <HearthButton
+            label="Back"
+            variant="quiet"
+            disabled={busy}
+            onPress={() => {
+              clearError();
+              setCode('');
+              setMode('choose');
+            }}
+          />
+        </StoryActions>
+      </HearthScreen>
+    );
+  }
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.card}>
-        {phase === 'loading' && (
-          <View style={styles.centered}>
-            <ActivityIndicator color={editorial.clay} />
-            <Text style={styles.dim}>Lighting the hearth…</Text>
-          </View>
-        )}
-
-        {phase === 'error' && (
-          <View style={styles.centered}>
-            <Text style={styles.title}>Can’t reach home</Text>
-            <Text style={styles.body}>{error ?? 'Please check your connection.'}</Text>
-            <Pressable style={styles.primary} onPress={init} disabled={busy}>
-              <Text style={styles.primaryText}>Try again</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {phase === 'waiting' && couple && (
-          <View style={styles.centered}>
-            <Text style={styles.title}>Your home is ready</Text>
-            <Text style={styles.body}>
-              Share this code with your partner so they can join you.
-            </Text>
-            <View style={styles.codeBox}>
-              <Text style={styles.code}>{couple.invite_code}</Text>
-            </View>
-            <View style={styles.waitRow}>
-              <ActivityIndicator color={editorial.clay} size="small" />
-              <Text style={styles.dim}>Waiting for them to arrive…</Text>
-            </View>
-            {/* Always a way back out — e.g. if you created a home by mistake. */}
-            <Pressable style={styles.secondary} onPress={unpair} disabled={busy}>
-              <Text style={styles.secondaryText}>Start over</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {phase === 'noHome' && mode === 'choose' && (
-          <View style={styles.centered}>
-            <Text style={styles.title}>Make a home together</Text>
-            <Text style={styles.body}>
-              One of you creates the home, the other joins with the code.
-            </Text>
-            <Pressable style={styles.primary} onPress={createHome} disabled={busy}>
-              {busy ? (
-                <ActivityIndicator color={editorial.onAccent} />
-              ) : (
-                <Text style={styles.primaryText}>Create a home</Text>
-              )}
-            </Pressable>
-            <Pressable
-              style={styles.secondary}
-              onPress={() => setMode('join')}
-              disabled={busy}
-            >
-              <Text style={styles.secondaryText}>I have a code</Text>
-            </Pressable>
-            {error && <Text style={styles.err}>{error}</Text>}
-          </View>
-        )}
-
-        {phase === 'noHome' && mode === 'join' && (
-          <View style={styles.centered}>
-            <Text style={styles.title}>Join your partner</Text>
-            <Text style={styles.body}>Enter the code they shared with you.</Text>
-            <TextInput
-              style={styles.input}
-              value={code}
-              onChangeText={(t) => setCode(t.toUpperCase())}
-              placeholder="ABC123"
-              placeholderTextColor={editorial.inkFaint}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={6}
-              editable={!busy}
-            />
-            <Pressable
-              style={styles.primary}
-              onPress={() => joinHome(code)}
-              disabled={busy || code.trim().length === 0}
-            >
-              {busy ? (
-                <ActivityIndicator color={editorial.onAccent} />
-              ) : (
-                <Text style={styles.primaryText}>Join home</Text>
-              )}
-            </Pressable>
-            <Pressable
-              style={styles.secondary}
-              onPress={() => setMode('choose')}
-              disabled={busy}
-            >
-              <Text style={styles.secondaryText}>Back</Text>
-            </Pressable>
-            {error && <Text style={styles.err}>{error}</Text>}
-          </View>
-        )}
-      </View>
-    </View>
+    <HearthScreen>
+      <StoryProgress current={3} total={3} />
+      <StoryHeading focusKey="choose">How will you meet at home?</StoryHeading>
+      <StoryBody>
+        One person creates the home. The other joins with the private code they
+        receive.
+      </StoryBody>
+      {!!effectiveError && <HearthNotice tone="error" message={effectiveError.message} />}
+      <StoryActions>
+        <HearthButton
+          label="Create our home"
+          onPress={() => previewAction(() => void createHome())}
+          busy={busy}
+          accessibilityHint="Creates a private home and shows a code for your partner"
+        />
+        <HearthButton
+          label="Join with a code"
+          variant="secondary"
+          onPress={() => {
+            clearError();
+            setMode('join');
+          }}
+          disabled={busy}
+        />
+      </StoryActions>
+    </HearthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: editorial.scrim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: editorial.paper,
-    borderColor: editorial.lineStrong,
+  loadingBody: { flex: 1, justifyContent: 'center', gap: HearthTheme.space.lg },
+  codePanel: {
+    marginTop: HearthTheme.space.xxl,
+    paddingVertical: HearthTheme.space.xl,
+    paddingHorizontal: HearthTheme.space.md,
+    borderRadius: HearthTheme.radius.lg,
     borderWidth: 1,
-    borderRadius: 30,
-    paddingHorizontal: 26,
-    paddingVertical: 28,
-    shadowColor: editorial.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 14,
+    borderColor: HearthTheme.color.lineStrong,
+    backgroundColor: HearthTheme.color.parchmentWarm,
+    alignItems: 'center',
+    gap: HearthTheme.space.sm,
   },
-  centered: { alignItems: 'center', gap: 14 },
-  title: {
-    color: editorial.ink,
-    fontFamily: 'serif',
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '700',
+  code: {
+    fontFamily: HearthTheme.type.bodyStrong,
+    color: HearthTheme.color.clayPressed,
+    fontSize: 34,
+    lineHeight: 42,
+    letterSpacing: 7,
     textAlign: 'center',
   },
-  body: { color: editorial.inkSoft, fontSize: 14, textAlign: 'center', lineHeight: 21 },
-  dim: { color: editorial.inkSoft, fontSize: 13 },
-  primary: {
-    marginTop: 6,
-    backgroundColor: editorial.clay,
-    borderColor: editorial.clayDark,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
-    paddingVertical: 13,
-    paddingHorizontal: 22,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-    shadowColor: editorial.clayDark,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+  codeCaption: {
+    fontFamily: HearthTheme.type.body,
+    color: HearthTheme.color.inkMuted,
+    fontSize: HearthTheme.type.caption,
   },
-  primaryText: {
-    color: editorial.onAccent,
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  secondary: { paddingVertical: 10, paddingHorizontal: 16 },
-  secondaryText: { color: editorial.clay, fontSize: 14, fontWeight: '700' },
-  input: {
-    alignSelf: 'stretch',
-    backgroundColor: editorial.paperTint,
-    borderColor: editorial.lineStrong,
-    borderWidth: 1,
-    borderRadius: 17,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    color: editorial.ink,
-    fontSize: 22,
-    letterSpacing: 8,
+  codeInput: {
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: 24,
+    letterSpacing: 6,
     textAlign: 'center',
   },
-  codeBox: {
-    marginVertical: 4,
-    backgroundColor: editorial.paperTint,
-    borderColor: editorial.lineStrong,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
+  inlineActions: { flexDirection: 'row', gap: HearthTheme.touch.gap, marginTop: HearthTheme.space.md },
+  flexButton: { flex: 1 },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', gap: HearthTheme.space.sm, marginTop: HearthTheme.space.xl },
+  waitingText: {
+    fontFamily: HearthTheme.type.bodyStrong,
+    color: HearthTheme.color.inkMuted,
+    fontSize: HearthTheme.type.caption,
   },
-  code: { color: editorial.clay, fontSize: 34, letterSpacing: 10, fontWeight: '700' },
-  waitRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  err: { color: editorial.danger, fontSize: 13, textAlign: 'center', marginTop: 4 },
 });

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { Couple } from '@/lib/db';
+import { DomainError, mapDomainError, reportDomainError, type DomainOperation } from '@/lib/domainError';
 import { clearLocalNotifications } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 
@@ -31,7 +32,7 @@ interface AuthState {
   /** True while a create/join/retry request is in flight. */
   busy: boolean;
   /** User-facing message for the last failure, or null. */
-  error: string | null;
+  error: DomainError | null;
 
   /** Sign in anonymously (if needed) and load any existing couple + profile. */
   init: () => Promise<void>;
@@ -39,6 +40,7 @@ interface AuthState {
   joinHome: (code: string) => Promise<void>;
   /** Save the user's display name to their profile (onboarding). */
   setDisplayName: (name: string) => Promise<void>;
+  clearError: () => void;
   /** Re-fetch the couple row (e.g. after a partner-joined realtime event). */
   refreshCouple: () => Promise<void>;
   /** Sign out and start over with a fresh anonymous identity. */
@@ -84,6 +86,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   busy: false,
   error: null,
 
+  clearError: () => set({ error: null }),
+
   init: async () => {
     set({ phase: 'loading', error: null });
     try {
@@ -106,7 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         phase: phaseFor(userId, couple),
       });
     } catch (e) {
-      set({ phase: 'error', error: messageOf(e) });
+      set({ phase: 'error', error: authError(e, 'start') });
     }
   },
 
@@ -125,7 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         busy: false,
       });
     } catch (e) {
-      set({ busy: false, error: messageOf(e) });
+      set({ busy: false, error: authError(e, 'create_home') });
     }
   },
 
@@ -145,7 +149,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         busy: false,
       });
     } catch (e) {
-      set({ busy: false, error: messageOf(e) });
+      set({ busy: false, error: authError(e, 'join_home') });
     }
   },
 
@@ -162,7 +166,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       set({ displayName: trimmed, busy: false });
     } catch (e) {
-      set({ busy: false, error: messageOf(e) });
+      set({ busy: false, error: authError(e, 'save_name') });
     }
   },
 
@@ -176,7 +180,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         phase: phaseFor(userId, couple),
       });
     } catch (e) {
-      set({ error: messageOf(e) });
+      set({ error: authError(e, 'refresh_home') });
     }
   },
 
@@ -189,7 +193,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
       if (signOutError) throw signOutError;
     } catch (error) {
-      set({ busy: false, error: messageOf(error) });
+      set({ busy: false, error: authError(error, 'sign_out') });
       return;
     }
     // Clear everything, then re-init: with anonymous auth this mints a brand
@@ -220,14 +224,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         busy: false,
       });
     } catch (e) {
-      set({ busy: false, error: messageOf(e) });
+      set({ busy: false, error: authError(e, 'leave_home') });
     }
   },
 }));
 
-function messageOf(e: unknown): string {
-  if (e && typeof e === 'object' && 'message' in e) {
-    return String((e as { message: unknown }).message);
-  }
-  return 'Something went wrong. Please try again.';
+function authError(error: unknown, operation: DomainOperation): DomainError {
+  const mapped = mapDomainError(error, operation);
+  reportDomainError(mapped);
+  return mapped;
 }

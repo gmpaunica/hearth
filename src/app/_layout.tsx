@@ -4,6 +4,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { BackgroundMusic } from '@/components/BackgroundMusic';
+import { AppErrorBoundary, AppLoadingScreen } from '@/components/AppErrorBoundary';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -12,18 +13,19 @@ export default function RootLayout() {
     'HearthNunito-ExtraBold': require('../../assets/fonts/Nunito-ExtraBold.ttf'),
   });
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) return <AppLoadingScreen />;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <BackgroundMusic />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#1a2340' },
-          }}
-        >
+    <AppErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <BackgroundMusic />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#1a2340' },
+            }}
+          >
           <Stack.Screen
             name="daily-photo"
             options={{
@@ -48,8 +50,9 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: 'transparent' },
             }}
           />
-        </Stack>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+          </Stack>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </AppErrorBoundary>
   );
 }

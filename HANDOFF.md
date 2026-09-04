@@ -14,15 +14,18 @@
 ## Current checkpoint — 4 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestone 1 of the comprehensive improvement program is
-locally complete; read `MILESTONE_1_BASELINE.md` before changing or publishing
-the client. The older `1.0.3` release notes in this document are historical.
+`app/integration`. Milestones 1 and 2 of the comprehensive improvement program
+are locally complete; read `MILESTONE_1_BASELINE.md` and
+`MILESTONE_2_STORYBOOK_FRONT_DOOR.md` before changing or publishing the client.
+The older `1.0.3` release notes in this document are historical.
 
-No OTA, native build, or database migration was deployed during the milestone.
-The local Android fingerprint `ab09d5bf76edb19294a174f3f1dc760234fe993a`
-differs from installed versionCode 8 fingerprint
-`f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; a
-future preview requires explicit authorization for a new APK.
+Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
+first-use/pairing journey, `DomainError`, and the root loading/error vocabulary.
+No OTA, native build, or database migration was deployed. The local Android
+fingerprint `c18575ecc50bc654d231f0024cf36ddc83b00e3a` differs from installed
+versionCode 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`.
+Do not OTA this local client; a future preview requires explicit owner
+authorization for a new APK.
 
 ---
 

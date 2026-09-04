@@ -1,0 +1,380 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-04T16:48:31.1530106Z",
+  "title": "Design System: Hearth",
+  "extensions": {
+    "colorMeta": {
+      "cover": {
+        "role": "neutral",
+        "displayName": "Twilight Cover",
+        "canonical": "#2D2436",
+        "tonalRamp": ["oklch(15% 0.035 307.1)", "oklch(27% 0.035 307.1)", "oklch(39% 0.035 307.1)", "oklch(51% 0.035 307.1)", "oklch(63% 0.035 307.1)", "oklch(75% 0.035 307.1)", "oklch(87% 0.035 307.1)", "oklch(95% 0.035 307.1)"]
+      },
+      "cover-raised": {
+        "role": "neutral",
+        "displayName": "Raised Twilight",
+        "canonical": "#3A2D43",
+        "tonalRamp": ["oklch(15% 0.042 311.0)", "oklch(27% 0.042 311.0)", "oklch(39% 0.042 311.0)", "oklch(51% 0.042 311.0)", "oklch(63% 0.042 311.0)", "oklch(75% 0.042 311.0)", "oklch(87% 0.042 311.0)", "oklch(95% 0.042 311.0)"]
+      },
+      "parchment": {
+        "role": "neutral",
+        "displayName": "Parchment Folio",
+        "canonical": "#FFF8EE",
+        "tonalRamp": ["oklch(15% 0.015 77.1)", "oklch(27% 0.015 77.1)", "oklch(39% 0.015 77.1)", "oklch(51% 0.015 77.1)", "oklch(63% 0.015 77.1)", "oklch(75% 0.015 77.1)", "oklch(87% 0.015 77.1)", "oklch(95% 0.015 77.1)"]
+      },
+      "parchment-raised": {
+        "role": "neutral",
+        "displayName": "Fresh Parchment",
+        "canonical": "#FFFCF7",
+        "tonalRamp": ["oklch(15% 0.007 80.7)", "oklch(27% 0.007 80.7)", "oklch(39% 0.007 80.7)", "oklch(51% 0.007 80.7)", "oklch(63% 0.007 80.7)", "oklch(75% 0.007 80.7)", "oklch(87% 0.007 80.7)", "oklch(95% 0.007 80.7)"]
+      },
+      "parchment-warm": {
+        "role": "neutral",
+        "displayName": "Warm Parchment",
+        "canonical": "#FCEBDD",
+        "tonalRamp": ["oklch(15% 0.026 62.0)", "oklch(27% 0.026 62.0)", "oklch(39% 0.026 62.0)", "oklch(51% 0.026 62.0)", "oklch(63% 0.026 62.0)", "oklch(75% 0.026 62.0)", "oklch(87% 0.026 62.0)", "oklch(95% 0.026 62.0)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Cocoa Ink",
+        "canonical": "#4B2E24",
+        "tonalRamp": ["oklch(15% 0.046 39.8)", "oklch(27% 0.046 39.8)", "oklch(39% 0.046 39.8)", "oklch(51% 0.046 39.8)", "oklch(63% 0.046 39.8)", "oklch(75% 0.046 39.8)", "oklch(87% 0.046 39.8)", "oklch(95% 0.046 39.8)"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Soft Cocoa",
+        "canonical": "#77594B",
+        "tonalRamp": ["oklch(15% 0.045 46.2)", "oklch(27% 0.045 46.2)", "oklch(39% 0.045 46.2)", "oklch(51% 0.045 46.2)", "oklch(63% 0.045 46.2)", "oklch(75% 0.045 46.2)", "oklch(87% 0.045 46.2)", "oklch(95% 0.045 46.2)"]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faded Cocoa",
+        "canonical": "#806357",
+        "tonalRamp": ["oklch(15% 0.042 43.6)", "oklch(27% 0.042 43.6)", "oklch(39% 0.042 43.6)", "oklch(51% 0.042 43.6)", "oklch(63% 0.042 43.6)", "oklch(75% 0.042 43.6)", "oklch(87% 0.042 43.6)", "oklch(95% 0.042 43.6)"]
+      },
+      "clay": {
+        "role": "primary",
+        "displayName": "Fired Clay",
+        "canonical": "#C95850",
+        "tonalRamp": ["oklch(15% 0.146 26.4)", "oklch(27% 0.146 26.4)", "oklch(39% 0.146 26.4)", "oklch(51% 0.146 26.4)", "oklch(63% 0.146 26.4)", "oklch(75% 0.146 26.4)", "oklch(87% 0.146 26.4)", "oklch(95% 0.146 26.4)"]
+      },
+      "clay-pressed": {
+        "role": "primary",
+        "displayName": "Kiln Clay",
+        "canonical": "#A83F3B",
+        "tonalRamp": ["oklch(15% 0.139 25.4)", "oklch(27% 0.139 25.4)", "oklch(39% 0.139 25.4)", "oklch(51% 0.139 25.4)", "oklch(63% 0.139 25.4)", "oklch(75% 0.139 25.4)", "oklch(87% 0.139 25.4)", "oklch(95% 0.139 25.4)"]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Coral Binding",
+        "canonical": "#F0787F",
+        "tonalRamp": ["oklch(15% 0.148 17.9)", "oklch(27% 0.148 17.9)", "oklch(39% 0.148 17.9)", "oklch(51% 0.148 17.9)", "oklch(63% 0.148 17.9)", "oklch(75% 0.148 17.9)", "oklch(87% 0.148 17.9)", "oklch(95% 0.148 17.9)"]
+      },
+      "coral-soft": {
+        "role": "tertiary",
+        "displayName": "Blush Binding",
+        "canonical": "#F8D1D6",
+        "tonalRamp": ["oklch(15% 0.044 9.3)", "oklch(27% 0.044 9.3)", "oklch(39% 0.044 9.3)", "oklch(51% 0.044 9.3)", "oklch(63% 0.044 9.3)", "oklch(75% 0.044 9.3)", "oklch(87% 0.044 9.3)", "oklch(95% 0.044 9.3)"]
+      },
+      "sage": {
+        "role": "secondary",
+        "displayName": "Garden Sage",
+        "canonical": "#78906A",
+        "tonalRamp": ["oklch(15% 0.062 134.2)", "oklch(27% 0.062 134.2)", "oklch(39% 0.062 134.2)", "oklch(51% 0.062 134.2)", "oklch(63% 0.062 134.2)", "oklch(75% 0.062 134.2)", "oklch(87% 0.062 134.2)", "oklch(95% 0.062 134.2)"]
+      },
+      "sage-soft": {
+        "role": "secondary",
+        "displayName": "Sage Wash",
+        "canonical": "#DDE9D7",
+        "tonalRamp": ["oklch(15% 0.027 135.0)", "oklch(27% 0.027 135.0)", "oklch(39% 0.027 135.0)", "oklch(51% 0.027 135.0)", "oklch(63% 0.027 135.0)", "oklch(75% 0.027 135.0)", "oklch(87% 0.027 135.0)", "oklch(95% 0.027 135.0)"]
+      },
+      "twilight": {
+        "role": "tertiary",
+        "displayName": "Twilight Plum",
+        "canonical": "#584766",
+        "tonalRamp": ["oklch(15% 0.054 309.2)", "oklch(27% 0.054 309.2)", "oklch(39% 0.054 309.2)", "oklch(51% 0.054 309.2)", "oklch(63% 0.054 309.2)", "oklch(75% 0.054 309.2)", "oklch(87% 0.054 309.2)", "oklch(95% 0.054 309.2)"]
+      },
+      "twilight-soft": {
+        "role": "tertiary",
+        "displayName": "Lavender Dusk",
+        "canonical": "#E8DFEC",
+        "tonalRamp": ["oklch(15% 0.020 315.7)", "oklch(27% 0.020 315.7)", "oklch(39% 0.020 315.7)", "oklch(51% 0.020 315.7)", "oklch(63% 0.020 315.7)", "oklch(75% 0.020 315.7)", "oklch(87% 0.020 315.7)", "oklch(95% 0.020 315.7)"]
+      },
+      "gold": {
+        "role": "tertiary",
+        "displayName": "Hearth Gold",
+        "canonical": "#BE8745",
+        "tonalRamp": ["oklch(15% 0.107 69.1)", "oklch(27% 0.107 69.1)", "oklch(39% 0.107 69.1)", "oklch(51% 0.107 69.1)", "oklch(63% 0.107 69.1)", "oklch(75% 0.107 69.1)", "oklch(87% 0.107 69.1)", "oklch(95% 0.107 69.1)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Cocoa Hairline",
+        "canonical": "rgba(88, 57, 43, 0.18)",
+        "tonalRamp": ["oklch(15% 0.050 45.1)", "oklch(27% 0.050 45.1)", "oklch(39% 0.050 45.1)", "oklch(51% 0.050 45.1)", "oklch(63% 0.050 45.1)", "oklch(75% 0.050 45.1)", "oklch(87% 0.050 45.1)", "oklch(95% 0.050 45.1)"]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Clay Outline",
+        "canonical": "rgba(126, 68, 51, 0.34)",
+        "tonalRamp": ["oklch(15% 0.085 37.2)", "oklch(27% 0.085 37.2)", "oklch(39% 0.085 37.2)", "oklch(51% 0.085 37.2)", "oklch(63% 0.085 37.2)", "oklch(75% 0.085 37.2)", "oklch(87% 0.085 37.2)", "oklch(95% 0.085 37.2)"]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "Candle White",
+        "canonical": "#FFFDF8",
+        "tonalRamp": ["oklch(15% 0.007 88.6)", "oklch(27% 0.007 88.6)", "oklch(39% 0.007 88.6)", "oklch(51% 0.007 88.6)", "oklch(63% 0.007 88.6)", "oklch(75% 0.007 88.6)", "oklch(87% 0.007 88.6)", "oklch(95% 0.007 88.6)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Grounded Red",
+        "canonical": "#A23F3A",
+        "tonalRamp": ["oklch(15% 0.133 25.9)", "oklch(27% 0.133 25.9)", "oklch(39% 0.133 25.9)", "oklch(51% 0.133 25.9)", "oklch(63% 0.133 25.9)", "oklch(75% 0.133 25.9)", "oklch(87% 0.133 25.9)", "oklch(95% 0.133 25.9)"]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Error Blush",
+        "canonical": "#F7DDD8",
+        "tonalRamp": ["oklch(15% 0.030 30.6)", "oklch(27% 0.030 30.6)", "oklch(39% 0.030 30.6)", "oklch(51% 0.030 30.6)", "oklch(63% 0.030 30.6)", "oklch(75% 0.030 30.6)", "oklch(87% 0.030 30.6)", "oklch(95% 0.030 30.6)"]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Deep Leaf",
+        "canonical": "#52734B",
+        "tonalRamp": ["oklch(15% 0.072 140.1)", "oklch(27% 0.072 140.1)", "oklch(39% 0.072 140.1)", "oklch(51% 0.072 140.1)", "oklch(63% 0.072 140.1)", "oklch(75% 0.072 140.1)", "oklch(87% 0.072 140.1)", "oklch(95% 0.072 140.1)"]
+      },
+      "success-soft": {
+        "role": "secondary",
+        "displayName": "Success Wash",
+        "canonical": "#DDEAD8",
+        "tonalRamp": ["oklch(15% 0.028 136.9)", "oklch(27% 0.028 136.9)", "oklch(39% 0.028 136.9)", "oklch(51% 0.028 136.9)", "oklch(63% 0.028 136.9)", "oklch(75% 0.028 136.9)", "oklch(87% 0.028 136.9)", "oklch(95% 0.028 136.9)"]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Night Scrim",
+        "canonical": "rgba(31, 23, 37, 0.72)",
+        "tonalRamp": ["oklch(15% 0.029 310.1)", "oklch(27% 0.029 310.1)", "oklch(39% 0.029 310.1)", "oklch(51% 0.029 310.1)", "oklch(63% 0.029 310.1)", "oklch(75% 0.029 310.1)", "oklch(87% 0.029 310.1)", "oklch(95% 0.029 310.1)"]
+      },
+      "focus": {
+        "role": "tertiary",
+        "displayName": "Focus Violet",
+        "canonical": "#875E99",
+        "tonalRamp": ["oklch(15% 0.100 315.1)", "oklch(27% 0.100 315.1)", "oklch(39% 0.100 315.1)", "oklch(51% 0.100 315.1)", "oklch(63% 0.100 315.1)", "oklch(75% 0.100 315.1)", "oklch(87% 0.100 315.1)", "oklch(95% 0.100 315.1)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Story Promise",
+        "purpose": "One expressive promise or task heading per major state."
+      },
+      "title": {
+        "displayName": "Story Title",
+        "purpose": "Smaller story headings and section titles."
+      },
+      "body": {
+        "displayName": "Calm Prose",
+        "purpose": "Concise relationship-safe explanation and guidance."
+      },
+      "label": {
+        "displayName": "Tactile Label",
+        "purpose": "Buttons and field labels that need steady emphasis."
+      },
+      "caption": {
+        "displayName": "Quiet Detail",
+        "purpose": "Progress, hints, status, and notice copy."
+      }
+    },
+    "shadows": [
+      {
+        "name": "folio-ambient",
+        "value": "0 12px 22px rgba(32, 22, 41, 0.24)",
+        "purpose": "Lifts the single parchment folio from the twilight cover."
+      },
+      {
+        "name": "primary-grounded",
+        "value": "0 5px 9px rgba(168, 63, 59, 0.24)",
+        "purpose": "Makes the one primary clay action feel tactile."
+      },
+      {
+        "name": "voxel-hard",
+        "value": "4px 4px 0 rgba(168, 63, 59, 0.22)",
+        "purpose": "Keeps the code-built hearth mark visually pixel-native."
+      }
+    ],
+    "motion": [
+      {
+        "name": "quick",
+        "value": "160ms",
+        "purpose": "Short accessibility-focus handoff and immediate state response."
+      },
+      {
+        "name": "calm",
+        "value": "280ms",
+        "purpose": "Deliberate focus handoff after a larger state transition."
+      },
+      {
+        "name": "pressed",
+        "value": "scale(0.985) at 0.9 opacity",
+        "purpose": "Tactile press feedback without theatrical movement."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-height",
+        "value": "720px",
+        "purpose": "Reduces only folio vertical padding while preserving touch size and reading order."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Storybook Page",
+      "kind": "custom",
+      "refersTo": "story-page",
+      "description": "The canonical twilight-cover and parchment-folio shell for one-purpose flows.",
+      "html": "<section class=\"ds-cover\"><article class=\"ds-story-page\"><div class=\"ds-binding\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class=\"ds-wordmark\">HEARTH</div><div class=\"ds-story-content\"><h2>A home for the moments words don’t fit.</h2><p>One calm story, one clear next action.</p></div></article></section>",
+      "css": ".ds-cover { width: 320px; height: 560px; padding: 10px 12px; background: #2D2436; border-radius: 36px; } .ds-story-page { position: relative; height: 100%; overflow: hidden; border: 1px solid rgba(126,68,51,.34); border-radius: 30px; background: #FFF8EE; color: #4B2E24; box-shadow: 0 12px 22px rgba(32,22,41,.24); } .ds-binding { position: absolute; inset: 0 auto 0 0; width: 18px; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; background: #F0787F; } .ds-binding i { width: 6px; height: 22px; border-radius: 999px; background: #FCEBDD; opacity: .82; } .ds-wordmark { position: absolute; top: 16px; width: 100%; text-align: center; font: 800 13px/18px HearthNunito-ExtraBold, Nunito, sans-serif; letter-spacing: 5px; } .ds-story-content { padding: 84px 28px 24px 42px; } .ds-story-content h2 { max-width: 250px; margin: 0 0 12px; font: 600 34px/39px HearthFredoka, Fredoka, sans-serif; } .ds-story-content p { max-width: 250px; margin: 0; color: #77594B; font: 400 16px/23px HearthNunito, Nunito, sans-serif; } .ds-story-page:hover { border-color: rgba(126,68,51,.42); } .ds-story-page:focus-within { outline: 3px solid #875E99; outline-offset: 2px; }"
+    },
+    {
+      "name": "Story Hearth Mark",
+      "kind": "custom",
+      "description": "A crisp code-built voxel fireplace that connects interface and shared home.",
+      "html": "<div class=\"ds-hearth-mark\" role=\"img\" aria-label=\"Voxel hearth\"><i class=\"ds-pixel-clay\"></i><i class=\"ds-pixel-dark\"></i><i class=\"ds-pixel-ink\"></i><i class=\"ds-pixel-gold\"></i></div>",
+      "css": ".ds-hearth-mark { position: relative; width: 63px; height: 63px; filter: drop-shadow(4px 4px 0 rgba(168,63,59,.22)); } .ds-hearth-mark i { position: absolute; width: 7px; height: 7px; } .ds-pixel-dark { left: 21px; top: 0; background: #A83F3B; box-shadow: 7px 0 #A83F3B, 0 7px #A83F3B, 7px 7px #A83F3B, -14px 14px #A83F3B, -7px 14px #A83F3B, 0 14px #A83F3B, 7px 14px #A83F3B, 14px 14px #A83F3B, 21px 14px #A83F3B, 28px 14px #A83F3B; } .ds-pixel-clay { left: 0; top: 21px; background: #C95850; box-shadow: 7px 0 #C95850, 14px 0 #C95850, 21px 0 #C95850, 28px 0 #C95850, 35px 0 #C95850, 42px 0 #C95850, 49px 0 #C95850, 56px 0 #C95850, 0 7px #C95850, 7px 7px #C95850, 14px 7px #C95850, 42px 7px #C95850, 49px 7px #C95850, 56px 7px #C95850, 0 14px #C95850, 7px 14px #C95850, 49px 14px #C95850, 56px 14px #C95850, 0 21px #C95850, 7px 21px #C95850, 49px 21px #C95850, 56px 21px #C95850, 0 28px #C95850, 7px 28px #C95850, 49px 28px #C95850, 56px 28px #C95850, 0 35px #C95850, 7px 35px #C95850, 14px 35px #C95850, 21px 35px #C95850, 28px 35px #C95850, 35px 35px #C95850, 42px 35px #C95850, 49px 35px #C95850, 56px 35px #C95850; } .ds-pixel-ink { left: 21px; top: 28px; background: #4B2E24; box-shadow: 7px 0 #4B2E24, 14px 0 #4B2E24, -7px 7px #4B2E24, 0 7px #4B2E24, 7px 7px #4B2E24, 14px 7px #4B2E24, 21px 7px #4B2E24, -7px 14px #4B2E24, 0 14px #4B2E24, 14px 14px #4B2E24, 21px 14px #4B2E24, -7px 21px #4B2E24, 0 21px #4B2E24, 7px 21px #4B2E24, 21px 21px #4B2E24; } .ds-pixel-gold { left: 28px; top: 42px; background: #BE8745; box-shadow: 7px 7px #BE8745; } .ds-hearth-mark:hover { filter: drop-shadow(4px 4px 0 rgba(168,63,59,.30)); } .ds-hearth-mark:focus-visible { outline: 3px solid #875E99; outline-offset: 3px; }"
+    },
+    {
+      "name": "Story Progress",
+      "kind": "custom",
+      "description": "Text-and-segment progress that makes a short shared-home journey explicit.",
+      "html": "<div class=\"ds-progress\" role=\"progressbar\" aria-label=\"Step 2 of 3\" aria-valuemin=\"1\" aria-valuemax=\"3\" aria-valuenow=\"2\"><span>Step 2 of 3</span><div><i class=\"ds-active\"></i><i class=\"ds-active\"></i><i></i></div></div>",
+      "css": ".ds-progress { width: 264px; color: #77594B; font: 800 13px/18px HearthNunito-ExtraBold, Nunito, sans-serif; } .ds-progress > div { display: flex; gap: 6px; margin-top: 8px; } .ds-progress i { flex: 1; height: 4px; border-radius: 999px; background: #E8DFEC; } .ds-progress i.ds-active { background: #F0787F; } .ds-progress:hover i.ds-active { opacity: .92; } .ds-progress:focus-visible { outline: 3px solid #875E99; outline-offset: 4px; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single decisive forward action at the end of a story state.",
+      "html": "<button class=\"ds-btn-primary\">Set up our home</button>",
+      "css": ".ds-btn-primary { min-height: 48px; padding: 12px 16px; border: 1px solid #A83F3B; border-radius: 16px; background: #C95850; color: #FFFDF8; box-shadow: 0 5px 9px rgba(168,63,59,.24); font: 800 15px/20px HearthNunito-ExtraBold, Nunito, sans-serif; transition: opacity 160ms ease, transform 160ms ease; } .ds-btn-primary:hover { opacity: .96; } .ds-btn-primary:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; } .ds-btn-primary:active { opacity: .9; transform: scale(.985); } .ds-btn-primary:disabled { opacity: .46; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A calm supportive or parallel action such as Copy, Share, or Join.",
+      "html": "<button class=\"ds-btn-secondary\">Join with a code</button>",
+      "css": ".ds-btn-secondary { min-height: 48px; padding: 12px 16px; border: 1px solid #78906A; border-radius: 16px; background: #DDE9D7; color: #4B2E24; font: 800 15px/20px HearthNunito-ExtraBold, Nunito, sans-serif; transition: opacity 160ms ease, transform 160ms ease; } .ds-btn-secondary:hover { opacity: .96; } .ds-btn-secondary:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; } .ds-btn-secondary:active { opacity: .9; transform: scale(.985); } .ds-btn-secondary:disabled { opacity: .46; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A low-emphasis retreat or reset action that does not compete with the forward path.",
+      "html": "<button class=\"ds-btn-quiet\">Back</button>",
+      "css": ".ds-btn-quiet { min-height: 48px; padding: 12px 16px; border: 1px solid transparent; border-radius: 16px; background: transparent; color: #A83F3B; font: 800 15px/20px HearthNunito-ExtraBold, Nunito, sans-serif; transition: background 160ms ease, opacity 160ms ease, transform 160ms ease; } .ds-btn-quiet:hover { background: #FCEBDD; } .ds-btn-quiet:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; } .ds-btn-quiet:active { opacity: .9; transform: scale(.985); } .ds-btn-quiet:disabled { opacity: .46; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "A reserved destructive action with grounded error styling rather than alarm color.",
+      "html": "<button class=\"ds-btn-danger\">Leave this home</button>",
+      "css": ".ds-btn-danger { min-height: 48px; padding: 12px 16px; border: 1px solid #A23F3A; border-radius: 16px; background: #F7DDD8; color: #A23F3A; font: 800 15px/20px HearthNunito-ExtraBold, Nunito, sans-serif; transition: opacity 160ms ease, transform 160ms ease; } .ds-btn-danger:hover { opacity: .96; } .ds-btn-danger:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; } .ds-btn-danger:active { opacity: .9; transform: scale(.985); } .ds-btn-danger:disabled { opacity: .46; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "A labeled fresh-parchment field with calm hint and error behavior.",
+      "html": "<label class=\"ds-field\"><span>Your name</span><input placeholder=\"Name or nickname\"><small>Use a name your partner will recognize.</small></label>",
+      "css": ".ds-field { display: grid; gap: 7px; color: #4B2E24; font: 800 15px/20px HearthNunito-ExtraBold, Nunito, sans-serif; } .ds-field input { min-height: 54px; padding: 12px 16px; border: 1px solid rgba(126,68,51,.34); border-radius: 16px; background: #FFFCF7; color: #4B2E24; font: 400 16px/23px HearthNunito, Nunito, sans-serif; transition: border-color 160ms ease, outline-color 160ms ease; } .ds-field input::placeholder { color: #806357; } .ds-field input:hover { border-color: #A83F3B; } .ds-field input:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; } .ds-field small { color: #77594B; font: 400 13px/18px HearthNunito, Nunito, sans-serif; }"
+    },
+    {
+      "name": "Hearth Notice",
+      "kind": "card",
+      "refersTo": "notice-neutral",
+      "description": "A polite live-region panel for privacy, success, and recoverable state feedback.",
+      "html": "<div class=\"ds-notice ds-notice-neutral\" role=\"status\">Hearth is private to the two people who share this home.</div>",
+      "css": ".ds-notice { max-width: 300px; padding: 12px; border: 1px solid rgba(88,57,43,.18); border-radius: 16px; color: #4B2E24; font: 800 13px/18px HearthNunito-ExtraBold, Nunito, sans-serif; } .ds-notice-neutral { background: #E8DFEC; } .ds-notice-success { border-color: #78906A; background: #DDEAD8; } .ds-notice-error { border-color: #A23F3A; background: #F7DDD8; color: #A23F3A; } .ds-notice:hover { border-color: rgba(126,68,51,.34); } .ds-notice:focus-visible { outline: 3px solid #875E99; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Shared Storybook Hearth",
+    "overview": "Hearth should feel like opening a private story that belongs to two people. A deep twilight cover protects a warm parchment folio; coral binding stitches, friendly type, and a tiny code-built voxel hearth make the interface feel held, handmade, and recognizably connected to the shared home. The reviewed visual direction originates in the shared-house field-guide concept, seed `45488e1d`.\n\nThis is a calm operating interface, not decorative nostalgia. Each surface leads with one plain promise or task, keeps supporting copy brief, and makes the next action obvious without urgency, blame, scoring, or surveillance cues. `HearthTheme` is the normative semantic source and the reusable storybook primitives in `HearthPrimitives.tsx` are its canonical expression. The exported `ui`, `editorial`, and `hearthUi` objects are compatibility-only surfaces for older screens: migrate them toward `HearthTheme`; never treat them as parallel themes or source new work from them. Voxel-scene palettes and avatar presets remain separate art domains.",
+    "keyCharacteristics": [
+      "Protective twilight outer cover with one warm parchment working surface.",
+      "Coral binding and code-built pixel details that connect UI to the voxel home.",
+      "Fredoka-led promises with Nunito-led explanation, controls, and status.",
+      "Clay for the one primary action; sage for supportive or parallel actions.",
+      "Left-led reading order, generous quiet space, and a thumb-reachable action foot.",
+      "Calm, relationship-safe state copy with visible recovery and no raw infrastructure detail."
+    ],
+    "rules": [
+      {
+        "name": "Cover-and-Folio",
+        "body": "Twilight belongs outside the working page; parchment owns the content field. Preserve that nesting whenever a flow needs the storybook shell.",
+        "section": "colors"
+      },
+      {
+        "name": "One-Clay-Action",
+        "body": "Give clay to the single forward action. Use sage for a meaningful alternative and quiet clay text for retreat or reset.",
+        "section": "colors"
+      },
+      {
+        "name": "Compatibility-Is-Not-A-Theme",
+        "body": "New UI consumes `HearthTheme`; `ui`, `editorial`, and `hearthUi` exist only to keep older surfaces stable while they migrate.",
+        "section": "colors"
+      },
+      {
+        "name": "Promise-and-Prose",
+        "body": "Fredoka says what the moment means; Nunito explains what happens next. Do not use generic serif, system display, or unrelated novelty faces as substitutes.",
+        "section": "typography"
+      },
+      {
+        "name": "Sentence-Case",
+        "body": "Controls and guidance read like calm speech. Reserve spaced uppercase for the small `HEARTH` wordmark and intentionally letterspaced private codes.",
+        "section": "typography"
+      },
+      {
+        "name": "One-Story-Column",
+        "body": "Preserve a single obvious reading path and a single major task per surface; the folio is not a dashboard grid.",
+        "section": "layout"
+      },
+      {
+        "name": "Reachable-Ending",
+        "body": "The primary action closes the visual sentence at the page foot, but scrolling and keyboard avoidance always outrank a fixed bottom position.",
+        "section": "layout"
+      },
+      {
+        "name": "Folio-Casts-the-Room",
+        "body": "Ambient elevation belongs to the main folio; nested content is usually tonal and bordered, not independently floating.",
+        "section": "elevation"
+      },
+      {
+        "name": "Tactile-Only",
+        "body": "Add a control shadow only when it helps the primary action feel pressable. Secondary, quiet, and informational surfaces remain grounded.",
+        "section": "elevation"
+      },
+      {
+        "name": "Soft-Paper, Crisp-Pixel",
+        "body": "Paper and controls curve; voxel marks remain square. Do not blur the distinction.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do source every new application UI decision from semantic `HearthTheme` roles and the storybook primitives.",
+      "Do keep one expressive Fredoka heading, brief Nunito guidance, and one obvious next action in each focused state.",
+      "Do preserve the twilight-cover, parchment-folio, coral-binding nesting when using the canonical storybook shell.",
+      "Do keep touch targets at least 48px, content scrollable at large type, controls clear of the keyboard and safe area, and state changes understandable with reduced motion.",
+      "Do use the code-built voxel hearth or equally intentional code-native pixel details to connect interface and shared home.",
+      "Do pair error color with calm, actionable, relationship-safe language and a visible recovery path."
+    ],
+    "donts": [
+      "Don't import `ui`, `editorial`, or `hearthUi` into new surfaces; they are compatibility-only exports to migrate, not normative alternatives.",
+      "Don't replace the one-story column with a generic account modal, dashboard card stack, or dense settings composition.",
+      "Don't spend coral, sage, gold, and clay as interchangeable accents; each has a distinct semantic job.",
+      "Don't smooth the voxel hearth into a generic icon, add decorative raster art without provenance, or detach UI imagery from the recognizable voxel world.",
+      "Don't use urgency, blame, competitive progress, surveillance cues, or raw infrastructure language in visual feedback.",
+      "Don't pin actions over content when the keyboard, short height, or larger text needs the folio to scroll."
+    ]
+  }
+}

@@ -29,7 +29,7 @@ import { useAuthStore } from '@/state/authStore';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useHomeUiStore } from '@/state/homeUiStore';
 import { useHomeProgress } from '@/state/homeProgress';
-import { APP_NAME, editorial } from '@/theme/hearth';
+import { APP_NAME, editorial, HearthTheme } from '@/theme/hearth';
 
 export default function HomeScreen() {
   // Sign in, load the couple, and keep signals in sync with the partner.
@@ -118,8 +118,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: editorial.ink,
-    fontFamily: 'serif',
-    fontWeight: '700',
+    fontFamily: HearthTheme.type.display,
     textTransform: 'uppercase',
     textShadowColor: 'rgba(255, 250, 241, 0.92)',
     textShadowOffset: { width: 0, height: 1 },

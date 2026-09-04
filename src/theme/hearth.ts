@@ -2,6 +2,87 @@
 // Swap APP_NAME once a final name is chosen — nothing else should hardcode it.
 export const APP_NAME = 'Hearth';
 
+/**
+ * The semantic application theme. New UI reads from these roles rather than
+ * choosing presentation values per screen. Compatibility exports below remain
+ * temporarily while older surfaces migrate milestone by milestone.
+ */
+export const HearthTheme = {
+  color: {
+    cover: '#2D2436',
+    coverRaised: '#3A2D43',
+    parchment: '#FFF8EE',
+    parchmentRaised: '#FFFCF7',
+    parchmentWarm: '#FCEBDD',
+    ink: '#4B2E24',
+    inkMuted: '#77594B',
+    inkFaint: '#806357',
+    clay: '#C95850',
+    clayPressed: '#A83F3B',
+    coral: '#F0787F',
+    coralSoft: '#F8D1D6',
+    sage: '#78906A',
+    sageSoft: '#DDE9D7',
+    twilight: '#584766',
+    twilightSoft: '#E8DFEC',
+    gold: '#BE8745',
+    line: 'rgba(88, 57, 43, 0.18)',
+    lineStrong: 'rgba(126, 68, 51, 0.34)',
+    onAccent: '#FFFDF8',
+    danger: '#A23F3A',
+    dangerSoft: '#F7DDD8',
+    success: '#52734B',
+    successSoft: '#DDEAD8',
+    scrim: 'rgba(31, 23, 37, 0.72)',
+    focus: '#875E99',
+  },
+  type: {
+    display: 'HearthFredoka',
+    body: 'HearthNunito',
+    bodyStrong: 'HearthNunito-ExtraBold',
+    displayLarge: 34,
+    displayLine: 39,
+    title: 24,
+    titleLine: 30,
+    bodySize: 16,
+    bodyLine: 23,
+    label: 15,
+    caption: 13,
+    captionLine: 18,
+  },
+  space: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    xxl: 32,
+    page: 28,
+  },
+  radius: {
+    sm: 10,
+    md: 16,
+    lg: 24,
+    page: 30,
+    pill: 999,
+  },
+  touch: {
+    minimum: 48,
+    gap: 8,
+  },
+  shadow: {
+    color: '#201629',
+    opacity: 0.24,
+    radius: 22,
+    offset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  motion: {
+    quick: 160,
+    calm: 280,
+  },
+} as const;
+
 export const ui = {
   overlayBg: 'rgba(24, 15, 11, 0.82)',
   overlayBorder: 'rgba(255, 200, 150, 0.18)',
@@ -44,9 +125,9 @@ export const editorial = {
 } as const;
 
 export const momentsTypography = {
-  heading: 'HearthFredoka',
-  body: 'HearthNunito',
-  bodyBold: 'HearthNunito-ExtraBold',
+  heading: HearthTheme.type.display,
+  body: HearthTheme.type.body,
+  bodyBold: HearthTheme.type.bodyStrong,
 } as const;
 
 // Tactile stationery tokens shared by the review-gate surfaces. These keep
