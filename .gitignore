@@ -38,6 +38,7 @@ yarn-error.*
 /tmp/
 /supabase/.temp/
 /skills-lock.json
+/output/playwright/
 
 # Third-party agent packages are installed locally.
 /.agents/*

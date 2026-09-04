@@ -14,9 +14,21 @@ The app helps couples communicate three difficult messages:
 
 Hearth must help users begin real communication. It must not replace real conversations, assign blame, diagnose the relationship, or decide which partner is correct.
 
-## Superseding Moments owner-review interaction revision — 18 August 2026
+## Current program baseline — 4 September 2026
 
-This is the current `1.0.3` owner-review target and supersedes the 17 August
+The installed `1.0.4` client is the technical baseline for the comprehensive
+improvement program. The former `1.0.3` owner-review gate below is retained as
+historical product context, not as the active release gate.
+
+Moments and the shared voxel home remain the core experience. The program first
+secures and rebaselines the existing app, then moves one bounded experience at a
+time through local verification, an appropriate preview or APK, and two-phone
+owner review. Database deployments and native builds remain explicit owner
+authorization gates. See `MILESTONE_1_BASELINE.md` for the current checkpoint.
+
+## Historical Moments owner-review interaction revision — 18 August 2026
+
+This was the `1.0.3` owner-review target and superseded the 17 August
 presentation details wherever they conflict:
 
 - Ending a Moment releases each avatar in place. A seated avatar stands at its

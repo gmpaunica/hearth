@@ -74,6 +74,7 @@ export function Settings() {
   };
 
   const openHomeStudio = () => {
+    if (!__DEV__) return;
     if (activeMoment || homeBlockedByMoment) {
       setDeveloperMessage('Finish the active Moment before editing the shared home.');
       return;
@@ -222,25 +223,29 @@ export function Settings() {
 
             <View style={styles.divider} />
 
-            <Text style={styles.developerTitle}>Developer</Text>
-            <Text style={styles.developerBody}>
-              Home Studio exposes every registered component and expansion tier while this section is public.
-            </Text>
-            <Pressable
-              style={styles.studioButton}
-              onPress={openHomeStudio}
-              accessibilityRole="button"
-              accessibilityLabel="Open Developer Home Studio"
-            >
-              <Text style={styles.studioButtonText}>Open Home Studio</Text>
-            </Pressable>
-            {developerMessage && (
-              <Text style={styles.developerMessage} accessibilityRole="alert">
-                {developerMessage}
-              </Text>
-            )}
+            {__DEV__ && (
+              <>
+                <Text style={styles.developerTitle}>Developer</Text>
+                <Text style={styles.developerBody}>
+                  Home Studio exposes every registered component and expansion tier for local development.
+                </Text>
+                <Pressable
+                  style={styles.studioButton}
+                  onPress={openHomeStudio}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Developer Home Studio"
+                >
+                  <Text style={styles.studioButtonText}>Open Home Studio</Text>
+                </Pressable>
+                {developerMessage && (
+                  <Text style={styles.developerMessage} accessibilityRole="alert">
+                    {developerMessage}
+                  </Text>
+                )}
 
-            <View style={styles.divider} />
+                <View style={styles.divider} />
+              </>
+            )}
 
             <Text style={styles.privacyTitle}>Your privacy</Text>
             <Text style={styles.privacyBody}>

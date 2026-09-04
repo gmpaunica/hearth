@@ -11,6 +11,19 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
+## Current checkpoint — 4 September 2026
+
+The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
+`app/integration`. Milestone 1 of the comprehensive improvement program is
+locally complete; read `MILESTONE_1_BASELINE.md` before changing or publishing
+the client. The older `1.0.3` release notes in this document are historical.
+
+No OTA, native build, or database migration was deployed during the milestone.
+The local Android fingerprint `ab09d5bf76edb19294a174f3f1dc760234fe993a`
+differs from installed versionCode 8 fingerprint
+`f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; a
+future preview requires explicit authorization for a new APK.
+
 ---
 
 ## 1. What Hearth is (the product & the vision)
@@ -257,9 +270,9 @@ overlap between ~7-wide rooms.
   empty void at the diagonal corners; a rail/band clamp + snap-to-room would be
   nicer.
 
-**Unlocking for testing:** `homeProgress.ts` exports **`PREVIEW_UNLOCK_ALL`**
-(currently `true`) which unlocks the whole home from day 0 so every room is
-visible immediately. Set it `false` to restore the milestone pacing (§7).
+**Unlocking for testing:** `homeProgress.ts` exports **`PREVIEW_UNLOCK_ALL`**.
+It is currently `false`, so normal server-authoritative milestone pacing is
+active. Do not add a production client-side bypass.
 
 ---
 
@@ -285,8 +298,7 @@ at a given relationship age*. `HOME_STAGES` is a tunable ladder keyed by
   (remembered per couple in prefs).
 - **New Higgsfield art or furniture slots in by adding a stage row** — no scene
   or logic rewrite.
-- ⚠️ **`PREVIEW_UNLOCK_ALL = true`** currently short-circuits this (unlocks all).
-  Flip to `false` for the real staged experience.
+- **`PREVIEW_UNLOCK_ALL = false`** keeps the real staged experience active.
 
 ---
 
@@ -428,7 +440,7 @@ at a given relationship age*. `HOME_STAGES` is a tunable ladder keyed by
   `NOTIFICATIONS` — change both.
 - **RLS is the security boundary**, not the client. Test cross-couple isolation
   when touching data.
-- **`PREVIEW_UNLOCK_ALL` is on** — real staged growth is off until you flip it.
+- **`PREVIEW_UNLOCK_ALL` is off** — real staged growth is active.
 - **Signal enum is duplicated** in three places that must agree: `SignalType`
   (copy), the `signals.type` CHECK (schema/`romantic.sql`), and any `SpotId`
   (`sceneStore.ts`) / `SPOTS` / `homeProgress` signal lists. Add a new signal in
@@ -468,12 +480,10 @@ From `STATUS.md` (keep that current) and `PRODUCTION_PLAN.md`:
 
 ## 15. Immediate open items for whoever picks this up
 
-1. **Ship the current work:** the multi-room home + garden + fixes are committed
-   but **not yet OTA'd** — run `eas update --branch preview` and reopen twice.
-2. **Run `supabase/romantic.sql`** in the dashboard so the bedroom/romantic
-   signal actually syncs (and optionally redeploy `notify-signal` for the
-   tailored push line).
-3. Decide on `PREVIEW_UNLOCK_ALL` — keep it `true` while showing people the whole
-   home, or set `false` to restore the day-21/day-30 growth for real couples.
-4. Verify the full loop on two real devices after shipping (signal → walk →
-   partner card → reconcile heart; visit all three rooms).
+1. Review `MILESTONE_1_BASELINE.md` and complete its two-phone owner checklist.
+2. Restart Codex, then run `codex mcp login expo`; the hosted Expo MCP entry was
+   installed but is not visible to the already-running process.
+3. Keep the recorded fingerprint mismatch as a hard gate: do not publish an OTA
+   to versionCode 8. Obtain explicit authorization for a new APK.
+4. Authorize the storybook front-door milestone before starting it. A later
+   native build or database deployment remains a separate explicit gate.

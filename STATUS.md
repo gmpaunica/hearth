@@ -7,6 +7,21 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
+## Current program checkpoint — 4 September 2026
+
+Milestone 1 of the comprehensive improvement program is locally complete and
+awaiting owner review. The installed `1.0.4` client is the technical baseline;
+the `1.0.3` gate below is historical. The canonical phone checkout has been
+repaired and revalidated on Expo SDK 57, client-controlled living-home bypasses
+have been removed, and production-facing developer studios are development-only.
+
+No OTA was published for this technical milestone. No native build or database
+migration was deployed. The SDK-compatible local fingerprint
+`ab09d5bf76edb19294a174f3f1dc760234fe993a` differs from installed versionCode
+8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
+the next phone preview requires explicit authorization for a new APK. Full
+results and owner gates are in `MILESTONE_1_BASELINE.md`.
+
 ## Development workflow — 22 August 2026
 
 - Development happens directly in the canonical phone checkout.
@@ -58,9 +73,9 @@ feature expansion during an active review gate.
 4. **A shared thing you tend daily** — the home grows; the **daily drawing**
    gives a reason to open the app on good days, not just hard ones.
 
-## Current owner-directed priority
+## Historical owner-directed priority
 
-The current owner-authorized gate is **Moments 1.0.3 — Owner Review**, revised
+The former owner-authorized gate was **Moments 1.0.3 — Owner Review**, revised
 18 August. Moment endings now release avatars in place; the garden threshold no
 longer flickers; the real fireplace replaces the floating orb as the current
 status/Today surface; difficult Fireplace Moments temporarily show **tending**;
@@ -83,7 +98,7 @@ owner review. Do not start voice notes; microphone support requires a new APK.
   Android EAS "preview" APK on two phones; **over-the-air updates** live.
 - **Onboarding** (intro + name), **pairing** (anon auth, 6-char code, full-home
   guard, "Start over" exit on the waiting screen).
-- **Moments 1.0.3 Owner Review**: **How do you feel right now?** divides six
+- **Historical Moments 1.0.3 presentation**: **How do you feel right now?** divides six
   detailed 40×18 run-length mosaics into **About us** and **What I need**. One
   continuously mounted sheet follows the thumb between a measured expanded
   position and centered 48-pixel dock, including top-of-list scroll handoff,
@@ -142,10 +157,9 @@ owner review. Do not start voice notes; microphone support requires a new APK.
   `LivingRoom`/`Bedroom`/`Garden` builders live in isolated files under
   `src/scene/rooms/`; `RoomComposition.tsx` owns only shared topology and
   progression gating, while `Room.tsx` remains a compatibility export.
-- **`PREVIEW_UNLOCK_ALL`** (in `homeProgress.ts`) is currently **`true`**: the
-  whole home is unlocked from day 0 so every room is visible immediately while
-  testing (a fresh couple would otherwise wait to d21/d30). Flip it to `false`
-  to restore the "home grows over time" milestone pacing.
+- **`PREVIEW_UNLOCK_ALL`** (in `homeProgress.ts`) is **`false`**: production
+  milestone pacing is active, and a fresh couple reaches the bedroom/garden at
+  d21/d30. The server remains authoritative for progression.
 - **Bedroom** holds the tasteful **"feeling romantic" signal** (the bed): leave
   it → your partner "Come close" → you sit together as a **heart pops over the
   bed** (the reconcile heart is spot-aware — fire *or* bed). Consent-aware
@@ -176,7 +190,8 @@ owner review. Do not start voice notes; microphone support requires a new APK.
 
 ## How to continue (dev workflow) — IMPORTANT
 
-- **Branch:** `claude/session-c959ub`. Commit + push here.
+- **Branch:** `app/integration` in the canonical phone checkout. Do not publish
+  or build from the backend-hardening checkout.
 - **Ship a code change (no rebuild):** `git pull` then
   `eas update --branch preview --message "..."`. Owner reopens the app twice.
   Works for all JS/scene changes.

@@ -7,6 +7,11 @@ import { pixelScale } from './pixelState';
 
 const DROP_COUNT = 60;
 
+function deterministicSeed(index: number) {
+  const value = Math.sin((index + 1) * 12.9898) * 43_758.5453;
+  return value - Math.floor(value);
+}
+
 const vertex = /* glsl */ `
   attribute float aSeed;
   uniform float uTime;
@@ -50,7 +55,7 @@ export function Rain() {
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(DROP_COUNT * 3);
     const seeds = new Float32Array(DROP_COUNT);
-    for (let i = 0; i < DROP_COUNT; i++) seeds[i] = Math.random();
+    for (let i = 0; i < DROP_COUNT; i++) seeds[i] = deterministicSeed(i);
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2, -0.3), 7);
@@ -76,11 +81,13 @@ export function Rain() {
   );
 
   useFrame((state) => {
-    material.uniforms.uTime.value = state.clock.elapsedTime;
-    material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
-    material.uniforms.uDpr.value = pixelScale.value;
-    material.uniforms.uAmount.value = atmo.rain;
-    if (pointsRef.current) pointsRef.current.visible = atmo.rain > 0.02;
+    if (!pointsRef.current) return;
+    const shader = pointsRef.current.material as THREE.ShaderMaterial;
+    shader.uniforms.uTime.value = state.clock.elapsedTime;
+    shader.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    shader.uniforms.uDpr.value = pixelScale.value;
+    shader.uniforms.uAmount.value = atmo.rain;
+    pointsRef.current.visible = atmo.rain > 0.02;
   });
 
   return (

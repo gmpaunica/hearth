@@ -22,10 +22,11 @@ test('home progression uses server-owned active growth at the agreed milestones'
   assert.match(progressStore, /PREVIEW_UNLOCK_ALL = false/);
 });
 
-test('normal editing gates expansions while Developer operations declare their bypass', () => {
+test('normal editing gates expansions and no client operation can declare a bypass', () => {
   const progression = read('src/home/progression.ts');
   const studio = read('src/components/HomeStudio.tsx');
   const store = read('src/state/homeStudioStore.ts');
+  const types = read('src/home/types.ts');
 
   assert.match(progression, /room === 'living'\) return 6/);
   assert.match(progression, /room === 'bedroom'\) return 21/);
@@ -35,7 +36,9 @@ test('normal editing gates expansions while Developer operations declare their b
   assert.match(studio, /moduleUnlockDay\(moduleId\)/);
   assert.match(studio, /growthDays >= roomSizeUnlockDay/);
   assert.match(studio, /growthDays >= gardenTierUnlockDay/);
-  assert.match(store, /operation, developer: true/);
+  assert.doesNotMatch(store, /operation, developer: true/);
+  assert.doesNotMatch(types, /developer\?: boolean/);
+  assert.match(store, /mode === 'developer' && !__DEV__/);
   assert.match(store, /stored\.mode === mode/);
 });
 

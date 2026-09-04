@@ -20,6 +20,8 @@ Durable owner feedback and accepted staged product decisions live in
   vision, full architecture (file-by-file), the multi-room system, the backend,
   how to run/ship, and the gotchas. **Read this first.**
 - **[`STATUS.md`](./STATUS.md)** — the living status + backlog. Keep it current.
+- **[`MILESTONE_1_BASELINE.md`](./MILESTONE_1_BASELINE.md)** — the verified
+  `1.0.4` technical baseline, migration ledger, and owner gates.
 - [`PRODUCTION_PLAN.md`](./PRODUCTION_PLAN.md) — the original phased roadmap.
 - [`AGENTS.md`](./AGENTS.md) — Expo changed a lot in v57; use the exact versioned
   docs.
@@ -34,6 +36,6 @@ npx tsc --noEmit      # must stay clean
 npx expo start        # open on a device/emulator, or add --web for a quick look
 ```
 
-Ship a JS/scene change over-the-air (no rebuild): `eas update --branch preview
---message "..."` then reopen the app twice. See `HANDOFF.md` §11 for the full
-shipping + Supabase deploy steps.
+Only publish a JS/assets-only change after confirming that its native fingerprint
+matches the installed preview. See `HANDOFF.md` §11 for the full shipping and
+Supabase deployment gates.

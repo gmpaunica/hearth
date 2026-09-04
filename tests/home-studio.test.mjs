@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('Home Studio exposes a visual direct-manipulation editor from visible Developer settings', () => {
+test('Home Studio exposes a visual direct-manipulation editor only from development-gated settings', () => {
   const settings = read('src/components/Settings.tsx');
   const studio = read('src/components/HomeStudio.tsx');
   const thumbnail = read('src/components/HomeAssetThumbnail.tsx');
@@ -16,6 +16,8 @@ test('Home Studio exposes a visual direct-manipulation editor from visible Devel
   const index = read('src/app/index.tsx');
   assert.match(settings, />Developer</);
   assert.match(settings, /Open Home Studio/);
+  assert.match(settings, /\{__DEV__ && \(/);
+  assert.match(settings, /if \(!__DEV__\) return/);
   assert.match(settings, /activeMoment \|\| homeBlockedByMoment/);
   assert.match(index, /<HomeStudio \/>/);
   for (const tray of ['Rooms', 'Furniture', 'Finishing touches', 'Garden', 'Put away', 'Place these']) {

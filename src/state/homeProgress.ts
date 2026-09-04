@@ -23,7 +23,7 @@ export interface HomeStage {
   signals: SignalType[];
 }
 
-/** Production pacing is active; Developer Home Studio owns the public bypass. */
+/** Production pacing is always enforced by the server. */
 export const PREVIEW_UNLOCK_ALL = false;
 
 export const HOME_STAGES: HomeStage[] = [

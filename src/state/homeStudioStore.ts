@@ -200,6 +200,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
   draggingObjectId: null,
 
   open: async (mode = 'developer') => {
+    if (mode === 'developer' && !__DEV__) return;
     const authoritative = cloneHomeSnapshot(useHomeStore.getState().snapshot);
     let draft = authoritative;
     let operations: HomeOperation[] = [];
@@ -374,9 +375,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
           state.pendingRequestId,
           state.baseSnapshot.revision,
           state.baseSnapshot.catalogVersion,
-          state.mode === 'developer'
-            ? state.operations.map((operation) => ({ ...operation, developer: true }))
-            : state.operations,
+          state.operations,
         );
         if (retry.ok) {
           useHomeStore.getState().ingestSnapshot(retry.snapshot);
@@ -420,9 +419,7 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
         requestId,
         state.baseSnapshot.revision,
         state.baseSnapshot.catalogVersion,
-        state.mode === 'developer'
-          ? state.operations.map((operation) => ({ ...operation, developer: true }))
-          : state.operations,
+        state.operations,
       );
       if (result.ok) {
         useHomeStore.getState().ingestSnapshot(result.snapshot);

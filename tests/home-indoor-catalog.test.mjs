@@ -42,7 +42,7 @@ test('curated palettes and layered placement feed visible restyling', () => {
   assert.match(resolver, /object\.surface !== 'wall'/);
 });
 
-test('relationship-gated Decorate mode is distinct from public Developer Studio', () => {
+test('relationship-gated Decorate mode is distinct from development-only Studio', () => {
   const button = read('src/components/DecorateButton.tsx');
   const studio = read('src/components/HomeStudio.tsx');
   const store = read('src/state/homeStudioStore.ts');
@@ -50,6 +50,7 @@ test('relationship-gated Decorate mode is distinct from public Developer Studio'
   assert.match(index, /<DecorateButton \/>/);
   assert.match(button, /open\('decorate'\)/);
   assert.match(store, /HomeStudioMode = 'developer' \| 'decorate'/);
+  assert.match(store, /mode === 'developer' && !__DEV__/);
   assert.match(studio, /activeGrowthDays\(draft\)/);
   assert.match(studio, /Number\(asset\.progression\.day \?\? 0\) > unlockedDays/);
   assert.match(studio, /isDeveloper \? 'Complete catalog' : 'Add something'/);

@@ -7,6 +7,11 @@ import { pixelScale } from './pixelState';
 
 const COUNT = 70;
 
+function deterministicSeed(index: number) {
+  const value = Math.sin((index + 1) * 78.233) * 43_758.5453;
+  return value - Math.floor(value);
+}
+
 const vertex = /* glsl */ `
   attribute float aSeed;
   uniform float uTime;
@@ -53,7 +58,7 @@ export function Sparkles() {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(COUNT * 3), 3));
     const seeds = new Float32Array(COUNT);
-    for (let i = 0; i < COUNT; i++) seeds[i] = Math.random();
+    for (let i = 0; i < COUNT; i++) seeds[i] = deterministicSeed(i);
     geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.5, 0), 6);
     return geo;
@@ -78,13 +83,14 @@ export function Sparkles() {
   );
 
   useFrame((state) => {
-    material.uniforms.uTime.value = state.clock.elapsedTime;
-    material.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
-    material.uniforms.uDpr.value = pixelScale.value;
-    material.uniforms.uGlow.value = atmo.glow;
+    if (!pointsRef.current) return;
+    const shader = pointsRef.current.material as THREE.ShaderMaterial;
+    shader.uniforms.uTime.value = state.clock.elapsedTime;
+    shader.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    shader.uniforms.uDpr.value = pixelScale.value;
+    shader.uniforms.uGlow.value = atmo.glow;
     // The motes swirl, so keep them off when the user asked for reduced motion.
-    if (pointsRef.current)
-      pointsRef.current.visible = atmo.glow > 0.01 && !atmo.reduceMotion;
+    pointsRef.current.visible = atmo.glow > 0.01 && !atmo.reduceMotion;
   });
 
   return (

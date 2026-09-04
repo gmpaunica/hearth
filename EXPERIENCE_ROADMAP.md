@@ -79,6 +79,18 @@ Garden-specific work should stay in `src/scene/rooms/Garden.tsx` plus its own
 assets/tests. Keep the small `RoomComposition.tsx` topology focused on shared
 room composition.
 
+## Current comprehensive program gate — 4 September 2026
+
+The former `1.0.3` gate is retired. The installed `1.0.4` client is now the
+technical baseline. Work proceeds through the bounded milestones recorded in
+`MILESTONE_1_BASELINE.md`, preserving Moments and the shared home while privacy,
+recovery, accessibility, and the scene-led phone experience are improved.
+
+Milestone 1 is a technical owner checkpoint and intentionally has no OTA. Do
+not begin the storybook front-door milestone until its baseline report and
+remaining physical-device gates have been reviewed. Native builds and database
+deployments still require explicit authorization.
+
 For every JavaScript/assets-only feature, publishing is part of completion, not
 an optional handoff step. Run the preview EAS Update command from `AGENTS.md`,
 verify that the new update is the latest update on the `preview` branch, and
@@ -95,9 +107,9 @@ Do not silently bundle later roadmap features into the current feature. Small
 technical prerequisites are allowed, but the owner should review one visible
 experience change at a time.
 
-## Current owner-review revision — 18 August 2026
+## Historical owner-review revision — 18 August 2026
 
-This remains the single `1.0.3` review gate. The owner kept the successful
+This was the final `1.0.3` review gate. The owner kept the successful
 continuous drag behavior and revised the interaction/presentation details:
 
 - Moment endings never teleport avatars. Release means stand at the live world

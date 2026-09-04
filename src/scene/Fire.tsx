@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { atmo } from './atmoState';
@@ -9,11 +9,16 @@ import { pixelScale } from './pixelState';
 const FLAME_COUNT = 130;
 const EMBER_COUNT = 16;
 
+function deterministicSeed(index: number) {
+  const value = Math.sin((index + 1) * 12.9898) * 43_758.5453;
+  return value - Math.floor(value);
+}
+
 function makeSeedGeometry(count: number) {
   const geo = new THREE.BufferGeometry();
   const positions = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
-  for (let i = 0; i < count; i++) seeds[i] = Math.random();
+  for (let i = 0; i < count; i++) seeds[i] = deterministicSeed(i);
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.4, 0), 2);
@@ -160,13 +165,14 @@ export function Fire({ position }: { position: [number, number, number] }) {
   const flameMat = usePixelMaterial(flameVertex, flameFragment);
   const emberMat = usePixelMaterial(emberVertex, emberFragment, { uRise: 1.1, uSpread: 0.4 });
   const glowMat = usePixelMaterial(glowVertex, glowFragment);
+  const materialRefs = useRef([flameMat, emberMat, glowMat]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const zoom = (state.camera as THREE.OrthographicCamera).zoom || 50;
     const flicker =
       0.9 + 0.07 * Math.sin(t * 9.3) + 0.04 * Math.sin(t * 23.7 + 1.7);
-    for (const m of [flameMat, emberMat, glowMat]) {
+    for (const m of materialRefs.current) {
       m.uniforms.uTime.value = t;
       m.uniforms.uZoom.value = zoom;
       m.uniforms.uDpr.value = pixelScale.value;
@@ -190,12 +196,13 @@ export function Fire({ position }: { position: [number, number, number] }) {
 export function EmberColumn({ position }: { position: [number, number, number] }) {
   const geo = useMemo(() => makeSeedGeometry(22), []);
   const mat = usePixelMaterial(emberVertex, emberFragment, { uRise: 2.4, uSpread: 0.7 });
+  const matRef = useRef(mat);
 
   useFrame((state) => {
-    mat.uniforms.uTime.value = state.clock.elapsedTime;
-    mat.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
-    mat.uniforms.uDpr.value = pixelScale.value;
-    mat.uniforms.uIntensity.value = atmo.fire * 0.9;
+    matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    matRef.current.uniforms.uZoom.value = (state.camera as THREE.OrthographicCamera).zoom || 50;
+    matRef.current.uniforms.uDpr.value = pixelScale.value;
+    matRef.current.uniforms.uIntensity.value = atmo.fire * 0.9;
   });
 
   return <points geometry={geo} material={mat} position={position} frustumCulled={false} />;
