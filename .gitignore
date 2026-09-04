@@ -2,12 +2,14 @@
 
 # dependencies
 node_modules/
+.artifacts-character/
 
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+supabase/.temp/
 
 # Native
 .kotlin/

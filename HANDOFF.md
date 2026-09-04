@@ -11,7 +11,37 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
+## Current backend checkpoint — 4 September 2026
+
+This is the backend-hardening checkout only. Its current checkpoint and remote
+migration boundary are recorded in `MILESTONE_1_BACKEND_CHECKPOINT.md`. The
+canonical installed phone baseline is `1.0.4` in
+`C:\Windows\System32\hearth`; never publish its client from this tree and never
+copy changes between the two dirty histories without an explicit reconciliation
+task.
+
+No database migration or Edge Function was deployed during this checkpoint.
+Remote history ends at `20260819143000`; all later local migrations remain
+pending an explicit deployment authorization.
+
 ---
+
+## Historical release handoff — Moments Owner Review, 17 August 2026
+
+The backend half of the current `1.0.3` owner-review gate is complete and
+deployed from this checkout. Migration
+`20260817120000_moments_owner_review_revision.sql` owns the shared home timezone/
+date, aggregate daily-drawing ritual fire, immutable visible readiness events,
+strict Rest action payloads, and the new Rest RPC. It preserves existing RPC
+signatures, RLS, immutable histories, author-only resolutions, and null legacy
+schedule surfaces.
+
+Validation is green: 59 backend tests and the authenticated 20-session
+alternating-author live matrix. The canonical phone implementation/publication
+lives only in `C:\Windows\System32\hearth`; never copy or reconcile these dirty
+trees without an explicit task. After the phone preview is published and its
+two-open/two-phone smoke passes, stop for owner review. Recorded voice notes are
+the next APK/native-configuration gate, not part of this migration.
 
 ## 1. What Hearth is (the product & the vision)
 
@@ -101,6 +131,11 @@ Signals (each is a place + a feeling):
 - **"Feeling romantic" signal** in the bedroom, with a spot-aware heart pop.
 - **Daily drawing** ritual (owner's favourite).
 - Settings; accessibility (reduce-motion softens glow/hops).
+- **P0 production hardening was deployed 2026-08-05**: RPC-only
+  membership changes, relationship-epoch cleanup, least-privilege grants/RLS,
+  epoch-fenced push-token ownership, authenticated durable notification outbox
+  with Expo receipts, stale-tap rejection, and atomic server-first sign-out.
+  See `STATUS.md` for the rollout record and targeted legacy quarantine.
 
 ---
 
@@ -187,6 +222,7 @@ src/lib/              config.ts (Supabase URL/anon key + env override), supabase
 supabase/             SQL you run in the Supabase dashboard + the edge function.
   schema.sql          Base: tables, RLS, RPCs (create_couple/join_couple), realtime.
   notifications.sql   pg_net trigger → the notify-signal edge function.
+  hardening.sql       Existing-production P0 migration: lifecycle/RLS/token safety.
   unpair.sql          leave_couple RPC.
   drawings.sql        drawings table + RLS + realtime.
   romantic.sql        Migration: widen signals.type CHECK to allow 'romantic'.
@@ -194,6 +230,7 @@ supabase/             SQL you run in the Supabase dashboard + the edge function.
 
 dev/                  Sandbox browser-QA tooling (see §10). Not shipped.
 scripts/live-test.mjs Node script exercising the backend directly.
+tests/                P0 security contracts + sign-out lifecycle tests (`npm test`).
 docs/art-bible.md     The locked Style-F visual target and mandates.
 ```
 
@@ -327,25 +364,33 @@ at a given relationship age*. `HOME_STAGES` is a tunable ladder keyed by
   client; **all real permissions are enforced by RLS.**
 - **Tables:** `profiles`, `couples`, `signals`, `responses`, `drawings`.
   RLS everywhere: a user only ever sees their own couple's rows.
-- **RPCs (SECURITY DEFINER):** `create_couple()`, `join_couple(code)`,
-  `leave_couple()`. Anonymous sign-in auto-creates a `profiles` row via trigger.
+- **Client RPCs (SECURITY DEFINER):** `create_couple()`, `join_couple(code)`,
+  `leave_couple()`, `prepare_sign_out()`, and the epoch-checked push registration
+  RPCs. Anonymous sign-in auto-creates a `profiles` row via trigger. Internal
+  outbox RPCs are executable only by `service_role`.
 - **Realtime:** `signals`, `responses`, `couples`, `drawings` are in the
   `supabase_realtime` publication.
 - **The app cannot create tables.** SQL is run by the owner in the dashboard SQL
-  editor. **Deploy order** (safe to re-run; now idempotent):
+  editor. **Fresh-install order** (safe to re-run; now idempotent):
   1. `schema.sql` (base)
-  2. `notifications.sql` (after deploying the edge function)
-  3. `unpair.sql`
-  4. `drawings.sql`
-  5. `romantic.sql` ← **required for the bedroom/romantic signal to sync** (it
-     widens the `signals.type` CHECK to allow `'romantic'`; until it's run, a
-     romantic signal looks fine locally but its DB insert is rejected, so it never
-     reaches the partner or fires a push).
+  2. `unpair.sql`
+  3. `drawings.sql`
+  4. `romantic.sql`
+  5. `hardening.sql`
+  6. `notifications.sql` after configuring its matching Edge/Vault secret
+
+  For the existing production database, follow the coordinated P0 rollout in
+  `STATUS.md`; do not rerun the canonical schema first. `romantic.sql` remains
+  **required for the bedroom/romantic signal to sync** (it
+  widens the `signals.type` CHECK to allow `'romantic'`; until it's run, a
+  romantic signal looks fine locally but its DB insert is rejected, so it never
+  reaches the partner or fires a push).
 - **Edge function `notify-signal`** (`supabase/functions/notify-signal/index.ts`)
   is deployed via the dashboard Functions editor (`supabase functions deploy
-  notify-signal --no-verify-jwt`). It reads the new signal, finds the partner,
-  looks up their push token, and sends the matching `NOTIFICATIONS` copy through
-  Expo push. Redeploy it when notification copy changes.
+  notify-signal --no-verify-jwt`). The P0 version accepts only the matching
+  private webhook secret, claims the fixed recipient from the outbox, sends the
+  matching `NOTIFICATIONS` copy, and later checks the Expo receipt. Redeploy it
+  when notification copy or the outbox protocol changes.
 - **A new feature that needs a table/column won't work until its SQL is run —
   always call this out to the owner.**
 
@@ -464,12 +509,10 @@ From `STATUS.md` (keep that current) and `PRODUCTION_PLAN.md`:
 
 ## 15. Immediate open items for whoever picks this up
 
-1. **Ship the current work:** the multi-room home + garden + fixes are committed
-   but **not yet OTA'd** — run `eas update --branch preview` and reopen twice.
-2. **Run `supabase/romantic.sql`** in the dashboard so the bedroom/romantic
-   signal actually syncs (and optionally redeploy `notify-signal` for the
-   tailored push line).
-3. Decide on `PREVIEW_UNLOCK_ALL` — keep it `true` while showing people the whole
+1. **Verify the deployed P0 update on both real phones:** reopen each app twice,
+   then test signal → push → tap plus sign-out/unpair. The backend, secrets,
+   Edge Function, romantic signal SQL, and preview OTA are all deployed.
+2. Decide on `PREVIEW_UNLOCK_ALL` — keep it `true` while showing people the whole
    home, or set `false` to restore the day-21/day-30 growth for real couples.
-4. Verify the full loop on two real devices after shipping (signal → walk →
+3. Verify the full loop on two real devices after shipping (signal → walk →
    partner card → reconcile heart; visit all three rooms).

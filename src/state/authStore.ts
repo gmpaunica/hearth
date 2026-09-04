@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 
 import type { Couple } from '@/lib/db';
+import { clearLocalNotifications } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { runSignOutFlow } from './signOutFlow';
 
 /**
  * Where the user is in the sign-in → pairing journey.
@@ -180,24 +182,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    if (get().busy) return;
     set({ busy: true, error: null });
+    let serverPrepared = false;
     try {
-      await supabase.auth.signOut();
-    } catch {
-      // Even if the network call fails, drop local state and start fresh.
+      await runSignOutFlow({
+        prepareServerSignOut: async () => {
+          const { error } = await supabase.rpc('prepare_sign_out');
+          if (error) throw error;
+        },
+        onServerPrepared: () => {
+          serverPrepared = true;
+          // The database no longer has this relationship. Remove it from the
+          // client immediately, even if native cleanup or session removal fails.
+          set({ phase: 'loading', couple: null, partnerId: null });
+        },
+        clearLocalNotifications,
+        signOutSession: async () => {
+          const { error } = await supabase.auth.signOut({ scope: 'local' });
+          if (error) {
+            // auth-js removes the local session even when its revocation request
+            // fails. Only block reset if a session is actually still present.
+            const { data } = await supabase.auth.getSession();
+            if (data.session) throw error;
+          }
+        },
+      });
+
+      // Re-init only after the atomic server cleanup and local session removal.
+      // Anonymous auth then mints a fresh identity at the create/join gate.
+      set({
+        phase: 'loading',
+        userId: null,
+        couple: null,
+        partnerId: null,
+        displayName: null,
+        busy: false,
+        error: null,
+      });
+      await get().init();
+    } catch (e) {
+      // A failed preparation leaves the old identity intact and safely retryable.
+      // A later failure cannot restore a relationship already removed on server.
+      set({
+        phase: serverPrepared ? 'error' : get().phase,
+        busy: false,
+        error: messageOf(e),
+      });
     }
-    // Clear everything, then re-init: with anonymous auth this mints a brand
-    // new identity, landing the user back at the create/join gate.
-    set({
-      phase: 'loading',
-      userId: null,
-      couple: null,
-      partnerId: null,
-      displayName: null,
-      busy: false,
-      error: null,
-    });
-    await get().init();
   },
 
   unpair: async () => {
@@ -205,6 +237,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { error } = await supabase.rpc('leave_couple');
       if (error) throw error;
+      try {
+        await clearLocalNotifications();
+      } catch {
+        // Stale taps are also identity-checked, so native cleanup is best-effort.
+      }
       const { userId } = get();
       set({
         couple: null,

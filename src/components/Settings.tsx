@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { clearPushToken, registerPushToken } from '@/lib/notifications';
@@ -14,6 +14,8 @@ import { ui } from '@/theme/hearth';
 export function Settings() {
   const [open, setOpen] = useState(false);
   const [notify, setNotify] = useState(true);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+  const notifyBusyRef = useRef(false);
   const [confirming, setConfirming] = useState<null | 'unpair' | 'signout'>(null);
 
   const userId = useAuthStore((s) => s.userId);
@@ -25,11 +27,29 @@ export function Settings() {
     if (open) void getNotificationsEnabled().then(setNotify);
   }, [open]);
 
-  const toggleNotify = (on: boolean) => {
+  const toggleNotify = async (on: boolean) => {
+    if (notifyBusyRef.current) return;
+    notifyBusyRef.current = true;
+    setNotifyBusy(true);
     setNotify(on);
-    void setNotificationsEnabledPref(on);
-    if (!userId) return;
-    void (on ? registerPushToken(userId) : clearPushToken(userId));
+    try {
+      await setNotificationsEnabledPref(on);
+      if (userId) {
+        const registered = on ? await registerPushToken(userId) : false;
+        if (!on) await clearPushToken(userId);
+        if (on && !registered) throw new Error('Notifications are unavailable on this device.');
+      }
+    } catch (error) {
+      // Keep the displayed preference aligned with server truth in either
+      // direction. The registration epoch prevents a stale async completion
+      // from undoing a successful disable operation.
+      setNotify(!on);
+      await setNotificationsEnabledPref(!on);
+      console.warn('[hearth] updating notification preference failed:', error);
+    } finally {
+      notifyBusyRef.current = false;
+      setNotifyBusy(false);
+    }
   };
 
   const close = () => {
@@ -63,6 +83,7 @@ export function Settings() {
               <Switch
                 value={notify}
                 onValueChange={toggleNotify}
+                disabled={notifyBusy}
                 trackColor={{ true: ui.chipActiveBg, false: ui.chipBg }}
                 thumbColor={ui.accent}
               />

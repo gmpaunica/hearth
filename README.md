@@ -1,5 +1,9 @@
 # Hearth 🔥
 
+> This checkout is reserved for backend hardening. The canonical `1.0.4` phone
+> client lives at `C:\Windows\System32\hearth`; never publish a phone update
+> from here. See `MILESTONE_1_BACKEND_CHECKPOINT.md` for the current ledger.
+
 A **two-person relationship app**. A couple shares one cozy voxel home — a
 cluster of floating isometric rooms you pan between. You leave a **privacy-safe
 emotional signal** by moving your character to a place in the home (fireplace =
@@ -31,6 +35,8 @@ npx tsc --noEmit      # must stay clean
 npx expo start        # open on a device/emulator, or add --web for a quick look
 ```
 
-Ship a JS/scene change over-the-air (no rebuild): `eas update --branch preview
---message "..."` then reopen the app twice. See `HANDOFF.md` §11 for the full
-shipping + Supabase deploy steps.
+This checkout contains separate backend-hardening work but an older client
+scene. Do not publish its client to the phone preview. Mobile-client work and
+EAS preview updates must use `C:\Windows\System32\hearth`, whose `AGENTS.md`
+contains the required two-open delivery workflow. See `HANDOFF.md` §11 for the
+full shipping + Supabase deploy steps.

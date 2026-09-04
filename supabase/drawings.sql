@@ -22,14 +22,19 @@ alter table public.drawings enable row level security;
 
 -- Read any drawing in your couple; write only your own.
 drop policy if exists drawings_select on public.drawings;
-create policy drawings_select on public.drawings for select
+create policy drawings_select on public.drawings for select to authenticated
   using (is_couple_member(couple_id));
 drop policy if exists drawings_insert on public.drawings;
-create policy drawings_insert on public.drawings for insert
+create policy drawings_insert on public.drawings for insert to authenticated
   with check (is_couple_member(couple_id) and from_user = auth.uid());
 drop policy if exists drawings_update on public.drawings;
-create policy drawings_update on public.drawings for update
-  using (from_user = auth.uid() and is_couple_member(couple_id));
+create policy drawings_update on public.drawings for update to authenticated
+  using (from_user = auth.uid() and is_couple_member(couple_id))
+  with check (from_user = auth.uid() and is_couple_member(couple_id));
+drop policy if exists drawings_delete on public.drawings;
+
+revoke all privileges on table public.drawings from public, anon, authenticated;
+grant select, insert, update on table public.drawings to authenticated;
 
 -- Live updates so a fresh drawing lights up the partner's easel right away.
 -- Idempotent: adding a table that's already in the publication raises 42710,

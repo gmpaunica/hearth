@@ -34,11 +34,30 @@ export function useHearthSync() {
   // Register this device for push once signed in (native only; no-ops on web).
   useEffect(() => {
     if (!userId) return;
-    void registerPushToken(userId);
+    let cancelled = false;
+    void registerPushToken(userId)
+      .catch((error) => {
+        if (!cancelled) console.warn('[hearth] push registration failed:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
-  // Tapping a signal notification deep-links straight into the room.
-  useEffect(() => onNotificationTap(() => router.navigate('/')), []);
+  // Ignore stale taps left by a previous anonymous identity or home.
+  useEffect(
+    () =>
+      onNotificationTap(({ url, recipientUserId, coupleId: notificationCoupleId }) => {
+        const auth = useAuthStore.getState();
+        if (
+          recipientUserId === auth.userId &&
+          notificationCoupleId === auth.couple?.id
+        ) {
+          router.navigate(url);
+        }
+      }),
+    [],
+  );
 
   // Watch the couple row for membership changes: a partner joining (waiting →
   // paired) or leaving/unpairing (paired → waiting or gone).

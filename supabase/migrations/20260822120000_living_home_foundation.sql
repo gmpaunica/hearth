@@ -712,7 +712,6 @@ declare
   requested_garden_tier text;
   current_room_size text;
   growth bigint;
-  developer_bypass boolean;
 begin
   if uid is null then raise exception 'Authentication required' using errcode = '42501'; end if;
   if request_id is null then raise exception 'request_id is required'; end if;
@@ -728,11 +727,6 @@ begin
   perform private.refresh_home_growth_unlocks(home.id);
   select * into state from public.home_states where couple_id = home.id for update;
   growth := private.active_home_growth_seconds(home.id);
-  developer_bypass := not exists (
-    select 1 from jsonb_array_elements(operations) command
-    where coalesce((command ->> 'developer')::boolean, false) = false
-  );
-
   request_hash := md5(catalog_version || ':' || operations::text);
   select * into existing from public.home_edit_requests
   where couple_id = home.id and home_edit_requests.request_id = apply_home_edit.request_id;
@@ -751,7 +745,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'revision_conflict',
       'currentRevision', state.revision, 'snapshot', private.home_snapshot(home.id));
   end if;
-  if state.world_frozen_at is not null and not developer_bypass
+  if state.world_frozen_at is not null
   then raise exception 'This shared world is frozen'; end if;
   if private.home_has_active_moment(home.id) then raise exception 'Finish the active Moment before editing the home'; end if;
 
@@ -762,7 +756,7 @@ begin
       select * into asset from public.home_catalog_assets
       where id = op ->> 'assetId' and retired_at is null;
       if asset.id is null then raise exception 'Unknown home asset: %', op ->> 'assetId'; end if;
-      if not developer_bypass and growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
+      if growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
       then raise exception 'That home asset has not unlocked yet'; end if;
       room_uuid := (op ->> 'roomId')::uuid;
       if not exists (select 1 from public.home_rooms where id = room_uuid and couple_id = home.id)
@@ -838,7 +832,7 @@ begin
       select * into asset from public.home_catalog_assets
       where id = op ->> 'assetId' and retired_at is null;
       if asset.id is null then raise exception 'Unknown replacement asset'; end if;
-      if not developer_bypass and growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
+      if growth < coalesce((asset.progression->>'day')::numeric, 0) * 86400
       then raise exception 'That replacement has not unlocked yet'; end if;
       update public.home_objects set asset_id = asset.id, asset_revision = asset.revision,
         style = coalesce(op -> 'style', '{}'::jsonb), updated_at = now()
@@ -857,15 +851,14 @@ begin
       if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
         raise exception 'Room resize must use an authored cottage-v2 mask';
       end if;
-      if not developer_bypass then
-        if room_module = 'garden'
+      if room_module = 'garden'
           and array_position(array['courtyard','standard','large','grand'], requested_garden_tier)
             > array_position(array['courtyard','standard','large','grand'], state.garden_tier)
           and growth < case requested_garden_tier
             when 'standard' then 2592000 when 'large' then 7776000
             when 'grand' then 15552000 else 0 end
         then raise exception 'That garden tier has not unlocked yet';
-        elsif room_module <> 'garden'
+      elsif room_module <> 'garden'
           and array_position(array['compact','standard','large'], op ->> 'sizeTier')
             > array_position(array['compact','standard','large'], current_room_size)
           and growth < case
@@ -873,8 +866,7 @@ begin
             when room_module = 'living' and op ->> 'sizeTier' = 'standard' then 518400
             when room_module = 'bedroom' and op ->> 'sizeTier' = 'standard' then 1814400
             else 5184000 end
-        then raise exception 'That room size has not unlocked yet'; end if;
-      end if;
+      then raise exception 'That room size has not unlocked yet'; end if;
       update public.home_rooms set size_tier = op ->> 'sizeTier',
         bounds = authored_bounds, updated_at = now()
       where id = room_uuid and couple_id = home.id
@@ -906,7 +898,7 @@ begin
             > (r.bounds ->> 'maxZ')::numeric
         );
     elsif action in ('change_terrain', 'change_finish') then
-      if not developer_bypass and growth < case when action = 'change_finish' then 259200 else 2592000 end
+      if growth < case when action = 'change_finish' then 259200 else 2592000 end
       then raise exception 'That finish has not unlocked yet'; end if;
       update public.home_states set finishes = finishes || jsonb_build_object(
         coalesce(op ->> 'target', case when action = 'change_terrain' then 'terrain' else 'home' end),
@@ -923,7 +915,7 @@ begin
       if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
         raise exception 'Module must use an authored cottage-v2 mask';
       end if;
-      if not developer_bypass and growth < case op ->> 'moduleId'
+      if growth < case op ->> 'moduleId'
         when 'bedroom' then 1814400 else 5184000 end
       then raise exception 'That room module has not unlocked yet'; end if;
       insert into public.home_rooms (id, couple_id, module_id, socket_id, size_tier, bounds)

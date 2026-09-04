@@ -235,8 +235,8 @@ test('active growth is authoritative, pauseable, irreversible, and gates normal 
   }
   assert.match(unlocks, /on conflict \(couple_id, unlock_id\) do nothing/);
   assert.match(snapshot, /'activeGrowthSeconds'/);
-  assert.match(apply, /developer_bypass/);
-  assert.match(apply, /state\.world_frozen_at is not null and not developer_bypass/);
+  assert.doesNotMatch(apply, /developer_bypass|command ->> 'developer'/);
+  assert.match(apply, /state\.world_frozen_at is not null/);
   assert.match(apply, /growth < coalesce\(\(asset\.progression->>'day'\)::numeric, 0\) \* 86400/);
   assert.match(apply, /growth < case requested_garden_tier/);
 });

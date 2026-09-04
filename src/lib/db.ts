@@ -14,6 +14,7 @@ export interface SignalRow {
   id: string;
   couple_id: string;
   from_user: string;
+  recipient_user_id: string;
   type: SignalType;
   created_at: string;
   resolved_at: string | null;
