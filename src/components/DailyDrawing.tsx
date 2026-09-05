@@ -21,6 +21,7 @@ import { PixelArt } from './PixelArt';
 import { PopIn } from './PopIn';
 import { Sketchbook } from './Sketchbook';
 import { PixelSpeechBubble } from './SpatialReactionOverlay';
+import { PrivateSurfaceShield } from './PrivateSurfaceShield';
 
 type Surface = 'closed' | 'today' | 'sketchbook';
 
@@ -131,6 +132,7 @@ export function DailyDrawing() {
 
       {surface !== 'closed' && (
         <View style={styles.overlay}>
+          <PrivateSurfaceShield surface="drawing" />
           <PopIn style={styles.fullCard}>
             <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'bottom', 'left']}>
               {surface === 'sketchbook' ? (

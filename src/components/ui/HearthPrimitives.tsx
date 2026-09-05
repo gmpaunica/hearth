@@ -358,8 +358,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   primaryButton: {
-    backgroundColor: HearthTheme.color.clay,
-    borderColor: HearthTheme.color.clayPressed,
+    backgroundColor: HearthTheme.color.clayPressed,
+    borderColor: HearthTheme.color.ink,
     shadowColor: HearthTheme.color.clayPressed,
     shadowOpacity: 0.24,
     shadowRadius: 9,

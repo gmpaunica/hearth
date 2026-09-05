@@ -25,8 +25,9 @@ import type { Couple } from '@/lib/db';
 import { DomainError } from '@/lib/domainError';
 import { useAuthStore } from '@/state/authStore';
 import { HearthTheme } from '@/theme/hearth';
+import { PrivateSurfaceShield } from './PrivateSurfaceShield';
 
-type PairingMode = 'choose' | 'join';
+type PairingMode = 'choose' | 'join' | 'recover';
 
 export function Pairing() {
   const preview = readFrontDoorPreview();
@@ -39,10 +40,15 @@ export function Pairing() {
   const unpair = useAuthStore((state) => state.unpair);
   const init = useAuthStore((state) => state.init);
   const clearError = useAuthStore((state) => state.clearError);
+  const requestAccountRecovery = useAuthStore((state) => state.requestAccountRecovery);
+  const completeAccountRecovery = useAuthStore((state) => state.completeAccountRecovery);
 
   const [mode, setMode] = useState<PairingMode>(preview === 'join' ? 'join' : 'choose');
   const [code, setCode] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryToken, setRecoveryToken] = useState('');
+  const [recoverySent, setRecoverySent] = useState(false);
   const codeRef = useRef<TextInput>(null);
 
   const previewCouple: Couple | null = preview === 'waiting' || preview === 'waiting-error'
@@ -213,6 +219,82 @@ export function Pairing() {
     );
   }
 
+  if (mode === 'recover') {
+    const emailReady = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim());
+    const tokenReady = recoveryToken.length === 6;
+    return (
+      <HearthScreen>
+        <PrivateSurfaceShield surface="account-recovery" />
+        <StoryProgress current={3} total={3} />
+        <StoryHeading focusKey={recoverySent ? 'recover-code' : 'recover-email'}>
+          {recoverySent ? 'Check your private inbox.' : 'Find your existing home.'}
+        </StoryHeading>
+        <StoryBody>
+          {recoverySent
+            ? `Enter the newest six-digit code sent to ${recoveryEmail.trim().toLowerCase()}.`
+            : 'Use the verified email you previously added to Hearth. No partner content is sent by email.'}
+        </StoryBody>
+        <HearthTextField
+          label="Recovery email"
+          value={recoveryEmail}
+          onChangeText={(value) => {
+            setRecoveryEmail(value);
+            setRecoverySent(false);
+            setRecoveryToken('');
+            if (error) clearError();
+          }}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          editable={!busy}
+        />
+        {recoverySent && (
+          <HearthTextField
+            label="Six-digit code"
+            value={recoveryToken}
+            onChangeText={(value) => {
+              setRecoveryToken(value.replace(/\D/g, '').slice(0, 6));
+              if (error) clearError();
+            }}
+            placeholder="123456"
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            maxLength={6}
+            editable={!busy}
+            style={styles.codeInput}
+            error={effectiveError?.message}
+          />
+        )}
+        {!recoverySent && !!effectiveError && <HearthNotice tone="error" message={effectiveError.message} />}
+        <StoryActions>
+          <HearthButton
+            label={recoverySent ? 'Open my home' : 'Email me a code'}
+            disabled={recoverySent ? !tokenReady : !emailReady}
+            busy={busy}
+            onPress={() => {
+              if (preview) return;
+              if (recoverySent) void completeAccountRecovery(recoveryEmail, recoveryToken);
+              else void requestAccountRecovery(recoveryEmail).then(setRecoverySent);
+            }}
+          />
+          <HearthButton
+            label="Back"
+            variant="quiet"
+            disabled={busy}
+            onPress={() => {
+              clearError();
+              setRecoverySent(false);
+              setRecoveryToken('');
+              setMode('choose');
+            }}
+          />
+        </StoryActions>
+      </HearthScreen>
+    );
+  }
+
   return (
     <HearthScreen>
       <StoryProgress current={3} total={3} />
@@ -235,6 +317,15 @@ export function Pairing() {
           onPress={() => {
             clearError();
             setMode('join');
+          }}
+          disabled={busy}
+        />
+        <HearthButton
+          label="Recover an existing home"
+          variant="quiet"
+          onPress={() => {
+            clearError();
+            setMode('recover');
           }}
           disabled={busy}
         />

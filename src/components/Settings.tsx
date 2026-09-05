@@ -10,15 +10,16 @@ import { useHomeStudioStore } from '@/state/homeStudioStore';
 import { MUSIC_VOLUME_OPTIONS, useMusicStore } from '@/state/musicStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
-import { editorial } from '@/theme/hearth';
+import { editorial, HearthTheme } from '@/theme/hearth';
+import { PrivacyControls } from './PrivacyControls';
 
 /**
  * The settings gear (top-right, shown once paired) and its sheet: a privacy
  * reassurance, a push-notification toggle, and sign-out. Deliberately small —
  * the core loop is the product; this is just the housekeeping around it.
  */
-export function Settings() {
-  const [open, setOpen] = useState(false);
+export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
+  const [open, setOpen] = useState(previewOpen);
   const [notify, setNotify] = useState(true);
   const [confirming, setConfirming] = useState<null | 'unpair' | 'signout'>(null);
   const [developerMessage, setDeveloperMessage] = useState<string | null>(null);
@@ -88,14 +89,14 @@ export function Settings() {
 
   return (
     <>
-      <Pressable
+      {!previewOpen && <Pressable
         style={styles.gear}
         onPress={openSettings}
         hitSlop={10}
         accessibilityLabel="Settings"
       >
         <Text style={styles.gearText}>⚙</Text>
-      </Pressable>
+      </Pressable>}
 
       {open && (
         <View style={styles.overlay}>
@@ -255,6 +256,10 @@ export function Settings() {
 
             <View style={styles.divider} />
 
+            <PrivacyControls />
+
+            <View style={styles.divider} />
+
             {confirming === 'unpair' ? (
               <View style={styles.confirmBox}>
                 <Text style={styles.confirmText}>
@@ -371,7 +376,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: editorial.ink,
-    fontFamily: 'serif',
+    fontFamily: HearthTheme.type.display,
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 18,

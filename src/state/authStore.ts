@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
  *  - error:    couldn't reach Supabase (offline / policy) — offer a retry
  */
 export type AuthPhase = 'loading' | 'noHome' | 'waiting' | 'paired' | 'error';
+export type RecoveryState = 'anonymous' | 'pending' | 'recoverable';
 
 function phaseFor(userId: string | null, couple: Couple | null): AuthPhase {
   if (!userId) return 'loading';
@@ -33,6 +34,8 @@ interface AuthState {
   busy: boolean;
   /** User-facing message for the last failure, or null. */
   error: DomainError | null;
+  recoveryState: RecoveryState;
+  recoveryEmail: string | null;
 
   /** Sign in anonymously (if needed) and load any existing couple + profile. */
   init: () => Promise<void>;
@@ -47,6 +50,15 @@ interface AuthState {
   signOut: () => Promise<void>;
   /** Leave the current couple (keeps your identity, drops the pairing). */
   unpair: () => Promise<void>;
+  linkRecoveryEmail: (email: string) => Promise<boolean>;
+  verifyRecoveryEmail: (email: string, token: string) => Promise<boolean>;
+  resendRecoveryEmail: (email: string) => Promise<boolean>;
+  requestAccountRecovery: (email: string) => Promise<boolean>;
+  completeAccountRecovery: (email: string, token: string) => Promise<boolean>;
+}
+
+function recoveryFor(user: { is_anonymous?: boolean; email?: string | null } | null): RecoveryState {
+  return user?.is_anonymous === false && !!user.email ? 'recoverable' : 'anonymous';
 }
 
 function partnerOf(couple: Couple | null, userId: string | null): string | null {
@@ -85,6 +97,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   displayName: null,
   busy: false,
   error: null,
+  recoveryState: 'anonymous',
+  recoveryEmail: null,
 
   clearError: () => set({ error: null }),
 
@@ -108,6 +122,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         displayName,
         partnerId: partnerOf(couple, userId),
         phase: phaseFor(userId, couple),
+        recoveryState: recoveryFor(sessionData.session?.user ?? null),
+        recoveryEmail: sessionData.session?.user.email ?? null,
       });
     } catch (e) {
       set({ phase: 'error', error: authError(e, 'start') });
@@ -206,6 +222,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       displayName: null,
       busy: false,
       error: null,
+      recoveryState: 'anonymous',
+      recoveryEmail: null,
     });
     await get().init();
   },
@@ -225,6 +243,111 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (e) {
       set({ busy: false, error: authError(e, 'leave_home') });
+    }
+  },
+
+  linkRecoveryEmail: async (email) => {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized || get().busy) return false;
+    set({ busy: true, error: null });
+    try {
+      const { error } = await supabase.auth.updateUser({ email: normalized });
+      if (error) throw error;
+      set({ busy: false, recoveryState: 'pending', recoveryEmail: normalized });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'link_recovery') });
+      return false;
+    }
+  },
+
+  verifyRecoveryEmail: async (email, token) => {
+    if (get().busy || token.trim().length !== 6) return false;
+    set({ busy: true, error: null });
+    try {
+      const normalized = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: normalized,
+        token: token.trim(),
+        type: 'email_change',
+      });
+      if (error) throw error;
+      const user = data.user ?? (await supabase.auth.getUser()).data.user;
+      set({
+        busy: false,
+        recoveryState: recoveryFor(user),
+        recoveryEmail: user?.email ?? normalized,
+      });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'verify_recovery') });
+      return false;
+    }
+  },
+
+  resendRecoveryEmail: async (email) => {
+    if (get().busy) return false;
+    set({ busy: true, error: null });
+    try {
+      const normalized = email.trim().toLowerCase();
+      const { error } = await supabase.auth.resend({ type: 'email_change', email: normalized });
+      if (error) throw error;
+      set({ busy: false, recoveryState: 'pending', recoveryEmail: normalized });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'link_recovery') });
+      return false;
+    }
+  },
+
+  requestAccountRecovery: async (email) => {
+    if (get().busy) return false;
+    const normalized = email.trim().toLowerCase();
+    set({ busy: true, error: null });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalized,
+        options: { shouldCreateUser: false },
+      });
+      if (error) throw error;
+      set({ busy: false, recoveryState: 'pending', recoveryEmail: normalized });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'recover_account') });
+      return false;
+    }
+  },
+
+  completeAccountRecovery: async (email, token) => {
+    if (get().busy || token.trim().length !== 6) return false;
+    set({ busy: true, error: null });
+    try {
+      const normalized = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: normalized,
+        token: token.trim(),
+        type: 'email',
+      });
+      if (error) throw error;
+      const userId = data.user?.id ?? null;
+      const [couple, displayName] = await Promise.all([
+        fetchCouple(),
+        fetchDisplayName(userId),
+      ]);
+      set({
+        busy: false,
+        userId,
+        couple,
+        displayName,
+        partnerId: partnerOf(couple, userId),
+        phase: phaseFor(userId, couple),
+        recoveryState: recoveryFor(data.user),
+        recoveryEmail: data.user?.email ?? normalized,
+      });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'recover_account') });
+      return false;
     }
   },
 }));

@@ -50,6 +50,7 @@ import { useSceneStore } from '@/state/sceneStore';
 import { editorial, hearthUi, momentsTypography } from '@/theme/hearth';
 import { MomentNoteComposer } from './MomentNoteComposer';
 import { MomentConsequencePreview } from './MomentConsequencePreview';
+import { PrivateSurfaceShield } from './PrivateSurfaceShield';
 import { MomentFeelingBanner } from './MomentVignette';
 import { RestResponseComposer } from './RestResponseComposer';
 
@@ -556,6 +557,7 @@ export function MomentsController() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetRoot} pointerEvents="box-none">
       <Animated.View pointerEvents="none" style={[styles.scrim, scrimStyle]} />
+      {expanded && <PrivateSurfaceShield surface="moments" />}
       {expanded && <Pressable accessibilityRole="button" accessibilityLabel="Collapse Moments" style={StyleSheet.absoluteFill} onPress={minimize} />}
       <Animated.View
           accessible

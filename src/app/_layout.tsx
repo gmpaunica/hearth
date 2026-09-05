@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { BackgroundMusic } from '@/components/BackgroundMusic';
 import { AppErrorBoundary, AppLoadingScreen } from '@/components/AppErrorBoundary';
+import { AppPrivacyGate } from '@/components/AppPrivacyGate';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -51,6 +52,7 @@ export default function RootLayout() {
             }}
           />
           </Stack>
+          <AppPrivacyGate />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </AppErrorBoundary>

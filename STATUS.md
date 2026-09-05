@@ -7,22 +7,26 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
-## Current program checkpoint — 4 September 2026
+## Current program checkpoint — 5 September 2026
 
-Milestones 1 and 2 of the comprehensive improvement program are locally
+Milestones 1 through 3 of the comprehensive improvement program are locally
 complete. The installed `1.0.4` client remains the technical baseline; the
-`1.0.3` gate below is historical. Milestone 2 delivers the semantic storybook
-design system, reusable accessible primitives, redesigned first-use and pairing
-journey, typed safe errors, coherent loading/reconnect states, and a global
-error boundary. Its finish review disposition is `ship` for the local surface.
+`1.0.3` gate below is historical. Milestone 2 established the semantic
+storybook front door. Milestone 3 adds verified native SecureStore session
+migration, optional email-OTP recovery, optional device/PIN app lock, capture
+protection for paired and sensitive surfaces, and generic-by-default local
+return reminders. PIN-only setup now requires a safe device or verified-email
+escape, and the finish review returned `ship` with no material findings.
 
-No OTA, native build, or database migration was deployed. The new Clipboard
-module and prior SDK-compatible patches produce local Android fingerprint
-`c18575ecc50bc654d231f0024cf36ddc83b00e3a`, which differs from installed
-versionCode 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`.
-Do not OTA this local client; the next phone preview requires explicit owner
-authorization for a new APK. Read `MILESTONE_1_BASELINE.md` and
-`MILESTONE_2_STORYBOOK_FRONT_DOOR.md` before changing publication state.
+No OTA, native build, APK, or database migration was created or deployed.
+Milestone 3 adds native modules that are absent from the installed versionCode
+8 APK. The current local Android fingerprint
+`3f7ee35e35ae49be0c2631acaa3fa4cb22978abb` differs from installed fingerprint
+`f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; the
+next phone preview requires explicit owner authorization for a new APK. No
+physical-device privacy or recovery claim has been verified. Read
+`MILESTONE_1_BASELINE.md`, `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
+`MILESTONE_3_PRIVATE_BY_DEFAULT.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

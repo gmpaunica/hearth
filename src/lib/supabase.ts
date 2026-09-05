@@ -4,11 +4,11 @@
 // React Native; it is a harmless no-op on web where URL already exists.
 import 'react-native-url-polyfill/auto';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
+import { secureAuthStorage } from './secureAuthStorage';
 
 // Expo's web build prerenders routes in Node (`output: "static"`), where there
 // is no `window` and AsyncStorage's web shim throws. Fall back to an in-memory
@@ -72,7 +72,9 @@ const webAuth = (() => {
   }
 })();
 
-const storage = webAuth?.storage ?? (typeof window === 'undefined' ? memoryStore() : AsyncStorage);
+const storage = webAuth?.storage ?? (
+  Platform.OS === 'web' && typeof window === 'undefined' ? memoryStore() : secureAuthStorage
+);
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

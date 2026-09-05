@@ -5,6 +5,8 @@ export type DomainErrorCode =
   | 'session_expired'
   | 'rate_limited'
   | 'permission_denied'
+  | 'invalid_otp'
+  | 'email_in_use'
   | 'unknown';
 
 export type DomainOperation =
@@ -15,6 +17,9 @@ export type DomainOperation =
   | 'refresh_home'
   | 'sign_out'
   | 'leave_home'
+  | 'link_recovery'
+  | 'verify_recovery'
+  | 'recover_account'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {
@@ -24,6 +29,8 @@ const COPY: Record<DomainErrorCode, string> = {
   session_expired: 'This visit has ended. Try again to reconnect securely.',
   rate_limited: 'Too many tries at once. Give it a moment, then try again.',
   permission_denied: 'Hearth couldn’t complete that safely. Try again or start over.',
+  invalid_otp: 'That six-digit code did not work. Check the newest email and try again.',
+  email_in_use: 'That email already belongs to a Hearth account. Use account recovery instead.',
   unknown: 'Something interrupted the journey home. Your progress is safe—please try again.',
 };
 
@@ -88,6 +95,12 @@ export function mapDomainError(
   }
   if (status === 429 || code === '429' || text.includes('rate limit')) {
     return new DomainError('rate_limited', operation, error);
+  }
+  if (text.includes('token') && (text.includes('invalid') || text.includes('expired'))) {
+    return new DomainError('invalid_otp', operation, error);
+  }
+  if (text.includes('email') && (text.includes('already') || text.includes('registered'))) {
+    return new DomainError('email_in_use', operation, error, false);
   }
   if (status === 403 || code === '42501' || text.includes('permission denied')) {
     return new DomainError('permission_denied', operation, error);

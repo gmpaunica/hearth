@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import type { InteractionThread } from '@/state/interactionModel';
 import { getNotificationsEnabled } from './prefs';
+import { getNotificationPrivacy } from './privacyPrefs';
 import { supabase } from './supabase';
 
 const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -142,12 +143,15 @@ export async function reconcileReturnNotifications(
     }
     if (desired.size === 0) return;
     await ensureDefaultChannel();
+    const notificationPrivacy = await getNotificationPrivacy();
     for (const [identifier, date] of desired) {
       await Notifications.scheduleNotificationAsync({
         identifier,
         content: {
           title: 'Hearth',
-          body: 'It’s time to return to Hearth.',
+          body: notificationPrivacy === 'gentle'
+            ? 'Your return reminder is ready in Hearth.'
+            : 'Something is waiting in Hearth.',
           data: { url: 'hearth://' },
           sound: false,
         },

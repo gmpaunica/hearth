@@ -17,7 +17,10 @@
     },
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.hearth.app"
+      "bundleIdentifier": "com.hearth.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.hearth.app",
@@ -73,7 +76,14 @@
       ],
       "expo-image",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Hearth to confirm it is you before opening your private shared home."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -11,21 +11,31 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
-## Current checkpoint — 4 September 2026
+## Current checkpoint — 5 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 and 2 of the comprehensive improvement program
-are locally complete; read `MILESTONE_1_BASELINE.md` and
-`MILESTONE_2_STORYBOOK_FRONT_DOOR.md` before changing or publishing the client.
+`app/integration`. Milestones 1 through 3 of the comprehensive improvement
+program are locally complete. Read `MILESTONE_1_BASELINE.md`,
+`MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
+`MILESTONE_3_PRIVATE_BY_DEFAULT.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
 first-use/pairing journey, `DomainError`, and the root loading/error vocabulary.
-No OTA, native build, or database migration was deployed. The local Android
-fingerprint `c18575ecc50bc654d231f0024cf36ddc83b00e3a` differs from installed
-versionCode 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`.
-Do not OTA this local client; a future preview requires explicit owner
-authorization for a new APK.
+Milestone 3 moves native auth persistence to verified chunked SecureStore,
+adds optional email-OTP account recovery, optional device/PIN app lock, paired-
+home and sensitive-surface capture protection, and generic-by-default local
+return reminders. PIN-only setup requires a device-credential or verified-email
+escape; the lock screen can verify a recovery OTP before disabling a forgotten
+local PIN. The milestone finish review returned `ship`.
+
+No OTA, native build, APK, or database migration was created or deployed. The
+new privacy modules require native code and are absent from the installed APK.
+The local Android fingerprint
+`3f7ee35e35ae49be0c2631acaa3fa4cb22978abb` differs from installed versionCode
+8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
+the next preview requires explicit owner authorization for a new APK. Native
+privacy behavior and email recovery have not been verified on physical devices.
 
 ---
 
