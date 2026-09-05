@@ -4,11 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const NOTIFICATIONS = {
-  somethingChanged: 'Something has changed at home.',
-  fireplaceGlowing: 'The fireplace is glowing.',
-  partnerSignal: 'Your partner has left a signal.',
-  gardenWaiting: 'Someone is waiting in the garden.',
-  feelingClose: 'Someone is thinking of you.',
+  generic: 'Something is waiting in Hearth.',
 } as const;
 
 const UUID_PATTERN =
@@ -51,21 +47,11 @@ interface ExpoReceipt {
   details?: { error?: string };
 }
 
-function bodyFor(type: string): string {
-  switch (type) {
-    case 'fireplace':
-      return NOTIFICATIONS.fireplaceGlowing;
-    case 'garden':
-      return NOTIFICATIONS.gardenWaiting;
-    case 'romantic':
-      return NOTIFICATIONS.feelingClose;
-    case 'sofa':
-    case 'table':
-    case 'rest':
-      return NOTIFICATIONS.partnerSignal;
-    default:
-      return NOTIFICATIONS.somethingChanged;
-  }
+function bodyFor(_type: string): string {
+  // The default is intentionally content-free. Milestone 4 may select a
+  // feature-level variant from a server-side privacy preference, but notes,
+  // names, destinations, and media details must never enter this payload.
+  return NOTIFICATIONS.generic;
 }
 
 function secretsEqual(provided: string | null, expected: string): boolean {

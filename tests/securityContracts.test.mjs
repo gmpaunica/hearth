@@ -253,6 +253,14 @@ test('notification tap payloads are bound to the active recipient and home', asy
   assert.match(sync, /coupleId[\s\S]{0,160}couple/);
 });
 
+test('signal notification copy is generic and content-free by default', async () => {
+  const edge = await read('supabase/functions/notify-signal/index.ts');
+  assert.match(edge, /Something is waiting in Hearth\./);
+  assert.doesNotMatch(edge, /fireplace is glowing|thinking of you|left a signal|waiting in the garden/i);
+  const payload = edge.match(/body:\s*bodyFor[\s\S]{0,260}?sound:/)?.[0] ?? '';
+  assert.doesNotMatch(payload, /note|display_name|invite_code|storage_path/);
+});
+
 test('committed server sign-out cleanup immediately clears the old client relationship', async () => {
   const flow = await read('src/state/signOutFlow.ts');
   const authStore = await read('src/state/authStore.ts');
