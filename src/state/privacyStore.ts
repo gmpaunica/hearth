@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { create } from 'zustand';
 
 import {
+  clearPrivacyPreferences,
   createPinPreference,
   readPrivacyPreferences,
   verifyPinPreference,
@@ -31,8 +32,9 @@ interface PrivacyState {
   setLockMode: (mode: Exclude<AppLockMode, 'pin'>) => Promise<boolean>;
   setDeviceLock: (fallbackPin: string) => Promise<boolean>;
   setPin: (pin: string) => Promise<boolean>;
-  setNotificationPrivacy: (privacy: NotificationPrivacy) => Promise<void>;
+  setNotificationPrivacy: (privacy: NotificationPrivacy) => Promise<boolean>;
   clearError: () => void;
+  reset: () => Promise<void>;
 }
 
 const defaults: PrivacyPreferences = {
@@ -175,9 +177,28 @@ export const usePrivacyStore = create<PrivacyState>((set, get) => ({
 
   setNotificationPrivacy: async (notificationPrivacy) => {
     const preferences = { ...get().preferences, notificationPrivacy };
-    await writePrivacyPreferences(preferences);
-    set({ preferences });
+    try {
+      await writePrivacyPreferences(preferences);
+      set({ preferences, error: null });
+      return true;
+    } catch {
+      set({ error: 'This phone could not save that privacy choice. Try again.' });
+      return false;
+    }
   },
 
   clearError: () => set({ error: null }),
+
+  reset: async () => {
+    await clearPrivacyPreferences();
+    set({
+      hydrated: true,
+      hydratedForPaired: false,
+      locked: false,
+      preferences: defaults,
+      failedPinAttempts: 0,
+      cooldownUntil: null,
+      error: null,
+    });
+  },
 }));

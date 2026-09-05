@@ -7,6 +7,7 @@ export type DomainErrorCode =
   | 'permission_denied'
   | 'invalid_otp'
   | 'email_in_use'
+  | 'pairing_blocked'
   | 'unknown';
 
 export type DomainOperation =
@@ -20,6 +21,11 @@ export type DomainOperation =
   | 'link_recovery'
   | 'verify_recovery'
   | 'recover_account'
+  | 'privacy_center'
+  | 'export_account'
+  | 'delete_account'
+  | 'block_partner'
+  | 'unblock_partner'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {
@@ -31,6 +37,7 @@ const COPY: Record<DomainErrorCode, string> = {
   permission_denied: 'Hearth couldn’t complete that safely. Try again or start over.',
   invalid_otp: 'That six-digit code did not work. Check the newest email and try again.',
   email_in_use: 'That email already belongs to a Hearth account. Use account recovery instead.',
+  pairing_blocked: 'This pairing is unavailable. Your privacy choice is still in place.',
   unknown: 'Something interrupted the journey home. Your progress is safe—please try again.',
 };
 
@@ -89,6 +96,9 @@ export function mapDomainError(
   }
   if (text.includes('already full')) {
     return new DomainError('home_full', operation, error, false);
+  }
+  if (text.includes('pairing is unavailable')) {
+    return new DomainError('pairing_blocked', operation, error, false);
   }
   if (status === 401 || text.includes('jwt') || text.includes('session')) {
     return new DomainError('session_expired', operation, error);

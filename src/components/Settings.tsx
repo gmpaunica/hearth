@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { clearPushToken, registerPushToken } from '@/lib/notifications';
 import { getNotificationsEnabled, setNotificationsEnabledPref } from '@/lib/prefs';
@@ -11,7 +12,7 @@ import { MUSIC_VOLUME_OPTIONS, useMusicStore } from '@/state/musicStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { editorial, HearthTheme } from '@/theme/hearth';
-import { PrivacyControls } from './PrivacyControls';
+import { AccountCenter } from './AccountCenter';
 
 /**
  * The settings gear (top-right, shown once paired) and its sheet: a privacy
@@ -21,12 +22,12 @@ import { PrivacyControls } from './PrivacyControls';
 export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
   const [open, setOpen] = useState(previewOpen);
   const [notify, setNotify] = useState(true);
-  const [confirming, setConfirming] = useState<null | 'unpair' | 'signout'>(null);
+  const [confirming, setConfirming] = useState<null | 'signout'>(null);
   const [developerMessage, setDeveloperMessage] = useState<string | null>(null);
 
   const userId = useAuthStore((s) => s.userId);
   const signOut = useAuthStore((s) => s.signOut);
-  const unpair = useAuthStore((s) => s.unpair);
+  const recoveryState = useAuthStore((s) => s.recoveryState);
   const musicEnabled = useMusicStore((state) => state.enabled);
   const musicVolume = useMusicStore((state) => state.volume);
   const musicPlayback = useMusicStore((state) => state.playback);
@@ -99,12 +100,14 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
       </Pressable>}
 
       {open && (
-        <View style={styles.overlay}>
-          <ScrollView
-            style={styles.overlayScroll}
-            contentContainerStyle={styles.overlayContent}
-            showsVerticalScrollIndicator={false}
-          >
+        <SafeAreaView style={styles.overlay}>
+          <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView
+              style={styles.overlayScroll}
+              contentContainerStyle={styles.overlayContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
           <View style={styles.card}>
             <Text style={styles.title}>Settings</Text>
 
@@ -248,43 +251,16 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
               </>
             )}
 
-            <Text style={styles.privacyTitle}>Your privacy</Text>
-            <Text style={styles.privacyBody}>
-              Hearth only ever shares where you are in the room — never why. Your
-              partner sees a soft prompt, never a blaming message.
-            </Text>
+            <AccountCenter preview={previewOpen} onRelationshipEnded={close} />
 
             <View style={styles.divider} />
 
-            <PrivacyControls />
-
-            <View style={styles.divider} />
-
-            {confirming === 'unpair' ? (
+            {confirming === 'signout' ? (
               <View style={styles.confirmBox}>
                 <Text style={styles.confirmText}>
-                  Leave this home? You’ll be unpaired and can create or join a new
-                  one. Your partner keeps the home.
-                </Text>
-                <View style={styles.confirmRow}>
-                  <Pressable style={styles.confirmCancel} onPress={() => setConfirming(null)}>
-                    <Text style={styles.confirmCancelText}>Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.confirmDanger}
-                    onPress={() => {
-                      close();
-                      void unpair();
-                    }}
-                  >
-                    <Text style={styles.confirmDangerText}>Leave</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : confirming === 'signout' ? (
-              <View style={styles.confirmBox}>
-                <Text style={styles.confirmText}>
-                  Sign out? You’ll leave this home and start completely fresh.
+                  {recoveryState === 'recoverable'
+                    ? 'Sign out from this phone? Your account and shared home remain recoverable with your verified email.'
+                    : 'This anonymous account cannot be recovered after sign-out. Signing out removes your artifacts, resets the shared home, and starts fresh.'}
                 </Text>
                 <View style={styles.confirmRow}>
                   <Pressable style={styles.confirmCancel} onPress={() => setConfirming(null)}>
@@ -303,10 +279,7 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
               </View>
             ) : (
               <View style={styles.actions}>
-                <Pressable onPress={() => setConfirming('unpair')} hitSlop={6}>
-                  <Text style={styles.leaveHome}>Leave this home</Text>
-                </Pressable>
-                <Pressable onPress={() => setConfirming('signout')} hitSlop={6}>
+                <Pressable style={styles.signOutAction} onPress={() => setConfirming('signout')}>
                   <Text style={styles.signOut}>Sign out</Text>
                 </Pressable>
               </View>
@@ -316,8 +289,9 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
               <Text style={styles.doneText}>Done</Text>
             </Pressable>
           </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       )}
     </>
   );
@@ -328,9 +302,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 22,
     right: 18,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: editorial.paper,
     borderColor: editorial.lineStrong,
     borderWidth: 1,
@@ -354,6 +328,7 @@ const styles = StyleSheet.create({
     elevation: 50,
   },
   overlayScroll: { width: '100%' },
+  keyboard: { flex: 1 },
   overlayContent: {
     flexGrow: 1,
     alignItems: 'center',
@@ -390,7 +365,7 @@ const styles = StyleSheet.create({
   volumeRow: { flexDirection: 'row', gap: 8 },
   volumeChoice: {
     flex: 1,
-    minHeight: 38,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 13,
@@ -412,6 +387,8 @@ const styles = StyleSheet.create({
   playbackDotError: { backgroundColor: editorial.danger },
   playbackText: { flex: 1, color: editorial.inkSoft, fontSize: 11, lineHeight: 15 },
   playNow: {
+    minHeight: 48,
+    justifyContent: 'center',
     borderRadius: 11,
     backgroundColor: editorial.paperTint,
     borderColor: editorial.lineStrong,
@@ -435,7 +412,7 @@ const styles = StyleSheet.create({
   },
   developerBody: { color: editorial.inkSoft, fontSize: 12, lineHeight: 18 },
   studioButton: {
-    minHeight: 42,
+    minHeight: 48,
     marginTop: 11,
     borderRadius: 14,
     alignItems: 'center',
@@ -446,23 +423,16 @@ const styles = StyleSheet.create({
   },
   studioButtonText: { color: editorial.clay, fontSize: 13, fontWeight: '800' },
   developerMessage: { color: editorial.danger, fontSize: 11, lineHeight: 16, marginTop: 8 },
-  privacyTitle: {
-    color: editorial.clay,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 7,
-  },
-  privacyBody: { color: editorial.inkSoft, fontSize: 13, lineHeight: 20 },
   actions: { gap: 14 },
-  leaveHome: { color: editorial.clay, fontSize: 15, fontWeight: '700', paddingVertical: 4 },
+  signOutAction: { minHeight: 48, justifyContent: 'center' },
   signOut: { color: editorial.danger, fontSize: 15, fontWeight: '700', paddingVertical: 4 },
   confirmBox: { gap: 12 },
   confirmText: { color: editorial.ink, fontSize: 14, lineHeight: 20 },
   confirmRow: { flexDirection: 'row', gap: 10 },
   confirmCancel: {
     flex: 1,
+    minHeight: 48,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 11,
     borderRadius: 14,
@@ -473,6 +443,8 @@ const styles = StyleSheet.create({
   confirmCancelText: { color: editorial.ink, fontSize: 14, fontWeight: '700' },
   confirmDanger: {
     flex: 1,
+    minHeight: 48,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 11,
     borderRadius: 14,
@@ -485,7 +457,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     alignSelf: 'stretch',
     alignItems: 'center',
-    minHeight: 46,
+    minHeight: 48,
     justifyContent: 'center',
     borderRadius: 17,
     backgroundColor: editorial.clay,

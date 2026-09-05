@@ -14,10 +14,11 @@
 ## Current checkpoint — 5 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 3 of the comprehensive improvement
+`app/integration`. Milestones 1 through 4 of the comprehensive improvement
 program are locally complete. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
-`MILESTONE_3_PRIVATE_BY_DEFAULT.md` before changing or publishing the client.
+`MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
+`MILESTONE_4_OWNERSHIP_AND_SAFETY.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -29,13 +30,22 @@ return reminders. PIN-only setup requires a device-credential or verified-email
 escape; the lock screen can verify a recovery OTP before disabling a forgotten
 local PIN. The milestone finish review returned `ship`.
 
-No OTA, native build, APK, or database migration was created or deployed. The
-new privacy modules require native code and are absent from the installed APK.
+Milestone 4 integrates `AccountCenter` through Settings. It combines recovery
+status, app lock, notification privacy, requester-safe export, private former-
+partner block management, exact leave/block consequences, recoverable sign-out,
+and typed account deletion. All 8 finish-review fixes are resolved and the
+targeted verdict is `ship`. The supporting backend contract remains isolated
+and undeployed in `C:\Users\Gmpau\hearth`.
+
+No OTA, native build, APK, database migration, or Edge Function was created or
+deployed. The new privacy/ownership modules require native code and are absent
+from the installed APK.
 The local Android fingerprint
-`3f7ee35e35ae49be0c2631acaa3fa4cb22978abb` differs from installed versionCode
+`95482aee0b165321dca5300078a8ee2884b95c94` differs from installed versionCode
 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
-the next preview requires explicit owner authorization for a new APK. Native
-privacy behavior and email recovery have not been verified on physical devices.
+the next preview requires explicit owner authorization for a new APK, and the
+backend requires separate deployment authorization. Native privacy, sharing,
+recovery, account ownership, and two-phone behavior remain unverified.
 
 ---
 
@@ -204,7 +214,8 @@ src/state/            zustand stores + realtime spine.
                       signals/responses/drawings, foreground re-sync, push register.
 
 src/components/       React-Native overlay UI (outside the canvas).
-  Onboarding, Pairing, Settings, SignalSheet, SignalCards, HomeGrewCard,
+  Onboarding, Pairing, Settings, AccountCenter, PrivacyControls, SignalSheet,
+  SignalCards, HomeGrewCard,
   DailyDrawing, DrawingCanvas, PixelArt, PopIn, DemoPanel (dev-only QA).
 
 src/copy/index.ts     SINGLE SOURCE OF TRUTH for all user-facing signal strings,

@@ -61,6 +61,11 @@ export async function writePrivacyPreferences(value: PrivacyPreferences): Promis
   else await SecureStore.setItemAsync(KEY, raw, secureOptions);
 }
 
+export async function clearPrivacyPreferences(): Promise<void> {
+  if (Platform.OS === 'web') await AsyncStorage.removeItem(KEY);
+  else await SecureStore.deleteItemAsync(KEY, secureOptions);
+}
+
 export async function getNotificationPrivacy(): Promise<NotificationPrivacy> {
   return (await readPrivacyPreferences()).notificationPrivacy;
 }

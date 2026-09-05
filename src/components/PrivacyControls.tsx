@@ -4,10 +4,15 @@ import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-nati
 import { useAuthStore } from '@/state/authStore';
 import { usePrivacyStore } from '@/state/privacyStore';
 import { HearthTheme } from '@/theme/hearth';
+import type { NotificationPrivacy } from '@/lib/privacyPrefs';
 
 type Setup = 'idle' | 'email' | 'email-code' | 'device-pin' | 'local-pin';
 
-export function PrivacyControls() {
+export function PrivacyControls({
+  onNotificationPrivacyChange,
+}: {
+  onNotificationPrivacyChange?: (privacy: NotificationPrivacy) => Promise<void>;
+} = {}) {
   const recoveryState = useAuthStore((state) => state.recoveryState);
   const recoveryEmail = useAuthStore((state) => state.recoveryEmail);
   const busy = useAuthStore((state) => state.busy);
@@ -62,6 +67,27 @@ export function PrivacyControls() {
       setNotice({
         message: setup === 'device-pin' ? 'Device unlock and fallback PIN are ready.' : 'Your local PIN is ready.',
         tone: 'success',
+      });
+    }
+  };
+
+  const saveNotificationChoice = async (notificationPrivacy: NotificationPrivacy) => {
+    setNotice(null);
+    const saved = await setNotificationPrivacy(notificationPrivacy);
+    if (!saved) {
+      setNotice({
+        message: 'This phone could not save that privacy choice. Try again.',
+        tone: 'error',
+      });
+      return;
+    }
+    if (!onNotificationPrivacyChange) return;
+    try {
+      await onNotificationPrivacyChange(notificationPrivacy);
+    } catch {
+      setNotice({
+        message: 'Saved on this phone, but account sync is unavailable right now. Try again when Hearth reconnects.',
+        tone: 'error',
       });
     }
   };
@@ -181,7 +207,7 @@ export function PrivacyControls() {
           <Switch
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
             value={preferences.notificationPrivacy === 'gentle'}
-            onValueChange={(enabled) => void setNotificationPrivacy(enabled ? 'gentle' : 'generic')}
+            onValueChange={(enabled) => void saveNotificationChoice(enabled ? 'gentle' : 'generic')}
             trackColor={{ true: HearthTheme.color.clayPressed, false: HearthTheme.color.twilightSoft }}
             thumbColor={HearthTheme.color.onAccent}
             accessibilityLabel="Gentle notification detail"
@@ -212,7 +238,7 @@ const styles = StyleSheet.create({
   formHint: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12 },
   input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: HearthTheme.color.lineStrong, backgroundColor: HearthTheme.color.parchmentRaised, paddingHorizontal: 13, color: HearthTheme.color.ink, fontFamily: HearthTheme.type.body, fontSize: 15 },
   pinInput: { textAlign: 'center', letterSpacing: 4, fontFamily: HearthTheme.type.bodyStrong },
-  button: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: HearthTheme.color.ink, backgroundColor: HearthTheme.color.clayPressed, paddingHorizontal: 12 },
+  button: { minHeight: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: HearthTheme.color.ink, backgroundColor: HearthTheme.color.clayPressed, paddingHorizontal: 12 },
   buttonQuiet: { backgroundColor: HearthTheme.color.parchmentWarm, borderColor: HearthTheme.color.lineStrong },
   buttonText: { color: HearthTheme.color.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, textAlign: 'center' },
   buttonTextQuiet: { color: HearthTheme.color.clayPressed },

@@ -9,7 +9,7 @@
 
 ## Current program checkpoint — 5 September 2026
 
-Milestones 1 through 3 of the comprehensive improvement program are locally
+Milestones 1 through 4 of the comprehensive improvement program are locally
 complete. The installed `1.0.4` client remains the technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -18,15 +18,25 @@ protection for paired and sensitive surfaces, and generic-by-default local
 return reminders. PIN-only setup now requires a safe device or verified-email
 escape, and the finish review returned `ship` with no material findings.
 
-No OTA, native build, APK, or database migration was created or deployed.
-Milestone 3 adds native modules that are absent from the installed versionCode
-8 APK. The current local Android fingerprint
-`3f7ee35e35ae49be0c2631acaa3fa4cb22978abb` differs from installed fingerprint
+Milestone 4 consolidates privacy, recovery, app lock, notification detail,
+requester-safe export, private former-partner blocks, precise leave/block
+consequences, recoverable sign-out, and typed account deletion in one Settings
+account center. All 8 finish-review fixes are resolved and the targeted verdict
+is `ship`. The supporting backend contract remains isolated and undeployed in
+`C:\Users\Gmpau\hearth`.
+
+No OTA, native build, APK, database migration, or Edge Function was created or
+deployed. Milestones 3 and 4 add native modules that are absent from the
+installed versionCode 8 APK. The current local Android fingerprint
+`95482aee0b165321dca5300078a8ee2884b95c94` differs from installed fingerprint
 `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; the
-next phone preview requires explicit owner authorization for a new APK. No
-physical-device privacy or recovery claim has been verified. Read
+next phone preview requires explicit owner authorization for a new APK, and the
+backend requires separate deployment authorization. No physical-device,
+two-phone, native-sharing, recovery, RLS, export, deletion, or block claim has
+been verified. Read
 `MILESTONE_1_BASELINE.md`, `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
-`MILESTONE_3_PRIVATE_BY_DEFAULT.md` before changing publication state.
+`MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
+`MILESTONE_4_OWNERSHIP_AND_SAFETY.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

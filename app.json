@@ -83,7 +83,8 @@
         {
           "faceIDPermission": "Allow Hearth to confirm it is you before opening your private shared home."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

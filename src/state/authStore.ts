@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 
 import type { Couple } from '@/lib/db';
+import { deleteCurrentAccount } from '@/lib/accountOwnership';
 import { DomainError, mapDomainError, reportDomainError, type DomainOperation } from '@/lib/domainError';
-import { clearLocalNotifications } from '@/lib/notifications';
+import { clearLocalNotifications, clearPushToken } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { usePrivacyStore } from '@/state/privacyStore';
 
 /**
  * Where the user is in the sign-in → pairing journey.
@@ -49,7 +51,9 @@ interface AuthState {
   /** Sign out and start over with a fresh anonymous identity. */
   signOut: () => Promise<void>;
   /** Leave the current couple (keeps your identity, drops the pairing). */
-  unpair: () => Promise<void>;
+  unpair: () => Promise<boolean>;
+  blockAndUnpair: () => Promise<boolean>;
+  deleteAccount: () => Promise<boolean>;
   linkRecoveryEmail: (email: string) => Promise<boolean>;
   verifyRecoveryEmail: (email: string, token: string) => Promise<boolean>;
   resendRecoveryEmail: (email: string) => Promise<boolean>;
@@ -203,8 +207,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     set({ busy: true, error: null });
     try {
-      const { error: prepareError } = await supabase.rpc('prepare_sign_out');
-      if (prepareError) throw prepareError;
+      const { recoveryState, userId } = get();
+      if (recoveryState === 'recoverable' && userId) {
+        // A recoverable identity keeps its home. Only this device's push
+        // registration and local session are removed.
+        await clearPushToken(userId);
+      } else {
+        // An anonymous identity cannot be recovered after local sign-out, so
+        // canonical server cleanup must first remove it from the shared home.
+        const { error: prepareError } = await supabase.rpc('prepare_sign_out');
+        if (prepareError) throw prepareError;
+      }
       await clearLocalNotifications();
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
       if (signOutError) throw signOutError;
@@ -229,6 +242,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   unpair: async () => {
+    if (get().busy) return false;
     set({ busy: true, error: null });
     try {
       const { error } = await supabase.rpc('leave_couple');
@@ -241,8 +255,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         phase: phaseFor(userId, null),
         busy: false,
       });
+      return true;
     } catch (e) {
       set({ busy: false, error: authError(e, 'leave_home') });
+      return false;
+    }
+  },
+
+  blockAndUnpair: async () => {
+    if (get().busy) return false;
+    set({ busy: true, error: null });
+    try {
+      const { error } = await supabase.rpc('block_and_leave_couple');
+      if (error) throw error;
+      await clearLocalNotifications();
+      const { userId } = get();
+      set({ couple: null, partnerId: null, phase: phaseFor(userId, null), busy: false });
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'block_partner') });
+      return false;
+    }
+  },
+
+  deleteAccount: async () => {
+    if (get().busy) return false;
+    set({ busy: true, error: null });
+    try {
+      await deleteCurrentAccount();
+      await clearLocalNotifications();
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      await usePrivacyStore.getState().reset();
+      set({
+        phase: 'loading',
+        userId: null,
+        couple: null,
+        partnerId: null,
+        displayName: null,
+        busy: false,
+        error: null,
+        recoveryState: 'anonymous',
+        recoveryEmail: null,
+      });
+      await get().init();
+      return true;
+    } catch (error) {
+      set({ busy: false, error: authError(error, 'delete_account') });
+      return false;
     }
   },
 
