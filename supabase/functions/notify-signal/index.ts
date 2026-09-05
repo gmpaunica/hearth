@@ -5,7 +5,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const NOTIFICATIONS = {
   generic: 'Something is waiting in Hearth.',
+  gentle: 'A Moment is waiting in Hearth.',
 } as const;
+type NotificationPrivacy = 'generic' | 'gentle';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,11 +49,10 @@ interface ExpoReceipt {
   details?: { error?: string };
 }
 
-function bodyFor(_type: string): string {
-  // The default is intentionally content-free. Milestone 4 may select a
-  // feature-level variant from a server-side privacy preference, but notes,
-  // names, destinations, and media details must never enter this payload.
-  return NOTIFICATIONS.generic;
+function bodyFor(_type: string, privacy: NotificationPrivacy): string {
+  // Even the opt-in variant names only the feature family. Notes, names,
+  // destinations, and emotional meaning never enter the push payload.
+  return privacy === 'gentle' ? NOTIFICATIONS.gentle : NOTIFICATIONS.generic;
 }
 
 function secretsEqual(provided: string | null, expected: string): boolean {
@@ -259,12 +260,21 @@ Deno.serve(async (req) => {
     return json({ status: 'skip', reason: 'no push token' });
   }
 
+  const { data: privacyPreference, error: privacyError } = await supabase
+    .from('privacy_preferences')
+    .select('notification_privacy')
+    .eq('user_id', claim.recipient_user_id)
+    .maybeSingle();
+  if (privacyError) console.error('notification privacy lookup failed', privacyError.message);
+  const notificationPrivacy: NotificationPrivacy =
+    privacyPreference?.notification_privacy === 'gentle' ? 'gentle' : 'generic';
+
   let response: Response;
   try {
     response = await expoRequest('https://exp.host/--/api/v2/push/send', {
       to: claim.push_token,
       title: 'Hearth',
-      body: bodyFor(claim.signal_type),
+      body: bodyFor(claim.signal_type, notificationPrivacy),
       data: {
         url: 'hearth://',
         recipientUserId: claim.recipient_user_id,

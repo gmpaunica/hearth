@@ -130,8 +130,11 @@ test('unpairing removes the departing artifacts while survivor memories become p
   assert.match(migration, /solo_owner_id is null or solo_owner_id = auth\.uid\(\)/);
 });
 
-test('media pushes remain generic and deep-link only to the dedicated surface', () => {
-  assert.match(notify, /Something new is waiting at home\./);
+test('media pushes remain content-free and deep-link only to the dedicated surface', () => {
+  assert.match(notify, /Something is waiting in Hearth\./);
+  assert.match(notify, /A Daily Photo is waiting in Hearth\./);
+  assert.match(notify, /A Daily Record is waiting in Hearth\./);
+  assert.match(notify, /privacyPreference\?\.notification_privacy === 'gentle'/);
   assert.match(notify, /surface:\s*claim\.surface/);
   assert.match(notify, /recipientUserId/);
   assert.match(notify, /coupleId/);

@@ -7,7 +7,7 @@
 > companion docs: `PRODUCTION_PLAN.md` (roadmap), `AGENTS.md` (use the exact Expo
 > v57 docs), `dev/README.md` (browser verification), `docs/art-bible.md` (look).
 
-## Current backend checkpoint — 4 September 2026
+## Current backend checkpoint — 5 September 2026
 
 This checkout is the isolated backend-hardening tree. The canonical installed
 phone baseline is `1.0.4` in `C:\Windows\System32\hearth`; no phone preview may
@@ -20,6 +20,14 @@ client-controlled developer bypass was removed in place before first
 deployment. No database migration, Edge Function, OTA, or native build was
 deployed. See `MILESTONE_1_BACKEND_CHECKPOINT.md` for validation and the exact
 deployment boundary.
+
+Milestone 4 relationship-safety APIs are now also prepared locally: server-
+owned generic/gentle notification privacy, private bidirectional pairing
+blocks, requester-safe export, and retry-safe account deletion. The backend
+suite passes 87/87 and all changed Edge Functions pass Deno type checking.
+Local database/RLS execution remains pending because the Supabase Docker
+database is not running. Nothing was deployed; see
+`MILESTONE_4_RELATIONSHIP_SAFETY.md` for the contract and authorization gate.
 
 ## Historical Moments Owner Review backend — deployed 2026-08-17
 

@@ -10,6 +10,15 @@ type DeliveryClaim = {
   attempt: number;
 };
 
+type NotificationPrivacy = 'generic' | 'gentle';
+
+function bodyFor(surface: DeliveryClaim['surface'], privacy: NotificationPrivacy): string {
+  if (privacy !== 'gentle') return 'Something is waiting in Hearth.';
+  return surface === 'daily-photo'
+    ? 'A Daily Photo is waiting in Hearth.'
+    : 'A Daily Record is waiting in Hearth.';
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -70,6 +79,15 @@ Deno.serve(async (request) => {
     return json({ status: 'no-token' });
   }
 
+  const { data: privacyPreference, error: privacyError } = await supabase
+    .from('privacy_preferences')
+    .select('notification_privacy')
+    .eq('user_id', claim.recipient_user_id)
+    .maybeSingle();
+  if (privacyError) console.error('notification privacy lookup failed', privacyError.message);
+  const notificationPrivacy: NotificationPrivacy =
+    privacyPreference?.notification_privacy === 'gentle' ? 'gentle' : 'generic';
+
   let response: Response;
   try {
     response = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -78,7 +96,7 @@ Deno.serve(async (request) => {
       body: JSON.stringify({
         to: claim.push_token,
         title: 'Hearth',
-        body: 'Something new is waiting at home.',
+        body: bodyFor(claim.surface, notificationPrivacy),
         sound: 'default',
         data: {
           surface: claim.surface,
