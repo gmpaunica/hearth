@@ -93,12 +93,12 @@ test('the two daily media objects are independently tappable without navigating 
   const table = read('src/scene/objects/TableSet.tsx');
   const placedConsole = read('src/scene/objects/DailyMediaConsole.tsx');
   const livingRoom = read('src/scene/rooms/LivingRoom.tsx');
-  const actions = read('src/components/daily/DailyMediaHomeActions.tsx');
+  const actions = read('src/home/actionRegistry.ts');
   assert.match(consoleObject, /export function DailyRecordPlayer/);
   assert.match(consoleObject, /export function DailyCamera/);
-  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-record['"]\)/);
-  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-photo['"]\)/);
-  assert.match(consoleObject, /requestAnimationFrame\(\(\) => \{[\s\S]{0,120}router\.push\(path as never\);[\s\S]{0,120}openingRef\.current = false/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]daily-voice['"]\)/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]daily-photo['"]\)/);
+  assert.match(consoleObject, /requestAnimationFrame\(\(\) => \{[\s\S]{0,120}performHomeAction\(action\);[\s\S]{0,120}openingRef\.current = false/);
   assert.match(consoleObject, /if \(openingRef\.current\) return/);
   assert.match(consoleObject, /buildPlayingRecord/);
   assert.match(consoleObject, /recordRef\.current\.rotation\.y \+= delta \* 1\.8/);
@@ -116,8 +116,8 @@ test('the two daily media objects are independently tappable without navigating 
   assert.doesNotMatch(table, /DailyRecordPlayer/);
   assert.doesNotMatch(table, /#de8890|#f0b59d|#d66f7b/);
   assert.doesNotMatch(livingRoom, /MediaConsole/);
-  assert.match(actions, /record player voice prompt/);
-  assert.match(actions, /instant camera photo prompt/);
+  assert.match(actions, /Open today's voice note/);
+  assert.match(actions, /Open today's instant photo/);
 });
 
 test('daily media headers do not present decorative top-right chrome as a fake button', () => {

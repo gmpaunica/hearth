@@ -7,9 +7,9 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
-## Current program checkpoint — 5 September 2026
+## Current program checkpoint — 7 September 2026
 
-Milestones 1 through 4 of the comprehensive improvement program are locally
+Milestones 1 through 5 of the comprehensive improvement program are locally
 complete. The installed `1.0.4` client remains the technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -25,6 +25,14 @@ account center. All 8 finish-review fixes are resolved and the targeted verdict
 is `ship`. The supporting backend contract remains isolated and undeployed in
 `C:\Users\Gmpau\hearth`.
 
+Milestone 5 makes the voxel home scene-first: one coordinated `HomeSurface`, a
+single action registry, a named and bounded room rail, the Moments dock, and one
+scrollable **Our things** drawer replace competing overlays and duplicate
+floating controls. Existing rituals, keepsakes, wardrobe, and decorating remain
+available through progressive disclosure and matching scene entry points.
+Automated checks pass 139/139; responsive browser QA passes at 360×800,
+390×844, and 412×915 with zero runtime errors, including 20 rapid drawer cycles.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
@@ -33,10 +41,10 @@ installed versionCode 8 APK. The current local Android fingerprint
 next phone preview requires explicit owner authorization for a new APK, and the
 backend requires separate deployment authorization. No physical-device,
 two-phone, native-sharing, recovery, RLS, export, deletion, or block claim has
-been verified. Read
-`MILESTONE_1_BASELINE.md`, `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
-`MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
-`MILESTONE_4_OWNERSHIP_AND_SAFETY.md` before changing publication state.
+been verified. Read `MILESTONE_1_BASELINE.md`,
+`MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, `MILESTONE_3_PRIVATE_BY_DEFAULT.md`,
+`MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
+`MILESTONE_5_SIMPLIFIED_HOME.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

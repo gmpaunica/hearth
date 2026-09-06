@@ -20,7 +20,7 @@ import { MomentSceneDetails } from './MomentSceneDetails';
 import { Room } from './Room';
 import { FireGlowDecal } from './rooms/LivingRoom';
 import { Sparkles } from './Sparkles';
-import { clampCameraOffset, nearestRoom, ROOM_STOPS, type RoomId } from './roomNavigation';
+import { nearestRoom, ROOM_STOPS, type RoomId } from './roomNavigation';
 import { FireplaceOutcomes } from './objects/FireplaceOutcomes';
 
 // Frame the floor slightly above screen centre so the detailed home occupies
@@ -101,21 +101,6 @@ function CameraRig() {
         camState.offZ = camState.focusTarget.z;
         camState.focusTarget = null;
       }
-    } else if (!camState.dragging && (camState.velocityX !== 0 || camState.velocityZ !== 0)) {
-      const next = clampCameraOffset(
-        camState.offX + camState.velocityX * delta,
-        camState.offZ + camState.velocityZ * delta,
-        camState.zoomMul,
-      );
-      camState.offX = next.x;
-      camState.offZ = next.z;
-      const decay = Math.exp(-5.2 * delta);
-      camState.velocityX *= decay;
-      camState.velocityZ *= decay;
-      if (Math.hypot(camState.velocityX, camState.velocityZ) < 0.015) {
-        camState.velocityX = 0;
-        camState.velocityZ = 0;
-      }
     }
     const { offX, offZ, centerX, centerZ } = camState;
     const nearest = nearestRoom(offX, offZ);
@@ -161,9 +146,9 @@ export function HomeScene({ initialRoom = 'living' }: { initialRoom?: RoomId }) 
 
   // Scene identity is global, not device-relative: member A is always the red
   // A avatar and member B is always the green B avatar on both phones.
-  // Keep the living room dominant while the neighbouring room shells peek at
-  // the edges. Free pan and pinch remain available whether rooms are locked or
-  // furnished, so progression stays visible from day one.
+  // Keep the living room dominant while neighbouring room shells peek at the
+  // edges. Horizontal gestures follow the room rail; named controls provide an
+  // equivalent path for keyboard and screen-reader users.
   useEffect(() => {
     const initialFocus = scene.cameraStops[initialRoom] ?? ROOM_STOPS[initialRoom];
     camState.offX = initialFocus.x;

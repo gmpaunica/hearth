@@ -15,6 +15,7 @@ import { DRAWING_TITLE_MAX_LENGTH } from '@/state/drawingCodec';
 import { EMPTY_GRID, useDrawingStore } from '@/state/drawingStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useDailyRitualStore } from '@/state/dailyRitualStore';
+import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { editorial } from '@/theme/hearth';
 import { DrawingCanvas } from './DrawingCanvas';
 import { PixelArt } from './PixelArt';
@@ -23,15 +24,12 @@ import { Sketchbook } from './Sketchbook';
 import { PixelSpeechBubble } from './SpatialReactionOverlay';
 import { PrivateSurfaceShield } from './PrivateSurfaceShield';
 
-type Surface = 'closed' | 'today' | 'sketchbook';
-
 /**
  * Today's shared sketch and the full dated sketchbook. The current sketch can
  * be opened from the pencil or wall frame; the archive opens from Rituals.
  */
-export function DailyDrawing() {
+export function DailyDrawing({ showTrigger = true }: { showTrigger?: boolean }) {
   const { width } = useWindowDimensions();
-  const [surface, setSurface] = useState<Surface>('closed');
   const [tab, setTab] = useState<'theirs' | 'yours'>('theirs');
   const [drawingActive, setDrawingActive] = useState(false);
 
@@ -51,6 +49,10 @@ export function DailyDrawing() {
   const reminderVisible = useDailyRitualStore((state) => state.reminderVisible);
   const homeDate = useDailyRitualStore((state) => state.snapshot?.home_date ?? null);
   const dismissReminder = useDailyRitualStore((state) => state.dismissSketchReminder);
+  const homeSurface = useMomentsSurfaceStore((state) => state.surface);
+  const openDrawing = useMomentsSurfaceStore((state) => state.openDrawing);
+  const closeSurface = useMomentsSurfaceStore((state) => state.closeSurface);
+  const surface = homeSurface.kind === 'drawing' ? homeSurface.view : 'closed';
 
   const activeCard = useMomentV2Store((state) => state.snapshot?.active != null);
   const hasNews = !!partnerGrid && !partnerSeen;
@@ -62,11 +64,11 @@ export function DailyDrawing() {
     () =>
       useDrawingStore.subscribe((state, previous) => {
         if (state.openRequested && !previous.openRequested) {
-          setSurface('today');
+          useMomentsSurfaceStore.getState().openDrawing('today');
           state.clearOpenRequest();
         }
         if (state.sketchbookRequested && !previous.sketchbookRequested) {
-          setSurface('sketchbook');
+          useMomentsSurfaceStore.getState().openDrawing('sketchbook');
           state.clearSketchbookRequest();
         }
       }),
@@ -96,16 +98,16 @@ export function DailyDrawing() {
     }
   }, [markSeen, partnerGrid, partnerSeen, surface, tab]);
 
-  const openToday = () => setSurface('today');
+  const openToday = () => openDrawing('today');
   const openReminder = () => {
     void dismissReminder();
     openToday();
   };
-  const close = () => setSurface('closed');
+  const close = closeSurface;
 
   return (
     <>
-      <Pressable
+      {showTrigger && <Pressable
         style={styles.fab}
         onPress={openToday}
         hitSlop={10}
@@ -119,7 +121,7 @@ export function DailyDrawing() {
           </View>
         )}
         {hasNews && <View style={styles.badge} accessibilityLabel="Unread sketch" />}
-      </Pressable>
+      </Pressable>}
 
       {reminderVisible && surface === 'closed' && !activeCard && (
         <PixelSpeechBubble

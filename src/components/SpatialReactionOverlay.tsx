@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { performHomeAction } from '@/home/actionRegistry';
 import { requestMomentCameraFocus } from '@/scene/cameraState';
-import { useDrawingStore } from '@/state/drawingStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useSceneStore } from '@/state/sceneStore';
@@ -58,7 +58,7 @@ export function SpatialReactionOverlay() {
 
   const open = () => {
     if (reaction.anchor === 'drawing') {
-      useDrawingStore.getState().requestOpen();
+      performHomeAction('today-sketch');
       return;
     }
     requestMomentCameraFocus(reaction.anchor, reduceMotion);

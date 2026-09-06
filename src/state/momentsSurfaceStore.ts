@@ -1,19 +1,33 @@
 import { create } from 'zustand';
 
-type MomentsView = 'moments' | 'new';
+export type MomentsView = 'moments' | 'new';
+
+/**
+ * Every full-screen or modal home experience is represented here. Keeping the
+ * active surface as one discriminated value prevents Settings, Moments, the
+ * drawer, drawing, and Home Studio from stacking over one another.
+ */
+export type HomeSurface =
+  | { kind: 'none' }
+  | { kind: 'moments'; view: MomentsView }
+  | { kind: 'hearth' }
+  | { kind: 'settings' }
+  | { kind: 'drawer' }
+  | { kind: 'drawing'; view: 'today' | 'sketchbook' }
+  | { kind: 'studio'; mode: 'decorate' | 'developer' };
 
 interface MomentsSurfaceState {
-  expanded: boolean;
-  dismissing: boolean;
-  view: MomentsView;
-  settingsOpen: boolean;
+  surface: HomeSurface;
   appVisible: boolean;
-  hearthOpen: boolean;
   openMoments: () => void;
   openComposer: () => void;
   minimize: () => void;
   completeMinimize: () => void;
-  setSettingsOpen: (open: boolean) => void;
+  openSettings: () => void;
+  openDrawer: () => void;
+  openDrawing: (view?: 'today' | 'sketchbook') => void;
+  openStudio: (mode: 'decorate' | 'developer') => void;
+  closeSurface: () => void;
   setAppVisible: (visible: boolean) => void;
   openHearth: () => void;
   closeHearth: () => void;
@@ -21,18 +35,22 @@ interface MomentsSurfaceState {
 
 /** UI-only state: every app launch starts minimized and data sync never opens it. */
 export const useMomentsSurfaceStore = create<MomentsSurfaceState>((set) => ({
-  expanded: false,
-  dismissing: false,
-  view: 'moments',
-  settingsOpen: false,
+  surface: { kind: 'none' },
   appVisible: true,
-  hearthOpen: false,
-  openMoments: () => set({ expanded: true, dismissing: false, view: 'moments', hearthOpen: false }),
-  openComposer: () => set({ expanded: true, dismissing: false, view: 'new', hearthOpen: false }),
-  minimize: () => set({ expanded: false, dismissing: false, view: 'moments' }),
-  completeMinimize: () => set({ expanded: false, dismissing: false, view: 'moments' }),
-  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  openMoments: () => set({ surface: { kind: 'moments', view: 'moments' } }),
+  openComposer: () => set({ surface: { kind: 'moments', view: 'new' } }),
+  minimize: () => set({ surface: { kind: 'none' } }),
+  completeMinimize: () => set({ surface: { kind: 'none' } }),
+  openSettings: () => set({ surface: { kind: 'settings' } }),
+  openDrawer: () => set({ surface: { kind: 'drawer' } }),
+  openDrawing: (view = 'today') => set({ surface: { kind: 'drawing', view } }),
+  openStudio: (mode) => set({ surface: { kind: 'studio', mode } }),
+  closeSurface: () => set({ surface: { kind: 'none' } }),
   setAppVisible: (appVisible) => set({ appVisible }),
-  openHearth: () => set({ hearthOpen: true, expanded: false, dismissing: false, view: 'moments' }),
-  closeHearth: () => set({ hearthOpen: false }),
+  openHearth: () => set({ surface: { kind: 'hearth' } }),
+  closeHearth: () => set({ surface: { kind: 'none' } }),
 }));
+
+export function homeSurfaceAllowsPlayback(state: Pick<MomentsSurfaceState, 'surface' | 'appVisible'>) {
+  return state.surface.kind === 'none' && state.appVisible;
+}

@@ -4,34 +4,28 @@ import { useEffect, useRef } from 'react';
 import { PanResponder, Platform } from 'react-native';
 
 import { useHomeStudioStore } from '@/state/homeStudioStore';
-import { camState, cancelCameraFocus } from './cameraState';
-import { clampCameraOffset } from './roomNavigation';
+import { useSceneStore } from '@/state/sceneStore';
+import { camState, cancelCameraFocus, focusRoom } from './cameraState';
+import { clampCameraOffset, nearestRoom } from './roomNavigation';
 
-// Screen axes projected onto the world ground plane, for the fixed 45°/~30°
-// isometric camera. Dragging horizontally moves along `RIGHT`; vertically along
-// `UP` (into/out of the room). Lengths are ~1; the depth axis is a touch
-// compressed on screen, which we accept for now.
+// The screen-right axis projected onto the world ground plane for the fixed
+// isometric camera. The rail supplies depth while the gesture stays horizontal.
 const RIGHT = { x: 0.7071, z: -0.7071 };
-const UP = { x: -0.7071, z: -0.7071 };
 
 /**
- * Pan handlers for the scene container: drag to scroll the home around. Content
- * follows the finger (drag right → the room slides right), clamped to
- * `camState.limit`. Only claims the gesture on an actual drag, so taps still
- * reach the UI above.
+ * Horizontal room-rail handlers for the scene container. Vertical movement is
+ * left to sheets and scroll views; release always settles on a named room.
  */
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-const FLING_SCALE = 7.5;
-const MAX_FLING = 3.2;
 const WHEEL_ZOOM_SPEED = 0.0025;
+let wheelSnapTimer: ReturnType<typeof setTimeout> | null = null;
 
-function moveCameraByPixels(dpx: number, dpy: number) {
+function moveCameraByPixels(dpx: number) {
   const k = 1 / Math.max(camState.zoom, 1);
   const sx = -dpx * k;
-  const sy = dpy * k;
   const next = clampCameraOffset(
-    camState.offX + RIGHT.x * sx + UP.x * sy,
-    camState.offZ + RIGHT.z * sx + UP.z * sy,
+    camState.offX + RIGHT.x * sx,
+    camState.offZ + RIGHT.z * sx,
     camState.zoomMul,
   );
   camState.offX = next.x;
@@ -49,7 +43,8 @@ export function useScenePan() {
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, g) =>
         useHomeStudioStore.getState().draggingObjectId == null
-        && (e.nativeEvent.touches.length >= 2 || Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3),
+        && (e.nativeEvent.touches.length >= 2
+          || (Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2)),
       onPanResponderGrant: (e, g) => {
         cancelCameraFocus();
         last.current = { x: g.dx, y: g.dy };
@@ -82,12 +77,8 @@ export function useScenePan() {
           return;
         }
         const dpx = g.dx - last.current.x;
-        const dpy = g.dy - last.current.y;
         last.current = { x: g.dx, y: g.dy };
-        // Horizontal: move the camera opposite the drag so the world tracks the
-        // finger. Vertical reads correctly with the same sign as the drag (the
-        // depth axis flips how "up" maps onto the ground).
-        moveCameraByPixels(dpx, dpy);
+        moveCameraByPixels(dpx);
       },
       onPanResponderRelease: (_e, g) => {
         camState.dragging = false;
@@ -96,12 +87,18 @@ export function useScenePan() {
           pinched.current = false;
           camState.velocityX = 0;
           camState.velocityZ = 0;
+          const room = nearestRoom(camState.offX, camState.offZ).stop.id;
+          focusRoom(room, useSceneStore.getState().reduceMotion);
           return;
         }
-        const sx = -g.vx * FLING_SCALE;
-        const sy = g.vy * FLING_SCALE;
-        camState.velocityX = clamp(RIGHT.x * sx + UP.x * sy, -MAX_FLING, MAX_FLING);
-        camState.velocityZ = clamp(RIGHT.z * sx + UP.z * sy, -MAX_FLING, MAX_FLING);
+        const projectedPixels = g.vx * 110;
+        const projected = clampCameraOffset(
+          camState.offX - RIGHT.x * projectedPixels / Math.max(camState.zoom, 1),
+          camState.offZ - RIGHT.z * projectedPixels / Math.max(camState.zoom, 1),
+          camState.zoomMul,
+        );
+        const room = nearestRoom(projected.x, projected.z).stop.id;
+        focusRoom(room, useSceneStore.getState().reduceMotion);
       },
       onPanResponderTerminate: () => {
         pinch.current = null;
@@ -109,6 +106,8 @@ export function useScenePan() {
         camState.dragging = false;
         camState.velocityX = 0;
         camState.velocityZ = 0;
+        const room = nearestRoom(camState.offX, camState.offZ).stop.id;
+        focusRoom(room, useSceneStore.getState().reduceMotion);
       },
     }),
   ).current;
@@ -141,13 +140,20 @@ export function useScenePan() {
         return;
       }
 
-      const scrollX = wheel.shiftKey && rawX === 0 ? rawY : rawX;
+      const scrollX = wheel.shiftKey || rawX === 0 ? rawY : rawX;
       cancelCameraFocus();
-      const scrollY = wheel.shiftKey ? 0 : rawY;
-      moveCameraByPixels(-scrollX, -scrollY);
+      moveCameraByPixels(-scrollX);
+      if (wheelSnapTimer) clearTimeout(wheelSnapTimer);
+      wheelSnapTimer = setTimeout(() => {
+        const room = nearestRoom(camState.offX, camState.offZ).stop.id;
+        focusRoom(room, useSceneStore.getState().reduceMotion);
+      }, 140);
     };
     window.addEventListener('wheel', onWheel, { passive: false });
-    return () => window.removeEventListener('wheel', onWheel);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      if (wheelSnapTimer) clearTimeout(wheelSnapTimer);
+    };
   }, []);
 
   return responder.panHandlers;

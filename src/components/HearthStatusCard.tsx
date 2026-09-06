@@ -31,7 +31,7 @@ const OUTCOME_COPY: Record<string, string> = {
 };
 
 export function HearthStatusCard() {
-  const open = useMomentsSurfaceStore((state) => state.hearthOpen);
+  const open = useMomentsSurfaceStore((state) => state.surface.kind === 'hearth');
   const closeHearth = useMomentsSurfaceStore((state) => state.closeHearth);
   const snapshot = useMomentV2Store((state) => state.snapshot);
   const resumePlayback = useMomentV2Store((state) => state.resumePlayback);

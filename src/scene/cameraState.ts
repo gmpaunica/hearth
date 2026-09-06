@@ -1,9 +1,9 @@
-import type { RoomId } from './roomNavigation';
+import { activeRoomStops, ROOM_STOPS, type RoomId } from './roomNavigation';
 import type { MomentDestination } from '@/lib/db';
 import { getResolvedHomeScene } from '@/state/homeStore';
 
-/** Close, readable default frame. Neighbouring rooms remain discoverable by
- * panning; the home no longer shrinks to a thumbnail just to fit every edge. */
+/** Close, readable default frame. Neighbouring rooms remain discoverable on
+ * the horizontal room rail without shrinking the home to a thumbnail. */
 export const HOME_CAMERA_FRAME = {
   centerX: 0,
   centerZ: 0,
@@ -21,7 +21,7 @@ export const camState = {
   /** Current orthographic zoom (px per world unit), published by CameraRig so
    *  the gesture can turn a pixel drag into a world distance. */
   zoom: 50,
-  /** Small world-space velocity applied after release for subtle inertial pan. */
+  /** Retained for camera-focus compatibility; room-rail gestures always zero it. */
   velocityX: 0,
   velocityZ: 0,
   dragging: false,
@@ -93,6 +93,21 @@ export function restoreMomentCameraFocus() {
 export function cancelCameraFocus() {
   camState.focusTarget = null;
   momentRestore = null;
+}
+
+/** Named room movement shares the same calm focus path as scene actions. */
+export function focusRoom(room: RoomId, instant = false) {
+  cancelCameraFocus();
+  const target = activeRoomStops().find((candidate) => candidate.id === room) ?? ROOM_STOPS[room];
+  camState.velocityX = 0;
+  camState.velocityZ = 0;
+  if (instant) {
+    camState.offX = target.x;
+    camState.offZ = target.z;
+    publishFocusedRoom(room);
+  } else {
+    camState.focusTarget = { x: target.x, z: target.z };
+  }
 }
 
 let focusedRoom: RoomId | null = 'living';

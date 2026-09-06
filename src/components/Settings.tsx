@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { clearPushToken, registerPushToken } from '@/lib/notifications';
 import { getNotificationsEnabled, setNotificationsEnabledPref } from '@/lib/prefs';
 import { useAuthStore } from '@/state/authStore';
-import { useHomeUiStore } from '@/state/homeUiStore';
 import { useHomeStore } from '@/state/homeStore';
 import { useHomeStudioStore } from '@/state/homeStudioStore';
 import { MUSIC_VOLUME_OPTIONS, useMusicStore } from '@/state/musicStore';
@@ -15,12 +14,11 @@ import { editorial, HearthTheme } from '@/theme/hearth';
 import { AccountCenter } from './AccountCenter';
 
 /**
- * The settings gear (top-right, shown once paired) and its sheet: a privacy
+ * The account control (top-right, shown once paired) and its sheet: a privacy
  * reassurance, a push-notification toggle, and sign-out. Deliberately small —
  * the core loop is the product; this is just the housekeeping around it.
  */
 export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
-  const [open, setOpen] = useState(previewOpen);
   const [notify, setNotify] = useState(true);
   const [confirming, setConfirming] = useState<null | 'signout'>(null);
   const [developerMessage, setDeveloperMessage] = useState<string | null>(null);
@@ -36,10 +34,10 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
   const setMusicEnabled = useMusicStore((state) => state.setEnabled);
   const setMusicVolume = useMusicStore((state) => state.setVolume);
   const retryMusic = useMusicStore((state) => state.retryPlayback);
-  const controlsHidden = useHomeUiStore((state) => state.controlsHidden);
-  const setControlsHidden = useHomeUiStore((state) => state.setControlsHidden);
-  const setSettingsOpen = useMomentsSurfaceStore((state) => state.setSettingsOpen);
-  const completeMomentMinimize = useMomentsSurfaceStore((state) => state.completeMinimize);
+  const coordinatedSurface = useMomentsSurfaceStore((state) => state.surface);
+  const closeSurface = useMomentsSurfaceStore((state) => state.closeSurface);
+  const openStudioSurface = useMomentsSurfaceStore((state) => state.openStudio);
+  const open = previewOpen || coordinatedSurface.kind === 'settings';
   const resumeMomentPlayback = useMomentV2Store((state) => state.resumePlayback);
   const activeMoment = useMomentV2Store((state) => Boolean(state.snapshot?.active));
   const homeBlockedByMoment = useHomeStore((state) =>
@@ -62,17 +60,10 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
   };
 
   const close = () => {
-    setOpen(false);
-    setSettingsOpen(false);
+    if (!previewOpen) closeSurface();
     setConfirming(null);
     setDeveloperMessage(null);
     resumeMomentPlayback();
-  };
-
-  const openSettings = () => {
-    completeMomentMinimize();
-    setSettingsOpen(true);
-    setOpen(true);
   };
 
   const openHomeStudio = () => {
@@ -84,21 +75,12 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
 
     setDeveloperMessage(null);
     setConfirming(null);
-    setOpen(false);
+    openStudioSurface('developer');
     void useHomeStudioStore.getState().open('developer');
   };
 
   return (
     <>
-      {!previewOpen && <Pressable
-        style={styles.gear}
-        onPress={openSettings}
-        hitSlop={10}
-        accessibilityLabel="Settings"
-      >
-        <Text style={styles.gearText}>⚙</Text>
-      </Pressable>}
-
       {open && (
         <SafeAreaView style={styles.overlay}>
           <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -208,25 +190,6 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
 
             <View style={styles.divider} />
 
-            <View style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>Hide home buttons</Text>
-                <Text style={styles.rowHint}>
-                  A clean view for filming. The title, day, sketch, and Settings stay visible.
-                </Text>
-              </View>
-              <Switch
-                value={controlsHidden}
-                onValueChange={setControlsHidden}
-                trackColor={{ true: editorial.clay, false: editorial.paperTint }}
-                thumbColor={editorial.onAccent}
-                accessibilityLabel="Hide home buttons"
-                accessibilityHint="Hide the lower home controls while keeping the top controls visible"
-              />
-            </View>
-
-            <View style={styles.divider} />
-
             {__DEV__ && (
               <>
                 <Text style={styles.developerTitle}>Developer</Text>
@@ -298,25 +261,6 @@ export function Settings({ previewOpen = false }: { previewOpen?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  gear: {
-    position: 'absolute',
-    top: 22,
-    right: 18,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: editorial.paper,
-    borderColor: editorial.lineStrong,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: editorial.shadow,
-    shadowOpacity: 0.16,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  gearText: { color: editorial.clay, fontSize: 18, lineHeight: 20 },
   overlay: {
     position: 'absolute',
     top: 0,

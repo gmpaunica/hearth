@@ -1,11 +1,11 @@
 import { useFrame } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
-import { router } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import type * as THREE from 'three';
 
 import { partnerFor } from '@/daily/model';
 import { useDailyMediaStore } from '@/daily/store';
+import { performHomeAction, type HomeActionId } from '@/home/actionRegistry';
 import { useAuthStore } from '@/state/authStore';
 import { atmo } from '../atmoState';
 import { VoxMesh } from '../VoxMesh';
@@ -116,7 +116,7 @@ function buildPhotoBubble(v: Vox) {
   v.set(6, -1, 0, '#fff4df');
 }
 
-function useDeferredDailyRoute(path: '/daily-record' | '/daily-photo') {
+function useDeferredDailyRoute(action: Extract<HomeActionId, 'daily-photo' | 'daily-voice'>) {
   const openingRef = useRef(false);
 
   return useCallback((event: ThreeEvent<MouseEvent>) => {
@@ -128,10 +128,10 @@ function useDeferredDailyRoute(path: '/daily-record' | '/daily-photo') {
     // finish before navigating, then release the guard because transparent
     // modal routes deliberately keep this home object mounted for the return.
     requestAnimationFrame(() => {
-      router.push(path as never);
+      performHomeAction(action);
       openingRef.current = false;
     });
-  }, [path]);
+  }, [action]);
 }
 
 export function DailyRecordPlayer({ position, rotation = [0, 0, 0] }: DailyMediaObjectProps) {
@@ -142,7 +142,7 @@ export function DailyRecordPlayer({ position, rotation = [0, 0, 0] }: DailyMedia
   const userId = useAuthStore((state) => state.userId);
   const voice = partnerFor(snapshot, userId, 'voice');
   const unread = Boolean(voice && !voice.receipt);
-  const open = useDeferredDailyRoute('/daily-record');
+  const open = useDeferredDailyRoute('daily-voice');
 
   useFrame((state, delta) => {
     if (!animatedRef.current) return;
@@ -179,7 +179,7 @@ export function DailyCamera({ position, rotation = [0, 0, 0] }: DailyMediaObject
   const userId = useAuthStore((state) => state.userId);
   const photo = partnerFor(snapshot, userId, 'photo');
   const unread = Boolean(photo && !photo.receipt);
-  const open = useDeferredDailyRoute('/daily-photo');
+  const open = useDeferredDailyRoute('daily-photo');
 
   useFrame((state) => {
     if (!animatedRef.current) return;

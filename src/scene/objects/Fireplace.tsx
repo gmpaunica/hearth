@@ -1,8 +1,8 @@
 import type { ThreeEvent } from '@react-three/fiber';
 
+import { performHomeAction } from '@/home/actionRegistry';
 import { paletteColor } from '@/home/palettes';
 import { requestMomentCameraFocus } from '@/scene/cameraState';
-import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 import { useSceneStore } from '@/state/sceneStore';
 import { room } from '@/theme/hearth';
 import { EmberColumn, Fire } from '../Fire';
@@ -127,7 +127,7 @@ export function Fireplace({
     event.stopPropagation();
     const scene = useSceneStore.getState();
     requestMomentCameraFocus('fireplace', scene.reduceMotion);
-    useMomentsSurfaceStore.getState().openHearth();
+    performHomeAction('hearth');
   };
 
   return (

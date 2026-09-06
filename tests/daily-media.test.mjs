@@ -94,7 +94,7 @@ test('daily media realtime refreshes the dedicated store without opening or movi
   assert.match(consoleObject, /partnerFor\(snapshot, userId, ['"]voice['"]\)/);
   assert.match(consoleObject, /arrival\?\.medium === ['"]voice['"]/);
   assert.match(consoleObject, /useFrame/);
-  assert.match(consoleObject, /useDeferredDailyRoute\(['"]\/daily-record['"]\)/);
+  assert.match(consoleObject, /useDeferredDailyRoute\(['"]daily-voice['"]\)/);
   assert.doesNotMatch(consoleObject, /requestMomentCameraFocus|publishFocusedRoom|camera\.position|camera\.lookAt/);
 });
 

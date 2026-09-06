@@ -191,7 +191,7 @@ export function HomeStudio() {
     ? activeDefinition.progression.style_variants.split(',').filter(Boolean) : [];
 
   const exitStudioSurface = () => {
-    useMomentsSurfaceStore.getState().setSettingsOpen(false);
+    useMomentsSurfaceStore.getState().closeSurface();
     useMomentV2Store.getState().resumePlayback();
   };
 

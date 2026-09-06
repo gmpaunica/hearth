@@ -28,30 +28,24 @@ function loadNavigation() {
   return loadTsModule('src/scene/roomNavigation.ts');
 }
 
-test('camera pan remains free while reaching every close-framed room', () => {
-  const { clampCameraOffset } = loadNavigation();
-  const inside = clampCameraOffset(1, 1);
-  assert.ok(Math.abs(inside.x - 1) < 1e-9);
-  assert.ok(Math.abs(inside.z - 1) < 1e-9);
-
-  const protectedLeft = clampCameraOffset(20, -20);
-  assert.ok(Math.abs((protectedLeft.x - protectedLeft.z) / Math.SQRT2 - 9) < 1e-9);
-  const gardenPan = clampCameraOffset(-7.5, 2.5, 4.5);
-  assert.ok((gardenPan.x - gardenPan.z) / Math.SQRT2 <= -7 + 1e-9);
-  const bedroomPan = clampCameraOffset(20, -20, 4.5);
-  assert.ok(Math.abs((bedroomPan.x - bedroomPan.z) / Math.SQRT2 - 11.5) < 1e-9);
+test('camera movement is projected onto the bounded room rail', () => {
+  const { clampCameraOffset, roomRailPosition, ROOM_STOPS } = loadNavigation();
+  const projected = clampCameraOffset(1, 1);
+  assert.notDeepEqual(projected, { x: 1, z: 1 });
+  const left = clampCameraOffset(-100, 100);
+  const right = clampCameraOffset(100, -100);
+  assert.ok(Math.abs(roomRailPosition(left.x, left.z) - roomRailPosition(ROOM_STOPS.garden.x, ROOM_STOPS.garden.z)) < 1e-9);
+  assert.ok(Math.abs(roomRailPosition(right.x, right.z) - roomRailPosition(ROOM_STOPS.bedroom.x, ROOM_STOPS.bedroom.z)) < 1e-9);
 });
 
-test('camera release uses subtle inertia without magnetic room snapping', () => {
+test('camera release snaps to named rooms and arbitrates for horizontal gestures', () => {
   const panSource = read('src/scene/usePan.ts');
-  const homeSource = read('src/scene/HomeScene.tsx');
-  assert.match(panSource, /FLING_SCALE = 7\.5/);
-  assert.match(panSource, /camState\.velocityX/);
+  assert.match(panSource, /Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\) \* 1\.2/);
+  assert.match(panSource, /nearestRoom\(projected\.x, projected\.z\)/);
+  assert.match(panSource, /focusRoom\(room, useSceneStore\.getState\(\)\.reduceMotion\)/);
   assert.match(panSource, /0\.9, 4\.5/);
   assert.match(panSource, /camState\.zoomMul/);
-  assert.match(homeSource, /Math\.exp\(-5\.2 \* delta\)/);
-  assert.doesNotMatch(panSource, /magneticSnapTarget/);
-  assert.doesNotMatch(homeSource, /snapX|snapZ/);
+  assert.doesNotMatch(panSource, /FLING_SCALE|MAX_FLING/);
 });
 
 test('camera uses one close stable frame and keeps all rooms reachable', () => {
@@ -155,11 +149,11 @@ test('garden spaces the pink tree, moved bench and animated koi pond into separa
 
 test('home header includes an obvious days-together feature', () => {
   const source = read('src/app/index.tsx');
+  const chrome = read('src/components/HomeChrome.tsx');
   assert.match(source, /useHomeProgress\(\)\.days/);
-  assert.match(source, /Day \{togetherDay\} of being together/);
-  assert.match(source, /styles\.togetherLabel/);
-  assert.doesNotMatch(source, /♥ Day/);
-  assert.doesNotMatch(source, /togetherBadge/);
+  assert.match(source, /<HomeChrome togetherDay=\{togetherDay\}/);
+  assert.match(chrome, /Day \{togetherDay\} together/);
+  assert.match(chrome, /fontFamily: HearthTheme\.type\.display/);
 });
 
 test('couple membership gives both phones one permanent red and green avatar identity', () => {
@@ -211,7 +205,8 @@ test('Moments uses feeling-led editorial controls and tactile states', () => {
   assert.match(controller, /accessibilityActions=\{expanded/);
   assert.match(controller, /Gesture\.Pan\(\)/);
   assert.match(controller, /KeyboardAvoidingView/);
-  assert.match(surfaceStore, /expanded: false/);
+  assert.match(surfaceStore, /surface: \{ kind: 'none' \}/);
+  assert.match(surfaceStore, /\| \{ kind: 'moments'; view: MomentsView \}/);
   assert.doesNotMatch(surfaceStore, /useMomentV2Store|snapshot|subscribe/);
   assert.match(note, /maxLength=\{240\}/);
   assert.match(note, /value\.length >= 200/);
@@ -582,6 +577,7 @@ test('daily drawing read receipts persist per drawing and the day label shares H
   const store = read('src/state/drawingStore.ts');
   const component = read('src/components/DailyDrawing.tsx');
   const home = read('src/app/index.tsx');
+  const chrome = read('src/components/HomeChrome.tsx');
   assert.match(prefs, /DRAWING_SEEN_KEY.*coupleId.*userId.*day/s);
   assert.match(store, /getSeenDrawing\(coupleId, userId, todayStr\(\)\)/);
   assert.match(store, /setSeenDrawing\(coupleId, userId, todayStr\(\), partnerDrawingFingerprint\)/);
@@ -590,8 +586,9 @@ test('daily drawing read receipts persist per drawing and the day label shares H
     /surface === 'today' && tab === 'theirs' && partnerGrid && !partnerSeen/,
   );
   assert.match(component, /useDrawingStore\.subscribe/);
-  assert.match(home, /style=\{\[styles\.headerText, styles\.title\]\}/);
-  assert.match(home, /style=\{\[styles\.headerText, styles\.togetherLabel\]\}/);
+  assert.match(home, /<HomeChrome togetherDay=\{togetherDay\}/);
+  assert.match(chrome, /fontFamily: HearthTheme\.type\.display/);
+  assert.match(chrome, /fontFamily: HearthTheme\.type\.bodyStrong/);
 });
 
 test('DR1 stores smooth portrait sketches with a legacy fallback', () => {
@@ -601,7 +598,7 @@ test('DR1 stores smooth portrait sketches with a legacy fallback', () => {
   const canvas = read('src/components/DrawingCanvas.tsx');
   const daily = read('src/components/DailyDrawing.tsx');
   const sketchbook = read('src/components/Sketchbook.tsx');
-  const rituals = read('src/components/RitualsButton.tsx');
+  const actions = read('src/home/actionRegistry.ts');
   const easel = read('src/scene/objects/Easel.tsx');
   const home = read('src/app/index.tsx');
 
@@ -719,11 +716,10 @@ test('DR1 stores smooth portrait sketches with a legacy fallback', () => {
   assert.match(sketchbook, /title=\{spread\.memberBTitle\}/);
   assert.doesNotMatch(sketchbook, /A quiet page|quietMark|quietText|styles\.rule/);
   assert.ok(existsSync(join(root, 'assets/images/sketchbook/voxel-open-book.png')));
-  assert.match(rituals, /requestSketchbook\(\)/);
-  assert.match(rituals, /left: 18/);
-  assert.match(rituals, /buttonAtBottom: \{ bottom: 102 \}/);
-  assert.match(rituals, /buttonAboveSignal: \{ bottom: 184 \}/);
-  assert.match(home, /<RitualsButton \/>/);
+  assert.match(actions, /id: 'sketchbook'/);
+  assert.match(actions, /surfaces\.openDrawing\('sketchbook'\)/);
+  assert.match(actions, /drawerGroup: 'Today & rituals'/);
+  assert.match(home, /<OurThingsDrawer \/>/);
   assert.match(easel, /const S = 0\.125/);
   assert.match(easel, /const FW = 16/);
   assert.match(easel, /usePictureGeometry\(partnerGrid\)/);

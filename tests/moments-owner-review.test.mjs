@@ -124,7 +124,7 @@ test('one continuously mounted sheet tracks, clamps, hands off scroll, and settl
   assert.equal(expandedY, 175);
   assert.equal(dockedY, 762);
   assert.equal(height - bottomInset - dockedY, 48);
-  assert.match(controller, /const dockedWidth = Math\.min\(214, Math\.max\(144, width - 176\)\)/);
+  assert.match(controller, /const dockedWidth = Math\.min\(214, Math\.max\(196, width - 146\)\)/);
   assert.match(controller, /interpolate\(progress, \[0, 1\], \[dockedWidth, expandedWidth\]\)/);
   assert.match(controller, /const sheetY = useSharedValue\(dockedY\)/);
   assert.match(controller, /dragStartY\.value = sheetY\.value/);
@@ -201,7 +201,7 @@ test('drawing reminder and reactions preserve privacy and exactly-once spatial p
   assert.match(store, /actionBaselinePending/);
   assert.match(store, /readinessBaselinePending/);
   assert.match(store, /persistSeenSpatial/);
-  assert.match(store, /surface\.settingsOpen \|\| surface\.hearthOpen \|\| surface\.expanded \|\| !surface\.appVisible/);
+  assert.match(store, /!homeSurfaceAllowsPlayback\(surface\)/);
   assert.match(sync, /setAppVisible\(s === 'active'\)/);
   const incomingBeat = store.slice(store.indexOf('const beginNextReactionBeat'), store.indexOf('const applySnapshot'));
   assert.doesNotMatch(incomingBeat, /requestMomentCameraFocus/);
@@ -267,7 +267,7 @@ test('ending uses safe furniture egress, doorway owns one floor layer, and the r
   assert.match(garden, /function buildGardenGateway/);
   assert.match(garden, /posts stay outside the route/);
   assert.match(fireplace, /onClick=\{openHearth\}/);
-  assert.match(fireplace, /useMomentsSurfaceStore\.getState\(\)\.openHearth\(\)/);
+  assert.match(fireplace, /performHomeAction\('hearth'\)/);
   assert.match(layout, /Fredoka-SemiBold\.ttf/);
   assert.match(layout, /Nunito-Regular\.ttf/);
   assert.match(hearth, /fireplace-keepsake\.webp/);

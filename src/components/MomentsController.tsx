@@ -434,8 +434,9 @@ function EmptyMoments({ snapshot, onNew }: { snapshot: MomentSnapshotV2 | null; 
 }
 
 export function MomentsController() {
-  const expanded = useMomentsSurfaceStore((state) => state.expanded);
-  const view = useMomentsSurfaceStore((state) => state.view);
+  const surface = useMomentsSurfaceStore((state) => state.surface);
+  const expanded = surface.kind === 'moments';
+  const view = surface.kind === 'moments' ? surface.view : 'moments';
   const openMoments = useMomentsSurfaceStore((state) => state.openMoments);
   const openComposer = useMomentsSurfaceStore((state) => state.openComposer);
   const minimize = useMomentsSurfaceStore((state) => state.minimize);
@@ -448,7 +449,7 @@ export function MomentsController() {
   const dockHeight = 48;
   const dockedY = height - insets.bottom - dockHeight;
   const expandedWidth = width - 20;
-  const dockedWidth = Math.min(214, Math.max(144, width - 176));
+  const dockedWidth = Math.min(214, Math.max(196, width - 146));
   const sheetY = useSharedValue(dockedY);
   const dragStartY = useSharedValue(dockedY);
   const draggingSheet = useSharedValue(0);

@@ -11,14 +11,15 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
-## Current checkpoint — 5 September 2026
+## Current checkpoint — 7 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 4 of the comprehensive improvement
+`app/integration`. Milestones 1 through 5 of the comprehensive improvement
 program are locally complete. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
-`MILESTONE_4_OWNERSHIP_AND_SAFETY.md` before changing or publishing the client.
+`MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
+`MILESTONE_5_SIMPLIFIED_HOME.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -36,6 +37,14 @@ partner block management, exact leave/block consequences, recoverable sign-out,
 and typed account deletion. All 8 finish-review fixes are resolved and the
 targeted verdict is `ship`. The supporting backend contract remains isolated
 and undeployed in `C:\Users\Gmpau\hearth`.
+
+Milestone 5 recomposes the shared home around the voxel scene. A discriminated
+`HomeSurface` coordinator prevents stacked major overlays; the home action
+registry drives both contextual scene objects and the grouped **Our things**
+drawer; and bounded horizontal gestures plus named controls snap among Garden,
+Living room, and Bedroom. The only permanent content controls are the top
+wordmark/day/account row, room rail, Moments dock, and Our things trigger.
+Duplicate floating controls and production-facing filming preferences are gone.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent

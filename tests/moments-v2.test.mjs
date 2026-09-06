@@ -97,7 +97,7 @@ test('the sheet has exactly dock and expanded positions with both drag direction
   assert.match(controller, /const expandedY = Math\.max\(insets\.top \+ 116, 132\)/);
   assert.match(controller, /const dockedY = height - insets\.bottom - dockHeight/);
   assert.match(controller, /const dockHeight = 48/);
-  assert.match(controller, /const dockedWidth = Math\.min\(214, Math\.max\(144, width - 176\)\)/);
+  assert.match(controller, /const dockedWidth = Math\.min\(214, Math\.max\(196, width - 146\)\)/);
   assert.match(controller, /dragStartY\.value = sheetY\.value/);
   assert.match(controller, /resolveMomentSheetExpanded/);
   assert.match(controller, /simultaneousWithExternalGesture\(nativeScroll\)/);
@@ -118,14 +118,15 @@ test('Settings is opaque and exclusive, and playback waits until it closes', () 
   const settings = read('src/components/Settings.tsx');
   const home = read('src/app/index.tsx');
   const store = read('src/state/momentV2Store.ts');
+  const surfaceStore = read('src/state/momentsSurfaceStore.ts');
   assert.match(settings, /backgroundColor: editorial\.paperStrong/);
-  assert.match(settings, /setSettingsOpen\(true\)/);
+  assert.match(settings, /coordinatedSurface\.kind === 'settings'/);
+  assert.match(surfaceStore, /openSettings: \(\) => set\(\{ surface: \{ kind: 'settings' \} \}\)/);
   assert.match(settings, /resumeMomentPlayback\(\)/);
-  for (const component of ['MomentsController', 'FireplaceReconnectBubble', 'HearthStatusCard', 'SpatialReactionOverlay', 'PixelHeartPayoff', 'DailyDrawing', 'CharacterButton', 'RitualsButton', 'HomeGrewCard']) {
-    assert.match(home, new RegExp(`!settingsOpen && <${component}`));
-  }
-  assert.match(store, /!surface\.expanded && !surface\.hearthOpen && !surface\.settingsOpen && surface\.appVisible/);
-  assert.match(store, /surface\.settingsOpen \|\| surface\.hearthOpen \|\| surface\.expanded \|\| !surface\.appVisible/);
+  assert.match(home, /const homeAvailable = surface\.kind === 'none'/);
+  assert.match(home, /const momentsVisible = surface\.kind === 'none' \|\| surface\.kind === 'moments'/);
+  assert.match(store, /homeSurfaceAllowsPlayback\(surface\)/);
+  assert.match(store, /!homeSurfaceAllowsPlayback\(surface\)/);
 });
 
 test('positive completion payoffs route fullscreen except for Romantic', () => {

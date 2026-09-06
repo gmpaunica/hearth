@@ -1,6 +1,7 @@
 import { type ThreeEvent } from '@react-three/fiber';
 import { useMemo } from 'react';
 
+import { performHomeAction } from '@/home/actionRegistry';
 import { drawingFallback } from '@/state/drawingCodec';
 import { PALETTE, useDrawingStore } from '@/state/drawingStore';
 import { VoxMesh } from '../VoxMesh';
@@ -81,7 +82,7 @@ export function Easel({ position }: { position: [number, number, number] }) {
 
   const open = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    useDrawingStore.getState().requestOpen();
+    performHomeAction('today-sketch');
   };
 
   return (

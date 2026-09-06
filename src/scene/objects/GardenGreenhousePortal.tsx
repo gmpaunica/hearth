@@ -1,6 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber';
-import { router } from 'expo-router';
 
+import { performHomeAction } from '@/home/actionRegistry';
 import { paletteColor } from '@/home/palettes';
 import { VoxMesh } from '../VoxMesh';
 import type { Vox } from '../voxel';
@@ -40,7 +40,7 @@ export function GardenGreenhousePortal({
 }) {
   const openGreenhouse = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
-    router.push('/greenhouse' as never);
+    performHomeAction('memories');
   };
 
   return (

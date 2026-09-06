@@ -45,17 +45,20 @@ test('persisted memories are sliced into four-item bays', () => {
 
 test('garden and accessible home controls both open the greenhouse route', () => {
   const portal = read('src/scene/objects/GardenGreenhousePortal.tsx');
-  const button = read('src/components/GreenhouseButton.tsx');
+  const actions = read('src/home/actionRegistry.ts');
+  const drawer = read('src/components/OurThingsDrawer.tsx');
   const home = read('src/scene/HomeScene.tsx');
   const renderer = read('src/scene/HomeObjectRenderer.tsx');
   const index = read('src/app/index.tsx');
-  assert.match(portal, /router\.push\('\/greenhouse'/);
+  assert.match(portal, /performHomeAction\('memories'\)/);
   assert.match(portal, /position\?: \[number, number, number\]/);
-  assert.match(button, /router\.push\('\/greenhouse'/);
-  assert.match(button, /components\.has\('garden'\)/);
+  assert.match(actions, /id: 'memories'/);
+  assert.match(actions, /router\.push\('\/greenhouse'/);
+  assert.match(actions, /context\.gardenUnlocked/);
   assert.match(home, /<HomeObjectRenderer/);
   assert.match(renderer, /case 'GardenGreenhousePortal'/);
-  assert.match(index, /<GreenhouseButton/);
+  assert.match(index, /<OurThingsDrawer/);
+  assert.match(drawer, /performHomeAction\(action\.id\)/);
 });
 
 test('greenhouse uses horizontal bay navigation without shrinking the scene', () => {
@@ -86,11 +89,12 @@ test('Our Diary is paginated by date and contains voice notes and sketches but n
   assert.match(diary, /does not reopen that day/);
 });
 
-test('Rituals is renamed Together and links both retained Sketchbook and Our Diary', () => {
-  const together = read('src/components/RitualsButton.tsx');
-  assert.match(together, />Together</);
-  assert.match(together, /TOGETHER/);
-  assert.match(together, /requestSketchbook/);
-  assert.match(together, /router\.push\('\/diary'\)/);
-  assert.doesNotMatch(together, />Rituals</);
+test('Our things keeps both retained Sketchbook and Our Diary destinations', () => {
+  const registry = read('src/home/actionRegistry.ts');
+  const drawer = read('src/components/OurThingsDrawer.tsx');
+  assert.match(registry, /id: 'sketchbook'/);
+  assert.match(registry, /surfaces\.openDrawing\('sketchbook'\)/);
+  assert.match(registry, /id: 'diary'/);
+  assert.match(registry, /router\.push\('\/diary'/);
+  assert.match(drawer, /Today & rituals/);
 });

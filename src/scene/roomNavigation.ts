@@ -26,35 +26,45 @@ export const ROOM_UNLOCK_DAYS: Record<Exclude<RoomId, 'living'>, number> = {
   garden: 30,
 };
 
-const activeRoomStops = () => {
+export const activeRoomStops = (): RoomStop[] => {
   const resolved = resolvedRoomStops?.();
-  return resolved ? Object.values(resolved) : Object.values(ROOM_STOPS);
+  return Object.values({ ...ROOM_STOPS, ...(resolved ?? {}) })
+    .sort((a, b) => roomRailPosition(a.x, a.z) - roomRailPosition(b.x, b.z));
 };
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-/**
- * Free two-axis camera movement with broad outer limits. The camera no longer
- * rides a rail or snaps to rooms; these limits only prevent losing the home.
- */
+export const roomRailPosition = (x: number, z: number) => (x - z) / Math.SQRT2;
+
+/** Project any gesture offset onto the piecewise room rail. */
 export function clampCameraOffset(
   x: number,
   z: number,
-  zoomMul = 1,
+  _zoomMul = 1,
 ): { x: number; z: number } {
-  // The default camera is intentionally close enough to show the new voxel
-  // detail, so all three rooms must already be reachable before pinch-zoom.
-  // Pinching in opens a little extra inspection range around each outer room.
-  const screenX = (x - z) / Math.SQRT2;
-  const screenY = -(x + z) / Math.SQRT2;
-  const reach = clamp((zoomMul - 1) / 3.5, 0, 1);
-  const safeX = clamp(screenX, -8.75 - 2 * reach, 9 + 2.5 * reach);
-  const safeY = clamp(screenY, -4 - 2 * reach, 5.75 + 2.5 * reach);
-  return {
-    x: (safeX - safeY) / Math.SQRT2,
-    z: (-safeX - safeY) / Math.SQRT2,
-  };
+  const stops = activeRoomStops();
+  if (stops.length === 0) return { x: 0, z: 0 };
+  if (stops.length === 1) return { x: stops[0].x, z: stops[0].z };
+  const target = clamp(
+    roomRailPosition(x, z),
+    roomRailPosition(stops[0].x, stops[0].z),
+    roomRailPosition(stops[stops.length - 1].x, stops[stops.length - 1].z),
+  );
+  for (let index = 0; index < stops.length - 1; index += 1) {
+    const from = stops[index];
+    const to = stops[index + 1];
+    const fromPosition = roomRailPosition(from.x, from.z);
+    const toPosition = roomRailPosition(to.x, to.z);
+    if (target > toPosition) continue;
+    const progress = (target - fromPosition) / Math.max(toPosition - fromPosition, 0.0001);
+    return {
+      x: from.x + (to.x - from.x) * progress,
+      z: from.z + (to.z - from.z) * progress,
+    };
+  }
+  const last = stops[stops.length - 1];
+  return { x: last.x, z: last.z };
 }
 
 export function nearestRoom(x: number, z: number): { stop: RoomStop; distance: number } {

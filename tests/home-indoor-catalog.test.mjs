@@ -43,12 +43,14 @@ test('curated palettes and layered placement feed visible restyling', () => {
 });
 
 test('relationship-gated Decorate mode is distinct from development-only Studio', () => {
-  const button = read('src/components/DecorateButton.tsx');
+  const actions = read('src/home/actionRegistry.ts');
   const studio = read('src/components/HomeStudio.tsx');
   const store = read('src/state/homeStudioStore.ts');
   const index = read('src/app/index.tsx');
-  assert.match(index, /<DecorateButton \/>/);
-  assert.match(button, /open\('decorate'\)/);
+  assert.match(index, /<OurThingsDrawer \/>/);
+  assert.match(actions, /id: 'decorate'/);
+  assert.match(actions, /open\('decorate'\)/);
+  assert.match(actions, /context\.activeMoment \|\| context\.editingBlocked \|\| !context\.canEdit/);
   assert.match(store, /HomeStudioMode = 'developer' \| 'decorate'/);
   assert.match(store, /mode === 'developer' && !__DEV__/);
   assert.match(studio, /activeGrowthDays\(draft\)/);

@@ -12,10 +12,11 @@ test('web auth is isolated per Chrome tab while native auth uses secure storage'
   assert.match(supabase, /webAuth\?\.storage.*secureAuthStorage/s);
 });
 
-test('Chrome wheel and trackpad input pan and pinch-zoom the existing scene', () => {
+test('Chrome wheel and trackpad input follow the room rail and preserve pinch zoom', () => {
   assert.match(pan, /addEventListener\('wheel', onWheel, \{ passive: false \}\)/);
   assert.match(pan, /wheel\.target instanceof HTMLCanvasElement/);
-  assert.match(pan, /moveCameraByPixels\(-scrollX, -scrollY\)/);
+  assert.match(pan, /moveCameraByPixels\(-scrollX\)/);
+  assert.match(pan, /focusRoom\(room, useSceneStore\.getState\(\)\.reduceMotion\)/);
   assert.match(pan, /wheel\.ctrlKey/);
   assert.match(pan, /Math\.exp\(-rawY \* WHEEL_ZOOM_SPEED\)/);
 });

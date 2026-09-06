@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { consequenceFor } from '@/moments/consequenceCatalog';
 import { requestMomentCameraFocus, restoreMomentCameraFocus } from '@/scene/cameraState';
 import { latestPresenceForUser, normalizeMomentSnapshotV2, partnerParticipant } from './momentV2Model';
-import { useMomentsSurfaceStore } from './momentsSurfaceStore';
+import { homeSurfaceAllowsPlayback, useMomentsSurfaceStore } from './momentsSurfaceStore';
 import { useSceneStore, type AvatarKey } from './sceneStore';
 
 export interface MomentSyncContext {
@@ -348,7 +348,7 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
     set({ snapshot, loading: false, error: null });
     projectScene(snapshot, ctx, snapScene);
     const surface = useMomentsSurfaceStore.getState();
-    if (!surface.expanded && !surface.hearthOpen && !surface.settingsOpen && surface.appVisible) {
+    if (homeSurfaceAllowsPlayback(surface)) {
       if (reactionQueue.length > 0) beginNextReactionBeat();
       if (completionQueue.length > 0) beginNextCompletionBeat();
     }
@@ -515,13 +515,13 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
         showBubble: true,
       });
       const surface = useMomentsSurfaceStore.getState();
-      if (!surface.expanded && !surface.hearthOpen && !surface.settingsOpen && surface.appVisible) {
+      if (homeSurfaceAllowsPlayback(surface)) {
         beginNextReactionBeat();
       }
     },
     resumePlayback: () => {
       const surface = useMomentsSurfaceStore.getState();
-      if (surface.settingsOpen || surface.hearthOpen || surface.expanded || !surface.appVisible) return;
+      if (!homeSurfaceAllowsPlayback(surface)) return;
       if (reactionQueue.length > 0) beginNextReactionBeat();
       else if (completionQueue.length > 0) beginNextCompletionBeat();
     },
