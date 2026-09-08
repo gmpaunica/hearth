@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { ProfileAvatarRow } from '@/lib/db';
+import { mapDomainError, reportDomainError } from '@/lib/domainError';
 import { supabase } from '@/lib/supabase';
 import { avatarIdentityFor } from './avatarIdentity';
 import { DEFAULT_APPEARANCE, sanitizeAppearance, type AvatarAppearance } from './avatarAppearance';
@@ -14,7 +15,8 @@ interface AvatarState {
   busy: boolean;
   error: string | null;
   load: (userId: string, memberA: string, partnerId: string) => Promise<void>;
-  save: (appearance: AvatarAppearance) => Promise<void>;
+  save: (appearance: AvatarAppearance) => Promise<boolean>;
+  clearError: () => void;
   ingest: (row: ProfileAvatarRow) => void;
   reset: () => void;
 }
@@ -53,7 +55,7 @@ export const useAvatarStore = create<AvatarState>((set, get) => ({
       }
       set({ appearances, busy: false });
     } catch (e) {
-      set({ busy: false, error: messageOf(e) });
+      set({ busy: false, error: messageOf(e, 'avatar_load') });
     }
   },
 
@@ -61,11 +63,11 @@ export const useAvatarStore = create<AvatarState>((set, get) => ({
     const { userId, myAvatar } = get();
     if (!userId) {
       set({ error: 'Your profile is still loading. Please try Save again in a moment.' });
-      return;
+      return false;
     }
     if (get().busy) {
       set({ error: 'Your profile is still loading. Please wait a moment, then try Save again.' });
-      return;
+      return false;
     }
     const previous = get().appearances[myAvatar];
     set((state) => ({
@@ -74,20 +76,28 @@ export const useAvatarStore = create<AvatarState>((set, get) => ({
       error: null,
     }));
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ avatar_config: appearance })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('id, avatar_config')
+        .single();
       if (error) throw error;
-      set({ busy: false });
+      if (!data || data.id !== userId) throw new Error('Avatar profile update was not confirmed.');
+      const confirmed = sanitizeAppearance(data.avatar_config, appearance);
+      set((state) => ({ appearances: { ...state.appearances, [myAvatar]: confirmed }, busy: false }));
+      return true;
     } catch (e) {
       set((state) => ({
         appearances: { ...state.appearances, [myAvatar]: previous },
         busy: false,
-        error: messageOf(e),
+        error: messageOf(e, 'avatar_save'),
       }));
+      return false;
     }
   },
+
+  clearError: () => set({ error: null }),
 
   ingest: (row) => {
     const key = keyForRow(row, get().userId, get().memberA);
@@ -103,7 +113,12 @@ export const useAvatarStore = create<AvatarState>((set, get) => ({
   reset: () => set(initialState),
 }));
 
-function messageOf(e: unknown): string {
-  if (e && typeof e === 'object' && 'message' in e) return String((e as { message: unknown }).message);
-  return 'Your character could not be saved. Please try again.';
+function messageOf(e: unknown, operation: 'avatar_load' | 'avatar_save'): string {
+  const safe = mapDomainError(e, operation);
+  reportDomainError(safe);
+  return safe.code === 'unknown'
+    ? operation === 'avatar_load'
+      ? 'Couldn’t open your saved character. Try again when you are ready.'
+      : 'Couldn’t save your character. Your preview is still here—try again.'
+    : safe.message;
 }

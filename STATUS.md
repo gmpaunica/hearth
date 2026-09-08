@@ -9,7 +9,7 @@
 
 ## Current program checkpoint — 8 September 2026
 
-Milestones 1 through 7 are locally complete. The installed `1.0.4` client remains the
+Milestones 1 through 7 and milestone 8A are locally complete. The installed `1.0.4` client remains the
 technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -65,10 +65,20 @@ actions, with typed provider failures and no relationship score or pressure.
 Automated checks pass 159/159; five deterministic states pass all 15 responsive
 browser combinations with zero runtime errors or document overflow.
 
+Milestone 8A makes Wardrobe safe to explore before saving. Character rotation
+works by touch and screen-reader adjustable actions; the semantic storybook
+layout keeps actions out of scroll content at large text; and locked profiles
+can still preview every existing option. Saves now verify the returned owner
+profile, retain the draft after failure, expose retry, and distinguish saved,
+unsaved, saving, and discard states. Automated checks pass 160/160; six
+deterministic states pass all 18 responsive browser combinations without
+overflow or runtime errors. Expo-approved SDK 57 patch updates also pass all
+21 Doctor checks and Android/iOS/web production exports.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
-`95482aee0b165321dca5300078a8ee2884b95c94` differs from installed fingerprint
+`381c477f269790578e227da636f96a838e2faf81` differs from installed fingerprint
 `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; the
 next phone preview requires explicit owner authorization for a new APK, and the
 backend requires separate deployment authorization. No physical-device,
@@ -80,7 +90,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
 `MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
 `MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
-`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md` before changing publication state.
+`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
+`MILESTONE_8A_WARDROBE_AND_STYLE.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

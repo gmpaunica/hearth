@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, type GestureResponderEvent } from 'react-native
 
 import { CharacterRenderer } from '@/character/CharacterRenderer';
 import { appearanceToAvatarColors, type AvatarAppearance } from '@/state/avatarAppearance';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 // Face the coarse character toward the camera at the same readable three-quarter
 // angle as the approved concept sheet; drag still allows a complete rotation.
@@ -24,6 +24,11 @@ export function WardrobePreview({ appearance }: { appearance: AvatarAppearance }
   const handleDragMove = useCallback((event: GestureResponderEvent) => {
     const dx = event.nativeEvent.pageX - dragStartXRef.current;
     const nextRotation = dragStartRef.current + dx * 0.012;
+    rotationRef.current = nextRotation;
+    setRotationY(nextRotation);
+  }, []);
+  const rotateBy = useCallback((amount: number) => {
+    const nextRotation = rotationRef.current + amount;
     rotationRef.current = nextRotation;
     setRotationY(nextRotation);
   }, []);
@@ -52,6 +57,15 @@ export function WardrobePreview({ appearance }: { appearance: AvatarAppearance }
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="Character preview. Swipe left or right to rotate."
+        accessibilityHint="Use swipe gestures or accessibility increment and decrement actions to turn the character"
+        accessibilityActions={[{ name: 'increment', label: 'Turn right' }, { name: 'decrement', label: 'Turn left' }]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'increment') {
+            rotateBy(Math.PI / 4);
+          } else if (event.nativeEvent.actionName === 'decrement') {
+            rotateBy(-Math.PI / 4);
+          }
+        }}
         style={styles.gestureLayer}
       />
       <View pointerEvents="none" style={styles.rotateHint}>
@@ -64,13 +78,15 @@ export function WardrobePreview({ appearance }: { appearance: AvatarAppearance }
 
 const styles = StyleSheet.create({
   frame: {
-    height: 280,
-    borderRadius: 26,
+    aspectRatio: 4 / 3,
+    minHeight: 220,
+    maxHeight: 290,
+    borderRadius: HearthTheme.radius.lg,
     overflow: 'hidden',
-    backgroundColor: editorial.paperTint,
+    backgroundColor: HearthTheme.color.parchmentWarm,
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
-    shadowColor: editorial.shadow,
+    borderColor: HearthTheme.color.lineStrong,
+    shadowColor: HearthTheme.shadow.color,
     shadowOpacity: 0.12,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -93,21 +109,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: editorial.paper,
-    borderColor: editorial.line,
+    backgroundColor: HearthTheme.color.parchmentRaised,
+    borderColor: HearthTheme.color.line,
     borderWidth: 1,
-    shadowColor: editorial.shadow,
+    shadowColor: HearthTheme.shadow.color,
     shadowOpacity: 0.12,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   rotateHintIcon: {
-    color: editorial.clay,
+    color: HearthTheme.color.clayPressed,
     fontSize: 15,
   },
   rotateHintText: {
-    color: editorial.inkSoft,
+    color: HearthTheme.color.inkMuted,
+    fontFamily: HearthTheme.type.bodyStrong,
     fontSize: 12,
     fontWeight: '700',
   },

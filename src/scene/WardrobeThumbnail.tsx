@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { CharacterRenderer } from '@/character/CharacterRenderer';
 import { appearanceToAvatarColors, type AvatarAppearance } from '@/state/avatarAppearance';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 export type WardrobeThumbnailFocus = 'full' | 'head' | 'eyes' | 'top' | 'bottom' | 'shoes' | 'accessory';
 
@@ -62,8 +62,8 @@ const styles = StyleSheet.create({
     height: 104,
     overflow: 'hidden',
     borderRadius: 18,
-    backgroundColor: editorial.paperTint,
+    backgroundColor: HearthTheme.color.parchmentWarm,
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
+    borderColor: HearthTheme.color.lineStrong,
   },
 });

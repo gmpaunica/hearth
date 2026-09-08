@@ -161,7 +161,10 @@ test('SDK 57 and runtime 1.0.4 use the compatible patch baseline', () => {
   assert.equal(app.expo.version, '1.0.4');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.equal(pkg.version, '1.0.4');
-  assert.equal(pkg.dependencies.expo, '~57.0.20');
+  assert.equal(pkg.dependencies.expo, '~57.0.21');
+  assert.equal(pkg.dependencies['@expo/ui'], '~57.0.17');
+  assert.equal(pkg.dependencies['expo-glass-effect'], '~57.0.2');
+  assert.equal(pkg.dependencies['expo-router'], '~57.0.20');
   assert.equal(pkg.dependencies['react-native'], '0.86.3');
   assert.equal(pkg.devDependencies['expo-mcp'], '~0.2.1');
 });

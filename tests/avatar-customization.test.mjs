@@ -176,21 +176,26 @@ test('signed-in users can save only their own avatar profile', () => {
   assert.match(migration, /grant update \(display_name, avatar_config\)/);
 });
 
-test('wardrobe save verifies a real updated profile row', () => {
+test('wardrobe save verifies a real updated profile row and keeps retryable previews', () => {
   const store = read('src/state/avatarStore.ts');
   const wardrobe = read('src/components/Wardrobe.tsx');
 
   assert.match(store, /\.from\('profiles'\)\s*\.update/);
-  assert.doesNotMatch(store, /select\('id'\)/);
+  assert.match(store, /select\('id, avatar_config'\)/);
+  assert.match(store, /\.single\(\)/);
+  assert.match(store, /data\.id !== userId/);
   assert.match(store, /profile is still loading/);
   assert.match(wardrobe, /draftOverride/);
   assert.match(wardrobe, /const draft = draftOverride \?\? saved/);
-  assert.match(wardrobe, /Unsaved changes/);
+  assert.match(wardrobe, /Previewing unsaved changes/);
   assert.match(wardrobe, /Save changes/);
   assert.match(wardrobe, /WardrobeThumbnail/);
   assert.match(wardrobe, /Mix & match/);
   assert.match(wardrobe, /section === 'outfits'/);
-  assert.match(wardrobe, /position: 'absolute'/);
+  assert.match(wardrobe, /Your preview is still here/);
+  assert.match(wardrobe, /Discard these changes/);
+  assert.match(wardrobe, /Your character is saved at home/);
+  assert.doesNotMatch(wardrobe, /actionBar: \{[^}]*position:/);
 });
 
 test('wardrobe character rotates directly under a horizontal finger drag', () => {
@@ -200,6 +205,21 @@ test('wardrobe character rotates directly under a horizontal finger drag', () =>
   assert.match(preview, /onResponderMove={handleDragMove}/);
   assert.match(preview, /rotation=\{\[0, rotationY, 0\]\}/);
   assert.match(preview, /Drag to rotate/);
+  assert.match(preview, /accessibilityActions/);
+  assert.match(preview, /onAccessibilityAction/);
+});
+
+test('wardrobe has a development-only review matrix and profile-ready lock state', () => {
+  const wardrobe = read('src/components/Wardrobe.tsx');
+  const qa = read('src/app/wardrobe-qa.tsx');
+  assert.match(wardrobe, /Save will open when your private profile is ready/);
+  assert.match(wardrobe, /minHeight: 48/);
+  assert.match(wardrobe, /accessibilityState=\{\{ selected/);
+  assert.match(qa, /if \(!__DEV__\) return <Redirect/);
+  for (const state of ['saved', 'changed', 'saving', 'error', 'locked', 'discard']) {
+    assert.match(qa, new RegExp(`'${state}'`));
+  }
+  assert.match(qa, /reviewMode/);
 });
 
 test('main house preserves detailed voxels with a higher-resolution nearest-neighbour pass', () => {

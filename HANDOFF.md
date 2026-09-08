@@ -14,7 +14,7 @@
 ## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 7 are locally complete. Read
+`app/integration`. Milestones 1 through 7 and milestone 8A are locally complete. Read
 `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
@@ -23,7 +23,8 @@ The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
 `MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
 `MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
-`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md` before changing or publishing the client.
+`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
+`MILESTONE_8A_WARDROBE_AND_STYLE.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -81,11 +82,19 @@ dedicated domain-error operations and an inline final confirmation. The
 development-only `greenhouse-qa` route covers five representative states with
 local photos and inert callbacks.
 
+Milestone 8A rebuilds `Wardrobe` as a preview-first, safe-area-aware storybook
+surface. `avatarStore` verifies the returned owner row before confirming a save,
+retains the draft for retry after a provider failure, and maps load/save errors
+through `DomainError`. Touch drag and accessibility adjustable actions rotate
+the shared voxel character. Unsaved exits are confirmed inline, profile-not-
+ready state remains explorable, and the development-only `wardrobe-qa` route
+covers six mutation-free review states.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent
 from the installed APK.
 The local Android fingerprint
-`95482aee0b165321dca5300078a8ee2884b95c94` differs from installed versionCode
+`381c477f269790578e227da636f96a838e2faf81` differs from installed versionCode
 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
 the next preview requires explicit owner authorization for a new APK, and the
 backend requires separate deployment authorization. Native privacy, sharing,
