@@ -37,6 +37,8 @@ export type DomainOperation =
   | 'daily_media_receipt'
   | 'diary_load'
   | 'diary_delete'
+  | 'greenhouse_load'
+  | 'greenhouse_delete'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {

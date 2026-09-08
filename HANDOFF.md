@@ -14,8 +14,7 @@
 ## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 6 and the Daily Sketch plus
-Photo/Voice/Diary slices of Milestone 7 are locally complete. Read
+`app/integration`. Milestones 1 through 7 are locally complete. Read
 `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
@@ -23,7 +22,8 @@ Photo/Voice/Diary slices of Milestone 7 are locally complete. Read
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
 `MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
-`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md` before changing or publishing the client.
+`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
+`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -72,6 +72,14 @@ retry, clearer user-started audio playback, and inline author-removal outcomes.
 `daily/store.ts` and `daily/collectionStore.ts` now map provider failures through
 typed domain operations. The development-only `daily-media-qa` route covers 13
 photo, voice, and diary states without refreshes or backend mutations.
+
+Milestone 7C gives greenhouse bays chronological date ranges and a direct
+newest return. `greenhouseModel.ts` resolves a server home date to its bay;
+Daily Photo passes that date into the greenhouse route so the selected memory
+is marked in context. Empty/load/removal states are actionable and safe, with
+dedicated domain-error operations and an inline final confirmation. The
+development-only `greenhouse-qa` route covers five representative states with
+local photos and inert callbacks.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent

@@ -1,15 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { GreenhouseMemories } from '@/components/GreenhouseMemories';
 import { useDailyCollectionStore } from '@/daily/collectionStore';
-import { memoriesForBay } from '@/memories/greenhouseModel';
+import { findBayForHomeDate, memoriesForBay } from '@/memories/greenhouseModel';
 import { GreenhouseScene } from '@/scene/GreenhouseScene';
 import { SceneCanvas } from '@/scene/SceneCanvas';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 export default function GreenhouseRoute() {
+  const { date } = useLocalSearchParams<{ date?: string }>();
   const [activeBay, setActiveBay] = useState(0);
   const memories = useDailyCollectionStore((state) => state.greenhouse);
   const loading = useDailyCollectionStore((state) => state.greenhouseLoading);
@@ -19,7 +21,13 @@ export default function GreenhouseRoute() {
   const load = useDailyCollectionStore((state) => state.loadGreenhouse);
   const unplant = useDailyCollectionStore((state) => state.unplantMemory);
 
-  useEffect(() => { void load(true); }, [load]);
+  useEffect(() => {
+    void load(true).then(() => {
+      if (!date) return;
+      const loaded = useDailyCollectionStore.getState().greenhouse;
+      if (loaded.some((memory) => memory.home_date === date)) setActiveBay(findBayForHomeDate(loaded, date));
+    });
+  }, [date, load]);
   const maxBay = Math.max(0, Math.ceil(memories.length / 4) - 1);
   const visibleBay = Math.min(activeBay, maxBay);
   const visibleCount = memoriesForBay(memories, visibleBay).length;
@@ -36,14 +44,14 @@ export default function GreenhouseRoute() {
         </SceneCanvas>
       </View>
       <GreenhouseMemories memories={memories} activeBay={visibleBay} loading={loading} hasMore={hasMore}
-        busy={busy != null} error={error} onBayChange={setActiveBay}
+        busy={busy != null} error={error} focusDate={date} onBayChange={setActiveBay}
         onLoadMore={() => { void load(false).then(() => setActiveBay((bay) => bay + 1)); }}
-        onUnplant={(homeDate) => void unplant(homeDate)} />
+        onRetry={() => { void load(true); }} onUnplant={unplant} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: editorial.canvas },
+  container: { flex: 1, backgroundColor: HearthTheme.color.parchment },
   scene: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
 });

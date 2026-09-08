@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -202,12 +203,27 @@ export function DailyPhotoScreen({
           </View>
           <Pressable
             style={({ pressed }) => [styles.plantButton, pressed && styles.pressed]}
-            onPress={() => { if (reviewMode) return; snapshot.greenhouse_planted ? confirmUnplant() : void plantToday(); }}
+            onPress={() => {
+              if (reviewMode) return;
+              if (snapshot.greenhouse_planted) confirmUnplant();
+              else void plantToday();
+            }}
             disabled={busy != null}
             accessibilityRole="button"
             accessibilityLabel={snapshot.greenhouse_planted ? 'Remove this day from the greenhouse' : 'Keep this day in the greenhouse'}
           ><Text style={styles.plantButtonText}>{snapshot.greenhouse_planted ? 'Remove' : 'Keep'}</Text></Pressable>
         </View>
+      )}
+      {(mine || partner) && snapshot?.greenhouse_planted && (
+        <Pressable
+          style={({ pressed }) => [styles.openMemory, pressed && styles.pressed]}
+          onPress={() => { if (!reviewMode) router.push({ pathname: '/greenhouse', params: { date: snapshot.home_date } } as never); }}
+          accessibilityRole="button"
+          accessibilityLabel={`Open greenhouse memory from ${snapshot.home_date}`}
+          accessibilityHint="Opens the greenhouse at this planted day"
+        >
+          <Text style={styles.openMemoryText}>Visit this day in the greenhouse</Text>
+        </Pressable>
       )}
     </DailyMediaScaffold>
   );
@@ -259,5 +275,7 @@ const styles = StyleSheet.create({
   plantBody: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 10, lineHeight: 14, marginTop: 2 },
   plantButton: { minHeight: HearthTheme.touch.minimum, borderRadius: 16, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: HearthTheme.color.sage },
   plantButtonText: { color: HearthTheme.color.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12 },
+  openMemory: { minHeight: HearthTheme.touch.minimum, borderRadius: HearthTheme.radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: HearthTheme.space.lg, backgroundColor: HearthTheme.color.parchmentRaised, borderWidth: 1, borderColor: HearthTheme.color.sage },
+  openMemoryText: { color: HearthTheme.color.success, fontFamily: HearthTheme.type.bodyStrong, fontSize: 13 },
   pressed: { opacity: 0.7 },
 });

@@ -75,6 +75,34 @@ test('greenhouse uses horizontal bay navigation without shrinking the scene', ()
   assert.match(route, /onAccessibilityActivate=\{null\}/);
 });
 
+test('greenhouse supports calm recovery, chronology, and direct date retrieval', () => {
+  const surface = read('src/components/GreenhouseMemories.tsx');
+  const route = read('src/app/greenhouse.tsx');
+  const photo = read('src/components/daily/DailyPhotoScreen.tsx');
+  const model = compile('src/memories/greenhouseModel.ts');
+  const memories = [
+    { home_date: '2026-09-08' }, { home_date: '2026-09-05' },
+    { home_date: '2026-08-29' }, { home_date: '2026-08-22' },
+    { home_date: '2026-08-14' },
+  ];
+  assert.equal(model.findBayForHomeDate(memories, '2026-08-14'), 1);
+  assert.deepEqual(model.greenhouseBayDateRange(memories, 0), { newest: '2026-09-08', oldest: '2026-08-22' });
+  assert.match(surface, /Return to newest greenhouse memories/);
+  assert.match(surface, /Go to today’s photo/);
+  assert.match(surface, /Try opening the greenhouse again/);
+  assert.match(surface, /Remove forever/);
+  assert.match(route, /useLocalSearchParams/);
+  assert.match(route, /findBayForHomeDate/);
+  assert.match(photo, /params: \{ date: snapshot\.home_date \}/);
+});
+
+test('greenhouse QA route exposes mutation-free empty, error, chronology, focus, and deletion states', () => {
+  const qa = read('src/app/greenhouse-qa.tsx');
+  for (const state of ['empty', 'error', 'chronology', 'focused', 'delete']) assert.match(qa, new RegExp(`'${state}'`));
+  assert.match(qa, /onUnplant=\{async \(\) => false\}/);
+  assert.match(qa, /localPhotoUri=\{PHOTO_URI\}/);
+});
+
 test('Our Diary is paginated by date and contains voice notes and sketches but no photos', () => {
   const route = read('src/app/diary.tsx');
   const diary = read('src/components/daily/OurDiaryScreen.tsx');

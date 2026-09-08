@@ -9,8 +9,7 @@
 
 ## Current program checkpoint — 8 September 2026
 
-Milestones 1 through 6 and the Daily Sketch plus Photo/Voice/Diary slices of
-Milestone 7 are locally complete. The installed `1.0.4` client remains the
+Milestones 1 through 7 are locally complete. The installed `1.0.4` client remains the
 technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -58,6 +57,14 @@ feedback. These surfaces now use only `HearthTheme`, and provider failures pass
 through typed domain mapping. Automated checks pass 157/157; 13 deterministic
 states pass 39 responsive browser combinations with zero runtime errors.
 
+Milestone 7C makes planted memories easy to find again. Greenhouse bays now
+carry date ranges and a newest shortcut; a kept Daily Photo deep-links to its
+exact date and bay; and garden plus drawer discovery still share the registered
+destination. Empty, offline, and final removal states have calm in-context
+actions, with typed provider failures and no relationship score or pressure.
+Automated checks pass 159/159; five deterministic states pass all 15 responsive
+browser combinations with zero runtime errors or document overflow.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
@@ -72,7 +79,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
 `MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
-`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md` before changing publication state.
+`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
+`MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

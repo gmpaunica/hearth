@@ -13,7 +13,7 @@ import type { DailyMedium, DiaryDay, GreenhouseMemory } from './model';
 const DIARY_PAGE_SIZE = 20;
 const GREENHOUSE_PAGE_SIZE = 12;
 
-function collectionError(error: unknown, operation: 'diary_load' | 'diary_delete', fallback: string) {
+function collectionError(error: unknown, operation: 'diary_load' | 'diary_delete' | 'greenhouse_load' | 'greenhouse_delete', fallback: string) {
   const safe = mapDomainError(error, operation);
   reportDomainError(safe);
   return safe.code === 'unknown' ? fallback : safe.message;
@@ -73,7 +73,7 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
         greenhouseLoading: false,
       });
     } catch (error) {
-      set({ greenhouseLoading: false, error: collectionError(error, 'diary_load', 'Couldn\u2019t open the greenhouse.') });
+      set({ greenhouseLoading: false, error: collectionError(error, 'greenhouse_load', 'Couldn\u2019t open the greenhouse. Your memories are still safe.') });
     }
   },
 
@@ -108,7 +108,7 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
       }));
       return true;
     } catch (error) {
-      set({ busy: null, error: collectionError(error, 'diary_delete', 'Couldn\u2019t remove this greenhouse memory.') });
+      set({ busy: null, error: collectionError(error, 'greenhouse_delete', 'Couldn\u2019t remove this greenhouse memory. It is still safely planted.') });
       return false;
     }
   },
