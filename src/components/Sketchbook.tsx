@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
-  type GestureResponderEvent,
+  BackHandler,
+  findNodeHandle,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,23 +13,13 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { useAuthStore } from '@/state/authStore';
 import { type SketchbookDay, useDrawingStore } from '@/state/drawingStore';
+import { HearthTheme } from '@/theme/hearth';
 import { PixelArt } from './PixelArt';
 
 const BOOK_SHELL = require('../../assets/images/sketchbook/voxel-open-book.png');
-const TURN_DURATION = 320;
-const REDUCED_TURN_DURATION = 140;
-
-type TurnDirection = 'earlier' | 'later';
 
 interface PageLayout {
   bookWidth: number;
@@ -49,111 +41,79 @@ function dayTogether(day: string, togetherSince: string | null): number | null {
 
 function prettyDate(day: string): string {
   return new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
+    month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   });
 }
 
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    let mounted = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => {
-      if (mounted) setReduced(value);
-    });
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => {
-      mounted = false;
-      subscription.remove();
-    };
-  }, []);
-  return reduced;
+function shortDate(day: string): string {
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  });
 }
 
 function BookPage({
   name,
   title,
   grid,
-  day,
-  relationshipDay,
   width,
   height,
 }: {
   name: string;
   title: string;
   grid: string | null;
-  day: string;
-  relationshipDay: number | null;
   width: number;
   height: number;
 }) {
-  const artWidth = Math.min(width - 10, (height - 53) / 1.25);
+  const artWidth = Math.min(width - 10, (height - 49) / 1.25);
   const artHeight = artWidth * 1.25;
   return (
-    <View style={[styles.page, { width, height }]}>
-      <Text style={styles.name} numberOfLines={1}>
-        {name}
-      </Text>
-      <Text style={styles.sketchTitle} numberOfLines={1}>
-        {title}
+    <View
+      style={[styles.page, { width, height }]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Text maxFontSizeMultiplier={1.15} style={styles.name} numberOfLines={1}>{name}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={styles.sketchTitle} numberOfLines={1}>
+        {title || 'A quiet page'}
       </Text>
       <View style={[styles.artFrame, { width: artWidth, height: artHeight }]}>
-        {grid && (
-          <PixelArt
-            grid={grid}
-            width={artWidth}
-            borderRadius={4}
-            backgroundColor="#fff2d6"
-          />
+        {grid ? (
+          <PixelArt grid={grid} width={artWidth} borderRadius={4} backgroundColor="#FFF2D6" />
+        ) : (
+          <View style={styles.blankPage}><View style={styles.blankPageMark} /></View>
         )}
       </View>
-      <Text style={styles.pageFooter} numberOfLines={1}>
-        {prettyDate(day)}
-        {relationshipDay ? `  ·  Day ${relationshipDay} together` : ''}
-      </Text>
     </View>
   );
 }
 
-function SpreadLayer({
+function Spread({
   spread,
   layout,
   memberAName,
   memberBName,
-  togetherSince,
 }: {
   spread: SketchbookDay;
   layout: PageLayout;
   memberAName: string;
   memberBName: string;
-  togetherSince: string | null;
 }) {
-  const relationshipDay = dayTogether(spread.day, togetherSince);
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={[styles.bookStage, { width: layout.bookWidth, height: layout.stageHeight }]}>
+      <Image
+        source={BOOK_SHELL}
+        resizeMode="contain"
+        accessible={false}
+        style={[
+          styles.bookImage,
+          { width: layout.bookWidth, height: layout.bookWidth, top: -layout.bookWidth * 0.14 },
+        ]}
+      />
       <View style={{ position: 'absolute', top: layout.pageTop, left: layout.leftPageLeft }}>
-        <BookPage
-          name={memberAName}
-          title={spread.memberATitle}
-          grid={spread.memberAGrid}
-          day={spread.day}
-          relationshipDay={relationshipDay}
-          width={layout.pageWidth}
-          height={layout.pageHeight}
-        />
+        <BookPage name={memberAName} title={spread.memberATitle} grid={spread.memberAGrid} width={layout.pageWidth} height={layout.pageHeight} />
       </View>
       <View style={{ position: 'absolute', top: layout.pageTop, left: layout.rightPageLeft }}>
-        <BookPage
-          name={memberBName}
-          title={spread.memberBTitle}
-          grid={spread.memberBGrid}
-          day={spread.day}
-          relationshipDay={relationshipDay}
-          width={layout.pageWidth}
-          height={layout.pageHeight}
-        />
+        <BookPage name={memberBName} title={spread.memberBTitle} grid={spread.memberBGrid} width={layout.pageWidth} height={layout.pageHeight} />
       </View>
     </View>
   );
@@ -162,21 +122,18 @@ function SpreadLayer({
 export function Sketchbook({
   onClose,
   onOpenToday,
+  reviewMode = false,
+  reviewDeleteTarget = null,
 }: {
   onClose: () => void;
   onOpenToday: () => void;
+  reviewMode?: boolean;
+  reviewDeleteTarget?: { id: string; day: string } | null;
 }) {
+  const headingRef = useRef<Text>(null);
   const { width, height } = useWindowDimensions();
-  const reducedMotion = useReducedMotion();
   const [pageIndex, setPageIndex] = useState(0);
-  const [turning, setTurning] = useState<{
-    direction: TurnDirection;
-    spread: SketchbookDay;
-  } | null>(null);
-  const [inputLocked, setInputLocked] = useState(false);
-  const inputLockedRef = useRef(false);
-  const swipeStartX = useRef(0);
-  const turnProgress = useSharedValue(0);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; day: string } | null>(reviewDeleteTarget);
 
   const days = useDrawingStore((state) => state.sketchbookDays);
   const pages = useDrawingStore((state) => state.sketchbookPages);
@@ -186,306 +143,209 @@ export function Sketchbook({
   const memberBName = useDrawingStore((state) => state.memberBName);
   const loading = useDrawingStore((state) => state.sketchbookLoading);
   const error = useDrawingStore((state) => state.sketchbookError);
+  const deletingSketchId = useDrawingStore((state) => state.deletingSketchId);
+  const deleteError = useDrawingStore((state) => state.deleteError);
   const loadSketchbook = useDrawingStore((state) => state.loadSketchbook);
   const loadSketchbookDay = useDrawingStore((state) => state.loadSketchbookDay);
+  const deleteSketch = useDrawingStore((state) => state.deleteSketch);
+  const userId = useAuthStore((state) => state.userId);
+  const memberA = useAuthStore((state) => state.couple?.member_a ?? null);
   const togetherSince = useAuthStore((state) => state.couple?.created_at ?? null);
 
-  const bookWidth = Math.max(
-    280,
-    Math.min(width - 8, 680, Math.max(280, (height - 250) / 0.72)),
-  );
-  const layout = useMemo<PageLayout>(
-    () => ({
-      bookWidth,
-      stageHeight: bookWidth * 0.72,
-      pageTop: bookWidth * 0.105,
-      pageWidth: bookWidth * 0.334,
-      pageHeight: bookWidth * 0.515,
-      leftPageLeft: bookWidth * 0.109,
-      rightPageLeft: bookWidth * 0.556,
-    }),
-    [bookWidth],
-  );
+  const bookWidth = Math.max(280, Math.min(width - 16, 620, Math.max(280, (height - 330) / 0.72)));
+  const layout = useMemo<PageLayout>(() => ({
+    bookWidth,
+    stageHeight: bookWidth * 0.72,
+    pageTop: bookWidth * 0.105,
+    pageWidth: bookWidth * 0.334,
+    pageHeight: bookWidth * 0.515,
+    leftPageLeft: bookWidth * 0.109,
+    rightPageLeft: bookWidth * 0.556,
+  }), [bookWidth]);
 
   useEffect(() => {
+    if (reviewMode) return;
     let active = true;
     void loadSketchbook().then(() => {
-      if (active) {
-        setPageIndex(Math.max(0, useDrawingStore.getState().sketchbookDays.length - 1));
-      }
+      if (active) setPageIndex(Math.max(0, useDrawingStore.getState().sketchbookDays.length - 1));
     });
+    return () => { active = false; };
+  }, [loadSketchbook, reviewMode]);
+
+  useEffect(() => {
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    const focusTimer = setTimeout(() => {
+      if (Platform.OS === 'web') return;
+      const handle = findNodeHandle(headingRef.current);
+      if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+    }, 80);
     return () => {
-      active = false;
+      back.remove();
+      clearTimeout(focusTimer);
     };
-  }, [loadSketchbook]);
+  }, [onClose]);
 
   const activePageIndex = Math.min(pageIndex, Math.max(0, days.length - 1));
   const activeDay = days[activePageIndex]?.day ?? null;
-  const spread = useMemo(
-    () =>
-      activeDay
-        ? pages[activeDay] ?? {
-            day: activeDay,
-            memberAGrid: null,
-            memberATitle: '',
-            memberBGrid: null,
-            memberBTitle: '',
-          }
-        : null,
-    [activeDay, pages],
-  );
+  const spread = useMemo(() => activeDay
+    ? pages[activeDay] ?? {
+      day: activeDay,
+      memberAId: null,
+      memberAGrid: null,
+      memberATitle: '',
+      memberBId: null,
+      memberBGrid: null,
+      memberBTitle: '',
+    }
+    : null, [activeDay, pages]);
 
   useEffect(() => {
-    if (!activeDay) return;
+    if (!activeDay || reviewMode) return;
     void loadSketchbookDay(activeDay);
     const earlier = days[activePageIndex - 1]?.day;
     const later = days[activePageIndex + 1]?.day;
     if (earlier) void loadSketchbookDay(earlier, true);
     if (later) void loadSketchbookDay(later, true);
-  }, [activeDay, activePageIndex, days, loadSketchbookDay]);
+  }, [activeDay, activePageIndex, days, loadSketchbookDay, reviewMode]);
 
-  const finishTurn = useCallback(() => {
-    inputLockedRef.current = false;
-    setInputLocked(false);
-    setTurning(null);
-    turnProgress.set(0);
-  }, [turnProgress]);
-
-  const navigate = useCallback(
-    (direction: TurnDirection) => {
-      if (inputLockedRef.current || !spread) return;
-      const target = direction === 'earlier' ? activePageIndex - 1 : activePageIndex + 1;
-      if (target < 0 || target >= days.length) return;
-
-      inputLockedRef.current = true;
-      setInputLocked(true);
-      setTurning({ direction, spread });
-      setPageIndex(target);
-      turnProgress.set(0);
-      turnProgress.set(withTiming(
-        1,
-        {
-          duration: reducedMotion ? REDUCED_TURN_DURATION : TURN_DURATION,
-          easing: Easing.inOut(Easing.cubic),
-        },
-        (finished) => {
-          if (finished) runOnJS(finishTurn)();
-        },
-      ));
-    },
-    [activePageIndex, days.length, finishTurn, reducedMotion, spread, turnProgress],
-  );
-
-  const beginSwipe = useCallback((event: GestureResponderEvent) => {
-    swipeStartX.current = event.nativeEvent.pageX;
-  }, []);
-
-  const endSwipe = useCallback(
-    (event: GestureResponderEvent) => {
-      const deltaX = event.nativeEvent.pageX - swipeStartX.current;
-      if (deltaX > 45) navigate('earlier');
-      if (deltaX < -45) navigate('later');
-    },
-    [navigate],
-  );
-
-  const turningPageStyle = useAnimatedStyle(() => {
-    const direction = turning?.direction ?? 'later';
-    const angle = direction === 'later' ? -105 : 105;
-    const originShift = direction === 'later' ? -layout.pageWidth / 2 : layout.pageWidth / 2;
-    const progress = turnProgress.get();
-    return {
-      opacity: 1 - progress * 0.16,
-      transform: [
-        { perspective: 900 },
-        { translateX: originShift },
-        { rotateY: `${progress * angle}deg` },
-        { translateX: -originShift },
-      ],
-    };
-  }, [layout.pageWidth, turning?.direction]);
-
-  const crossfadeStyle = useAnimatedStyle(() => ({
-    opacity: 1 - turnProgress.get(),
-  }));
-
-  const currentLoading = !!activeDay && loadingDays.includes(activeDay) && !pages[activeDay];
+  const currentLoading = Boolean(activeDay && loadingDays.includes(activeDay) && !pages[activeDay]);
   const currentError = activeDay ? dayErrors[activeDay] : '';
+  const relationshipDay = activeDay ? dayTogether(activeDay, togetherSince) : null;
+  const mySketchId = spread ? userId === memberA ? spread.memberAId : spread.memberBId : null;
+  const pageSummary = spread
+    ? `${memberAName}: ${spread.memberAGrid ? spread.memberATitle || 'sketch saved' : 'page left open'}. ${memberBName}: ${spread.memberBGrid ? spread.memberBTitle || 'sketch saved' : 'page left open'}.`
+    : '';
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const removed = await deleteSketch(deleteTarget.id, deleteTarget.day);
+    if (removed) setDeleteTarget(null);
+  };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.ambientOrbOne} />
-      <View style={styles.ambientOrbTwo} />
+    <View style={styles.screen} accessibilityViewIsModal onAccessibilityEscape={onClose}>
       <View style={styles.header}>
         <View style={styles.headingCopy}>
-          <Text style={styles.kicker}>RITUALS</Text>
-          <Text style={styles.title}>Sketchbook</Text>
-          <Text style={styles.sub}>A dark little place for the days you kept.</Text>
+          <Text ref={headingRef} accessible accessibilityRole="header" style={styles.title}>Sketchbook</Text>
+          <Text style={styles.sub}>The little pages you chose to keep.</Text>
         </View>
-        <Pressable
-          style={styles.close}
-          onPress={onClose}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Close sketchbook"
-        >
-          <Text style={styles.closeText}>×</Text>
+        <Pressable style={({ pressed }) => [styles.close, pressed && styles.pressed]} onPress={onClose} accessibilityRole="button">
+          <Text style={styles.closeLabel}>Close</Text>
         </Pressable>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {loading && days.length === 0 ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color="#d7aa62" />
-            <Text style={styles.loadingText}>Opening your sketchbook…</Text>
+          <View style={styles.state}>
+            <ActivityIndicator color={HearthTheme.color.clay} />
+            <Text style={styles.stateBody}>Opening your sketchbook…</Text>
           </View>
         ) : error ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>The book stayed closed</Text>
-            <Text style={styles.emptyBody}>{error}</Text>
+          <View style={styles.state}>
+            <Text accessibilityRole="header" style={styles.stateTitle}>The book stayed closed</Text>
+            <Text accessibilityRole="alert" style={styles.stateBody}>{error}</Text>
             <Pressable style={styles.primaryButton} onPress={() => void loadSketchbook()}>
               <Text style={styles.primaryButtonText}>Try again</Text>
             </Pressable>
           </View>
-        ) : spread ? (
+        ) : spread && activeDay ? (
           <>
-            <View
-              style={[styles.bookStage, { width: layout.bookWidth, height: layout.stageHeight }]}
-              onStartShouldSetResponder={() => !inputLockedRef.current}
-              onMoveShouldSetResponder={() => !inputLockedRef.current}
-              onResponderGrant={beginSwipe}
-              onResponderRelease={endSwipe}
-            >
-              <Image
-                source={BOOK_SHELL}
-                resizeMode="contain"
-                style={{
-                  position: 'absolute',
-                  width: layout.bookWidth,
-                  height: layout.bookWidth,
-                  top: -layout.bookWidth * 0.14,
-                  left: 0,
-                }}
-              />
-              <SpreadLayer
-                spread={spread}
-                layout={layout}
-                memberAName={memberAName}
-                memberBName={memberBName}
-                togetherSince={togetherSince}
-              />
+            <Text style={styles.activeDate}>{prettyDate(activeDay)}</Text>
+            {!!relationshipDay && <Text style={styles.relationshipDay}>Day {relationshipDay} together</Text>}
 
-              {turning && reducedMotion && (
-                <Animated.View style={[StyleSheet.absoluteFill, crossfadeStyle]} pointerEvents="none">
-                  <SpreadLayer
-                    spread={turning.spread}
-                    layout={layout}
-                    memberAName={memberAName}
-                    memberBName={memberBName}
-                    togetherSince={togetherSince}
-                  />
-                </Animated.View>
-              )}
-
-              {turning && !reducedMotion && (
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.turningPage,
-                    {
-                      top: layout.pageTop,
-                      left:
-                        turning.direction === 'later'
-                          ? layout.rightPageLeft
-                          : layout.leftPageLeft,
-                    },
-                    turningPageStyle,
-                  ]}
+            <ScrollView style={styles.dateRailViewport} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRail} accessibilityLabel="Sketchbook dates">
+              {days.map((entry, index) => (
+                <Pressable
+                  key={entry.day}
+                  style={[styles.dateChip, index === activePageIndex && styles.dateChipOn]}
+                  onPress={() => { setDeleteTarget(null); setPageIndex(index); }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: index === activePageIndex }}
+                  accessibilityLabel={`Open sketches from ${prettyDate(entry.day)}`}
                 >
-                  <BookPage
-                    name={turning.direction === 'later' ? memberBName : memberAName}
-                    title={
-                      turning.direction === 'later'
-                        ? turning.spread.memberBTitle
-                        : turning.spread.memberATitle
-                    }
-                    grid={
-                      turning.direction === 'later'
-                        ? turning.spread.memberBGrid
-                        : turning.spread.memberAGrid
-                    }
-                    day={turning.spread.day}
-                    relationshipDay={dayTogether(turning.spread.day, togetherSince)}
-                    width={layout.pageWidth}
-                    height={layout.pageHeight}
-                  />
-                </Animated.View>
-              )}
+                  <Text style={[styles.dateChipText, index === activePageIndex && styles.dateChipTextOn]}>{shortDate(entry.day)}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
-              {currentLoading && (
-                <View style={styles.pageLoading} pointerEvents="none">
-                  <ActivityIndicator color="#8e5c34" size="small" />
-                </View>
-              )}
+            <View accessible accessibilityLabel={`${prettyDate(activeDay)}. ${pageSummary}`}>
+              <Spread spread={spread} layout={layout} memberAName={memberAName} memberBName={memberBName} />
             </View>
 
+            {currentLoading && <View style={styles.inlineState}><ActivityIndicator color={HearthTheme.color.clay} /><Text style={styles.stateBody}>Opening this page…</Text></View>}
             {!!currentError && (
-              <View style={styles.dayError}>
-                <Text style={styles.dayErrorText}>{currentError}</Text>
-                <Pressable onPress={() => activeDay && void loadSketchbookDay(activeDay)}>
-                  <Text style={styles.retryText}>Try again</Text>
+              <View style={styles.inlineState}>
+                <Text accessibilityRole="alert" style={styles.errorText}>{currentError}</Text>
+                <Pressable style={styles.quietButton} onPress={() => void loadSketchbookDay(activeDay)}>
+                  <Text style={styles.quietButtonText}>Try again</Text>
                 </Pressable>
               </View>
             )}
 
             <View style={styles.pager}>
               <Pressable
-                style={[
-                  styles.pageButton,
-                  (activePageIndex === 0 || inputLocked) && styles.pageButtonDim,
-                ]}
-                onPress={() => navigate('earlier')}
-                disabled={activePageIndex === 0 || inputLocked}
+                style={[styles.pageButton, activePageIndex === 0 && styles.buttonDim]}
+                onPress={() => { setDeleteTarget(null); setPageIndex((index) => Math.max(0, index - 1)); }}
+                disabled={activePageIndex === 0}
                 accessibilityRole="button"
                 accessibilityLabel="Earlier sketchbook day"
               >
-                <Text style={styles.pageButtonText}>‹ Earlier</Text>
+                <Text style={styles.pageButtonText}>Earlier</Text>
               </Pressable>
-              <Text style={styles.pageCount}>
-                {activePageIndex + 1} of {days.length}
-              </Text>
+              <Text style={styles.pageCount}>{activePageIndex + 1} of {days.length}</Text>
               <Pressable
-                style={[
-                  styles.pageButton,
-                  (activePageIndex === days.length - 1 || inputLocked) && styles.pageButtonDim,
-                ]}
-                onPress={() => navigate('later')}
-                disabled={activePageIndex === days.length - 1 || inputLocked}
+                style={[styles.pageButton, activePageIndex === days.length - 1 && styles.buttonDim]}
+                onPress={() => { setDeleteTarget(null); setPageIndex((index) => Math.min(days.length - 1, index + 1)); }}
+                disabled={activePageIndex === days.length - 1}
                 accessibilityRole="button"
                 accessibilityLabel="Later sketchbook day"
               >
-                <Text style={styles.pageButtonText}>Later ›</Text>
+                <Text style={styles.pageButtonText}>Later</Text>
               </Pressable>
             </View>
+
+            {deleteTarget ? (
+              <View style={styles.deleteConfirm} accessibilityLiveRegion="polite">
+                <Text style={styles.deleteTitle}>Remove your sketch from {prettyDate(deleteTarget.day)}?</Text>
+                <Text style={styles.deleteBody}>It disappears for both of you and cannot be added again for that day.</Text>
+                {!!deleteError && <Text accessibilityRole="alert" style={styles.errorText}>{deleteError}</Text>}
+                <View style={styles.deleteActions}>
+                  <Pressable style={styles.keepButton} onPress={() => setDeleteTarget(null)} disabled={Boolean(deletingSketchId)}>
+                    <Text style={styles.keepButtonText}>Keep sketch</Text>
+                  </Pressable>
+                  <Pressable style={styles.deleteButton} onPress={() => void confirmDelete()} disabled={Boolean(deletingSketchId)}>
+                    {deletingSketchId ? <ActivityIndicator color={HearthTheme.color.danger} /> : <Text style={styles.deleteButtonText}>Remove forever</Text>}
+                  </Pressable>
+                </View>
+              </View>
+            ) : mySketchId ? (
+              <Pressable
+                style={styles.removeTrigger}
+                onPress={() => setDeleteTarget({ id: mySketchId, day: activeDay })}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove your sketch from ${prettyDate(activeDay)}`}
+              >
+                <Text style={styles.removeTriggerText}>Remove my sketch from this day</Text>
+              </Pressable>
+            ) : null}
           </>
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyGlyph}>□</Text>
-            <Text style={styles.emptyTitle}>Your first page is waiting</Text>
-            <Text style={styles.emptyBody}>Today can become the first day kept here.</Text>
+          <View style={styles.state}>
+            <View style={styles.emptyMark}><View style={styles.emptyMarkInner} /></View>
+            <Text accessibilityRole="header" style={styles.stateTitle}>Your first page is waiting</Text>
+            <Text style={styles.stateBody}>A sketch appears here only when one of you chooses to send it.</Text>
             <Pressable style={styles.primaryButton} onPress={onOpenToday}>
-              <Text style={styles.primaryButtonText}>Sketch today</Text>
+              <Text style={styles.primaryButtonText}>Open today’s page</Text>
             </Pressable>
           </View>
         )}
       </ScrollView>
 
       {spread && (
-        <Pressable style={styles.todayButton} onPress={onOpenToday}>
+        <Pressable style={styles.todayButton} onPress={onOpenToday} accessibilityRole="button">
           <Text style={styles.todayButtonText}>Today’s sketch</Text>
         </Pressable>
       )}
@@ -494,179 +354,58 @@ export function Sketchbook({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#140d12', overflow: 'hidden' },
-  ambientOrbOne: {
-    position: 'absolute',
-    top: -110,
-    left: -90,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: 'rgba(111, 50, 38, 0.2)',
-  },
-  ambientOrbTwo: {
-    position: 'absolute',
-    right: -130,
-    bottom: 60,
-    width: 330,
-    height: 330,
-    borderRadius: 165,
-    backgroundColor: 'rgba(61, 35, 49, 0.28)',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  headingCopy: { flex: 1, alignItems: 'center', paddingLeft: 42 },
-  kicker: { color: '#c57b5c', fontSize: 9, fontWeight: '800', letterSpacing: 2.2 },
-  title: {
-    color: '#f4dfbf',
-    fontFamily: 'serif',
-    fontSize: 30,
-    lineHeight: 35,
-    fontWeight: '700',
-  },
-  sub: { color: '#aa8f83', fontSize: 11, marginTop: 1 },
-  close: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(73, 40, 42, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(205, 150, 103, 0.26)',
-  },
-  closeText: { color: '#efd7b5', fontSize: 27, lineHeight: 29, fontWeight: '400' },
+  screen: { flex: 1, backgroundColor: HearthTheme.color.cover, overflow: 'hidden' },
+  header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: HearthTheme.space.lg, paddingTop: HearthTheme.space.md, paddingBottom: HearthTheme.space.sm },
+  headingCopy: { flex: 1, paddingRight: HearthTheme.space.md },
+  title: { color: HearthTheme.color.parchment, fontFamily: HearthTheme.type.display, fontSize: 30, lineHeight: 35 },
+  sub: { marginTop: 2, color: '#D4C5D9', fontFamily: HearthTheme.type.body, fontSize: 14, lineHeight: 20 },
+  close: { minWidth: 64, minHeight: HearthTheme.touch.minimum, alignItems: 'center', justifyContent: 'center', paddingHorizontal: HearthTheme.space.md, borderRadius: HearthTheme.radius.md, borderWidth: 1, borderColor: 'rgba(255,248,238,0.28)', backgroundColor: HearthTheme.color.coverRaised },
+  closeLabel: { color: HearthTheme.color.parchment, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
   scroll: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-  },
-  loading: { minHeight: 360, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: '#bda292', fontSize: 13 },
-  bookStage: { overflow: 'visible' },
-  page: { alignItems: 'center', paddingTop: 2, paddingBottom: 1 },
-  name: {
-    width: '100%',
-    height: 18,
-    color: '#442a22',
-    fontFamily: 'serif',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  sketchTitle: {
-    width: '94%',
-    height: 14,
-    color: '#6f4532',
-    fontFamily: 'serif',
-    fontSize: 8.5,
-    lineHeight: 11,
-    fontStyle: 'italic',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  artFrame: {
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 4,
-    backgroundColor: '#fff2d6',
-  },
-  pageFooter: {
-    width: '100%',
-    height: 18,
-    paddingTop: 3,
-    color: '#795846',
-    fontSize: 6.7,
-    lineHeight: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  turningPage: { position: 'absolute', backfaceVisibility: 'hidden' },
-  pageLoading: {
-    position: 'absolute',
-    top: '43%',
-    left: '47%',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 239, 207, 0.84)',
-  },
-  dayError: { alignItems: 'center', gap: 3, marginTop: -4 },
-  dayErrorText: { color: '#c9a999', fontSize: 11 },
-  retryText: { color: '#df9a70', fontSize: 11, fontWeight: '800' },
-  pager: {
-    width: '100%',
-    maxWidth: 440,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingHorizontal: 9,
-  },
-  pageButton: {
-    minWidth: 86,
-    minHeight: 40,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(65, 34, 36, 0.86)',
-    borderWidth: 1,
-    borderColor: 'rgba(197, 123, 92, 0.3)',
-    paddingHorizontal: 12,
-  },
-  pageButtonDim: { opacity: 0.32 },
-  pageButtonText: { color: '#df9a70', fontSize: 12, fontWeight: '800' },
-  pageCount: { color: '#a8887c', fontSize: 11, fontWeight: '700' },
-  emptyState: {
-    flex: 1,
-    minHeight: 360,
-    maxWidth: 300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  emptyGlyph: { color: '#c79551', fontSize: 46, lineHeight: 52 },
-  emptyTitle: {
-    color: '#f4dfbf',
-    fontFamily: 'serif',
-    fontSize: 23,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  emptyBody: { color: '#b39889', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  primaryButton: {
-    minHeight: 46,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ad5d43',
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  primaryButtonText: { color: '#fff1dc', fontSize: 14, fontWeight: '800' },
-  todayButton: {
-    alignSelf: 'center',
-    minHeight: 42,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(79, 43, 43, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(197, 123, 92, 0.3)',
-    paddingHorizontal: 22,
-    marginBottom: 8,
-  },
-  todayButtonText: { color: '#e0a07a', fontSize: 13, fontWeight: '800' },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: HearthTheme.space.sm, paddingBottom: HearthTheme.space.xl },
+  activeDate: { marginTop: HearthTheme.space.sm, color: HearthTheme.color.parchment, fontFamily: HearthTheme.type.display, fontSize: 21, lineHeight: 26, textAlign: 'center' },
+  relationshipDay: { marginTop: 2, color: '#D4C5D9', fontFamily: HearthTheme.type.body, fontSize: HearthTheme.type.caption, lineHeight: HearthTheme.type.captionLine },
+  dateRailViewport: { flexGrow: 0, flexShrink: 0, height: 76 },
+  dateRail: { gap: HearthTheme.space.sm, paddingHorizontal: HearthTheme.space.sm, paddingVertical: HearthTheme.space.md },
+  dateChip: { minHeight: HearthTheme.touch.minimum, minWidth: 78, alignItems: 'center', justifyContent: 'center', paddingHorizontal: HearthTheme.space.md, borderRadius: HearthTheme.radius.pill, borderWidth: 1, borderColor: 'rgba(255,248,238,0.28)', backgroundColor: HearthTheme.color.coverRaised },
+  dateChipOn: { backgroundColor: HearthTheme.color.parchmentWarm, borderColor: HearthTheme.color.coral },
+  dateChipText: { color: '#E3D7E6', fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  dateChipTextOn: { color: HearthTheme.color.ink },
+  bookStage: { overflow: 'hidden' },
+  bookImage: { position: 'absolute', left: 0 },
+  page: { alignItems: 'center', paddingTop: 2 },
+  name: { width: '100%', height: 18, color: HearthTheme.color.ink, fontFamily: HearthTheme.type.bodyStrong, fontSize: 11, lineHeight: 15, textAlign: 'center' },
+  sketchTitle: { width: '94%', height: 14, color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 8.5, lineHeight: 11, textAlign: 'center' },
+  artFrame: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 4, backgroundColor: '#FFF2D6' },
+  blankPage: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  blankPageMark: { width: 8, height: 8, backgroundColor: HearthTheme.color.gold, opacity: 0.45 },
+  inlineState: { alignItems: 'center', gap: HearthTheme.space.sm, marginVertical: HearthTheme.space.sm },
+  pager: { width: '100%', maxWidth: 440, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: HearthTheme.space.sm, paddingHorizontal: HearthTheme.space.sm },
+  pageButton: { minWidth: 96, minHeight: HearthTheme.touch.minimum, alignItems: 'center', justifyContent: 'center', paddingHorizontal: HearthTheme.space.md, borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.coverRaised, borderWidth: 1, borderColor: 'rgba(255,248,238,0.28)' },
+  pageButtonText: { color: HearthTheme.color.parchment, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  pageCount: { color: '#D4C5D9', fontFamily: HearthTheme.type.body, fontSize: HearthTheme.type.caption },
+  buttonDim: { opacity: 0.38 },
+  state: { flex: 1, minHeight: 380, maxWidth: 330, alignItems: 'center', justifyContent: 'center', gap: HearthTheme.space.md, paddingHorizontal: HearthTheme.space.lg },
+  stateTitle: { color: HearthTheme.color.parchment, fontFamily: HearthTheme.type.display, fontSize: HearthTheme.type.title, lineHeight: HearthTheme.type.titleLine, textAlign: 'center' },
+  stateBody: { color: '#D4C5D9', fontFamily: HearthTheme.type.body, fontSize: HearthTheme.type.caption, lineHeight: HearthTheme.type.captionLine, textAlign: 'center' },
+  emptyMark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.coverRaised },
+  emptyMarkInner: { width: 13, height: 13, backgroundColor: HearthTheme.color.gold },
+  primaryButton: { minHeight: HearthTheme.touch.minimum, minWidth: 180, alignItems: 'center', justifyContent: 'center', marginTop: HearthTheme.space.sm, paddingHorizontal: HearthTheme.space.xl, borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.clayPressed, borderWidth: 1, borderColor: HearthTheme.color.parchment },
+  primaryButtonText: { color: HearthTheme.color.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.label },
+  quietButton: { minHeight: HearthTheme.touch.minimum, justifyContent: 'center', paddingHorizontal: HearthTheme.space.lg },
+  quietButtonText: { color: '#FFD0C8', fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  errorText: { maxWidth: 330, color: '#FFD0C8', fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption, lineHeight: HearthTheme.type.captionLine, textAlign: 'center' },
+  removeTrigger: { minHeight: HearthTheme.touch.minimum, justifyContent: 'center', marginTop: HearthTheme.space.sm, paddingHorizontal: HearthTheme.space.lg, borderRadius: HearthTheme.radius.md },
+  removeTriggerText: { color: '#FFD0C8', fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  deleteConfirm: { width: '100%', maxWidth: 440, marginTop: HearthTheme.space.md, padding: HearthTheme.space.lg, borderRadius: HearthTheme.radius.lg, borderWidth: 1, borderColor: '#D9867F', backgroundColor: '#4A2C3B' },
+  deleteTitle: { color: '#FFF0EC', fontFamily: HearthTheme.type.display, fontSize: 19, lineHeight: 24 },
+  deleteBody: { marginTop: HearthTheme.space.xs, color: '#E8C8C5', fontFamily: HearthTheme.type.body, fontSize: HearthTheme.type.caption, lineHeight: HearthTheme.type.captionLine },
+  deleteActions: { flexDirection: 'row', gap: HearthTheme.touch.gap, marginTop: HearthTheme.space.md },
+  keepButton: { minHeight: HearthTheme.touch.minimum, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.parchmentRaised },
+  keepButtonText: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  deleteButton: { minHeight: HearthTheme.touch.minimum, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: HearthTheme.radius.md, borderWidth: 1, borderColor: '#E69A93', backgroundColor: '#F8D9D5' },
+  deleteButtonText: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
+  todayButton: { alignSelf: 'center', minHeight: HearthTheme.touch.minimum, alignItems: 'center', justifyContent: 'center', paddingHorizontal: HearthTheme.space.xl, marginBottom: HearthTheme.space.sm, borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.parchmentWarm, borderWidth: 1, borderColor: HearthTheme.color.coral },
+  todayButtonText: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.label },
+  pressed: { opacity: 0.74, transform: [{ scale: 0.99 }] },
 });

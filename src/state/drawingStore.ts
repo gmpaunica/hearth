@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { deleteDailyArtifact } from '@/daily/api';
+import { mapDomainError, reportDomainError } from '@/lib/domainError';
 import type { DrawingRow } from '@/lib/db';
 import { getSeenDrawing, setSeenDrawing } from '@/lib/prefs';
 import { supabase } from '@/lib/supabase';
@@ -38,8 +40,10 @@ export const EMPTY_GRID = EMPTY_PORTRAIT_GRID;
 
 export interface SketchbookDay {
   day: string;
+  memberAId: string | null;
   memberAGrid: string | null;
   memberATitle: string;
+  memberBId: string | null;
   memberBGrid: string | null;
   memberBTitle: string;
 }
@@ -84,8 +88,10 @@ export function buildSketchbookDay(
     : undefined;
   return {
     day,
+    memberAId: memberARow?.id ?? null,
     memberAGrid: memberARow?.grid ?? null,
     memberATitle: decodeDrawingTitle(memberARow?.grid ?? ''),
+    memberBId: memberBRow?.id ?? null,
     memberBGrid: memberBRow?.grid ?? null,
     memberBTitle: decodeDrawingTitle(memberBRow?.grid ?? ''),
   };
@@ -103,6 +109,8 @@ interface DrawingState {
   myTitle: string;
   /** Whether today's drawing has been saved at least once. */
   mineSaved: boolean;
+  /** False when today's author-owned slot was permanently closed. */
+  mySlotOpen: boolean;
   /** Partner's drawing for today, or null if they haven't drawn. */
   partnerGrid: string | null;
   partnerTitle: string;
@@ -126,6 +134,8 @@ interface DrawingState {
   memberBName: string;
   sketchbookLoading: boolean;
   sketchbookError: string | null;
+  deletingSketchId: string | null;
+  deleteError: string | null;
   strokePoint: DrawingPoint | null;
 
   continueStroke: (points: DrawingPoint[], ch: string, radius: number) => void;
@@ -141,6 +151,7 @@ interface DrawingState {
   loadSketchbook: () => Promise<void>;
   loadSketchbookDay: (day: string, prefetch?: boolean) => Promise<void>;
   save: () => Promise<void>;
+  deleteSketch: (id: string, day: string) => Promise<boolean>;
   ingest: (row: DrawingRow) => void;
   reset: () => void;
 }
@@ -158,6 +169,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   myGrid: EMPTY_GRID,
   myTitle: '',
   mineSaved: false,
+  mySlotOpen: true,
   partnerGrid: null,
   partnerTitle: '',
   partnerSeen: true,
@@ -175,6 +187,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   memberBName: 'Your person',
   sketchbookLoading: false,
   sketchbookError: null,
+  deletingSketchId: null,
+  deleteError: null,
   strokePoint: null,
 
   continueStroke: (points, ch, radius) => {
@@ -215,13 +229,28 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   load: async () => {
     const { coupleId, userId, partnerId } = ctx();
     if (!coupleId || !userId) return;
-    set({ loading: true });
-    const { data } = await supabase
-      .from('drawings')
-      .select('*')
-      .eq('couple_id', coupleId)
-      .eq('day', todayStr());
-    const rows = (data ?? []) as DrawingRow[];
+    set({ loading: true, error: null });
+    const day = todayStr();
+    const [drawingResult, slotResult] = await Promise.all([
+      supabase
+        .from('drawings')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .eq('day', day),
+      supabase.rpc('drawing_slot_is_open', {
+        p_couple_id: coupleId,
+        p_author_id: userId,
+        p_day: day,
+      }),
+    ]);
+    const loadFailure = drawingResult.error ?? slotResult.error;
+    if (loadFailure) {
+      const safe = mapDomainError(loadFailure, 'drawing_load');
+      reportDomainError(safe);
+      set({ loading: false, error: safe.message });
+      return;
+    }
+    const rows = (drawingResult.data ?? []) as DrawingRow[];
     const mine = rows.find((r) => r.from_user === userId);
     const theirs = partnerId ? rows.find((r) => r.from_user === partnerId) : undefined;
     const savedFingerprint = await getSeenDrawing(coupleId, userId, todayStr());
@@ -236,6 +265,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       myGrid: mine?.grid ?? EMPTY_GRID,
       myTitle: decodeDrawingTitle(mine?.grid ?? ''),
       mineSaved: !!mine,
+      mySlotOpen: slotResult.data !== false,
       partnerGrid: theirs?.grid ?? null,
       partnerTitle: decodeDrawingTitle(theirs?.grid ?? ''),
       partnerSeen: alreadySeenInMemory || drawingWasSeen(savedFingerprint, theirs ?? null),
@@ -360,7 +390,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
 
   save: async () => {
     const { coupleId, userId } = ctx();
-    if (!coupleId || !userId || get().saving) return;
+    if (!coupleId || !userId || get().saving || !get().mySlotOpen) return;
     if (get().myGrid === EMPTY_GRID) return; // nothing to send
     set({ saving: true, error: null });
     const title = normalizeDrawingTitle(get().myTitle);
@@ -375,16 +405,65 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       },
       { onConflict: 'couple_id,from_user,day' },
     );
-    if (error) console.warn('[hearth] save drawing failed:', error);
+    const safe = error ? mapDomainError(error, 'drawing_save') : null;
+    if (safe) reportDomainError(safe);
     set({
       saving: false,
       mineSaved: !error,
       myTitle: error ? get().myTitle : title,
-      error: error ? 'Couldn’t send your sketch. Please try again.' : null,
+      error: safe?.message ?? null,
     });
     if (!error) {
       await useDailyRitualStore.getState().dismissSketchReminder();
       await useDailyRitualStore.getState().refresh();
+    }
+  },
+
+  deleteSketch: async (id, day) => {
+    if (get().deletingSketchId) return false;
+    set({ deletingSketchId: id, deleteError: null });
+    try {
+      await deleteDailyArtifact('sketch', id);
+      const auth = useAuthStore.getState();
+      const couple = auth.couple;
+      const current = get();
+      const page = current.sketchbookPages[day];
+      if (!couple || !page || !auth.userId) {
+        set({ deletingSketchId: null });
+        return true;
+      }
+
+      const deletingA = page.memberAId === id && couple.member_a === auth.userId;
+      const deletingB = page.memberBId === id && couple.member_b === auth.userId;
+      const nextPage: SketchbookDay = {
+        ...page,
+        memberAId: deletingA ? null : page.memberAId,
+        memberAGrid: deletingA ? null : page.memberAGrid,
+        memberATitle: deletingA ? '' : page.memberATitle,
+        memberBId: deletingB ? null : page.memberBId,
+        memberBGrid: deletingB ? null : page.memberBGrid,
+        memberBTitle: deletingB ? '' : page.memberBTitle,
+      };
+      const hasA = nextPage.memberAId != null;
+      const hasB = nextPage.memberBId != null;
+      set({
+        deletingSketchId: null,
+        sketchbookPages: { ...current.sketchbookPages, [day]: nextPage },
+        sketchbookDays: hasA || hasB
+          ? current.sketchbookDays.map((entry) => entry.day === day
+            ? { ...entry, memberAHasDrawing: hasA, memberBHasDrawing: hasB }
+            : entry)
+          : current.sketchbookDays.filter((entry) => entry.day !== day),
+        ...(day === todayStr()
+          ? { myGrid: EMPTY_GRID, myTitle: '', mineSaved: false, mySlotOpen: false }
+          : {}),
+      });
+      return true;
+    } catch (error) {
+      const safe = mapDomainError(error, 'drawing_delete');
+      reportDomainError(safe);
+      set({ deletingSketchId: null, deleteError: safe.message });
+      return false;
     }
   },
 
@@ -416,12 +495,16 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
               ...current.sketchbookPages,
               [row.day]: {
                 ...cachedPage,
+                memberAId:
+                  row.from_user === couple.member_a ? row.id : cachedPage.memberAId,
                 memberAGrid:
                   row.from_user === couple.member_a ? row.grid : cachedPage.memberAGrid,
                 memberATitle:
                   row.from_user === couple.member_a
                     ? decodeDrawingTitle(row.grid)
                     : cachedPage.memberATitle,
+                memberBId:
+                  row.from_user === couple.member_b ? row.id : cachedPage.memberBId,
                 memberBGrid:
                   row.from_user === couple.member_b ? row.grid : cachedPage.memberBGrid,
                 memberBTitle:
@@ -444,7 +527,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       });
       void useMomentV2Store.getState().enqueueDrawingReaction(row);
     } else if (row.from_user === userId) {
-      set({ mineSaved: true, myTitle: decodeDrawingTitle(row.grid) });
+      set({ mineSaved: true, mySlotOpen: true, myTitle: decodeDrawingTitle(row.grid) });
     }
   },
 
@@ -453,6 +536,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       myGrid: EMPTY_GRID,
       myTitle: '',
       mineSaved: false,
+      mySlotOpen: true,
       partnerGrid: null,
       partnerTitle: '',
       partnerSeen: true,
@@ -470,6 +554,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       memberBName: 'Your person',
       sketchbookLoading: false,
       sketchbookError: null,
+      deletingSketchId: null,
+      deleteError: null,
       strokePoint: null,
     }),
 }));

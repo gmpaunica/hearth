@@ -16,6 +16,13 @@ const RITUAL_FIRE_LEVEL: Record<RitualFireState, number> = {
   glowing: 1,
 };
 
+const RITUAL_FIRE_LABEL: Record<RitualFireState, string> = {
+  low: 'resting',
+  steady: 'steady',
+  warming: 'warming',
+  glowing: 'glowing',
+};
+
 /**
  * The daily ritual remains the durable source of truth. A difficult Fireplace
  * Moment adds a temporary, client-only "tending" presentation so the room and
@@ -31,9 +38,9 @@ export function firePresentation(
   if (!activeFireplace) {
     return {
       state: ritualState,
-      label: ritualState,
+      label: RITUAL_FIRE_LABEL[ritualState],
       intensity: RITUAL_FIRE_LEVEL[ritualState],
-      description: 'Today\'s shared sketch ritual keeps this fire going.',
+      description: 'This fire welcomes any tiny sketch you choose to share.',
     };
   }
 

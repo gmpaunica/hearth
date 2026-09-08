@@ -14,6 +14,7 @@ import { useMomentsSurfaceStore } from './momentsSurfaceStore';
 import { useAvatarStore } from './avatarStore';
 import { useDailyMediaStore } from '@/daily/store';
 import { useHomeStore } from './homeStore';
+import { useRitualPreferencesStore } from './ritualPreferencesStore';
 
 /**
  * The app's realtime spine. Mounted once at the root, it:
@@ -120,6 +121,7 @@ export function useHearthSync() {
       useDailyRitualStore.getState().reset();
       useAvatarStore.getState().reset();
       useDailyMediaStore.getState().reset();
+      useRitualPreferencesStore.getState().reset();
       return;
     }
     if (partnerId) void useAvatarStore.getState().load(userId, memberA, partnerId);
@@ -131,7 +133,8 @@ export function useHearthSync() {
     };
     // The server home day hydrates before the daily drawing query so both
     // phones use the same date across timezone and DST boundaries.
-    void useDailyRitualStore.getState().refresh()
+    void useRitualPreferencesStore.getState().hydrate()
+      .then(() => useDailyRitualStore.getState().refresh())
       .then(() => useDrawingStore.getState().load());
     void useDailyMediaStore.getState().refresh(false);
 

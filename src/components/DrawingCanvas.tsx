@@ -10,7 +10,7 @@ import {
 import { PORTRAIT_HEIGHT, PORTRAIT_WIDTH } from '@/state/drawingCodec';
 import { type DrawingPoint } from '@/state/drawingStroke';
 import { PALETTE, useDrawingStore } from '@/state/drawingStore';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 import { PixelArt } from './PixelArt';
 
 const COLOR_NAMES = ['Amber', 'Coral', 'Pink', 'Sky', 'Sage', 'Butter', 'Cream', 'Ink'];
@@ -36,6 +36,8 @@ export function DrawingCanvas({ width, onDrawingActiveChange }: DrawingCanvasPro
 
   const [color, setColor] = useState(0); // palette index; -1 = eraser
   const [brushIndex, setBrushIndex] = useState(0);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const queuedPoints = useRef<DrawingPoint[]>([]);
   const frame = useRef<number | null>(null);
   const drawingActive = useRef(false);
@@ -125,30 +127,7 @@ export function DrawingCanvas({ width, onDrawingActiveChange }: DrawingCanvasPro
         />
       </View>
 
-      <View style={styles.brushes} accessibilityRole="radiogroup">
-        {BRUSHES.map((preset, index) => (
-          <Pressable
-            key={preset.label}
-            onPress={() => setBrushIndex(index)}
-            style={[styles.brush, brushIndex === index && styles.brushOn]}
-            accessibilityRole="radio"
-            accessibilityLabel={`${preset.label} brush`}
-            accessibilityState={{ selected: brushIndex === index }}
-          >
-            <View
-              style={[
-                styles.brushDot,
-                { width: preset.dot, height: preset.dot, borderRadius: preset.dot / 2 },
-              ]}
-            />
-            <Text style={[styles.brushText, brushIndex === index && styles.brushTextOn]}>
-              {preset.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.palette}>
+      <View style={styles.palette} accessibilityRole="radiogroup">
         {PALETTE.map((swatch, index) => (
           <Pressable
             key={swatch}
@@ -158,11 +137,14 @@ export function DrawingCanvas({ width, onDrawingActiveChange }: DrawingCanvasPro
               { backgroundColor: swatch },
               color === index && styles.swatchOn,
             ]}
-            accessibilityRole="button"
+            accessibilityRole="radio"
             accessibilityLabel={`${COLOR_NAMES[index]} pencil`}
             accessibilityState={{ selected: color === index }}
           />
         ))}
+      </View>
+
+      <View style={styles.toolRow}>
         <Pressable
           onPress={() => setColor(-1)}
           style={[styles.tool, styles.eraser, color === -1 && styles.swatchOn]}
@@ -173,100 +155,221 @@ export function DrawingCanvas({ width, onDrawingActiveChange }: DrawingCanvasPro
           <Text style={styles.eraserText}>Eraser</Text>
         </Pressable>
         <Pressable
-          onPress={clearMine}
-          style={styles.clear}
+          onPress={() => setToolsOpen((open) => !open)}
+          style={[styles.tool, styles.moreTools]}
           accessibilityRole="button"
-          accessibilityLabel="Clear sketch"
+          accessibilityLabel={toolsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
+          accessibilityState={{ expanded: toolsOpen }}
         >
-          <Text style={styles.clearText}>Clear</Text>
+          <Text style={styles.toolText}>{toolsOpen ? 'Fewer tools' : 'Brush & clear'}</Text>
         </Pressable>
       </View>
+
+      {toolsOpen && (
+        <View style={styles.toolsPanel}>
+          <Text style={styles.panelLabel}>Brush size</Text>
+          <View style={styles.brushes} accessibilityRole="radiogroup">
+            {BRUSHES.map((preset, index) => (
+              <Pressable
+                key={preset.label}
+                onPress={() => setBrushIndex(index)}
+                style={[styles.brush, brushIndex === index && styles.brushOn]}
+                accessibilityRole="radio"
+                accessibilityLabel={`${preset.label} brush`}
+                accessibilityState={{ selected: brushIndex === index }}
+              >
+                <View
+                  style={[
+                    styles.brushDot,
+                    { width: preset.dot, height: preset.dot, borderRadius: preset.dot / 2 },
+                  ]}
+                />
+                <Text style={[styles.brushText, brushIndex === index && styles.brushTextOn]}>
+                  {preset.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {confirmingClear ? (
+            <View style={styles.clearConfirm} accessibilityLiveRegion="polite">
+              <Text style={styles.clearConfirmText}>Clear every mark on this unsent sketch?</Text>
+              <View style={styles.clearActions}>
+                <Pressable
+                  onPress={() => setConfirmingClear(false)}
+                  style={styles.clearKeep}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.clearKeepText}>Keep drawing</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { clearMine(); setConfirmingClear(false); }}
+                  style={styles.clearDanger}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.clearDangerText}>Clear sketch</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => setConfirmingClear(true)}
+              style={styles.clear}
+              accessibilityRole="button"
+              accessibilityLabel="Clear sketch"
+            >
+              <Text style={styles.clearText}>Clear this sketch</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 9 },
+  wrap: { alignItems: 'center', gap: HearthTheme.space.md },
   canvasBox: {
-    borderRadius: 19,
+    borderRadius: HearthTheme.radius.lg,
     borderWidth: 1,
-    borderColor: editorial.lineStrong,
+    borderColor: HearthTheme.color.lineStrong,
     overflow: 'hidden',
-    shadowColor: editorial.shadow,
+    shadowColor: HearthTheme.shadow.color,
     shadowOpacity: 0.12,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  brushes: {
-    width: '100%',
-    flexDirection: 'row',
-    gap: 5,
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  brush: {
-    minHeight: 33,
-    flex: 1,
-    maxWidth: 88,
-    paddingHorizontal: 5,
-    borderRadius: 13,
-    backgroundColor: editorial.paperTint,
-    borderWidth: 1,
-    borderColor: editorial.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  brushOn: { backgroundColor: editorial.claySoft, borderColor: editorial.clay },
-  brushDot: { backgroundColor: editorial.ink },
-  brushText: { color: editorial.inkSoft, fontSize: 8, fontWeight: '700' },
-  brushTextOn: { color: editorial.clayDark },
   palette: {
+    maxWidth: 224,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: HearthTheme.space.sm,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
   },
   swatch: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    width: 48,
+    height: 48,
+    borderRadius: HearthTheme.radius.pill,
+    borderWidth: 3,
+    borderColor: HearthTheme.color.parchment,
   },
   swatchOn: {
-    borderColor: editorial.ink,
-    shadowColor: editorial.shadow,
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    borderColor: HearthTheme.color.ink,
+    shadowColor: HearthTheme.shadow.color,
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  toolRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: HearthTheme.touch.gap,
+  },
   tool: {
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  eraser: {
-    backgroundColor: editorial.paperTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eraserText: { color: editorial.ink, fontSize: 10, fontWeight: '700' },
-  clear: {
-    paddingHorizontal: 11,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: editorial.paperTint,
-    borderColor: editorial.line,
+    minHeight: HearthTheme.touch.minimum,
+    flex: 1,
+    paddingHorizontal: HearthTheme.space.md,
+    borderRadius: HearthTheme.radius.md,
     borderWidth: 1,
+    borderColor: HearthTheme.color.lineStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clearText: { color: editorial.inkSoft, fontSize: 11, fontWeight: '700' },
+  eraser: { backgroundColor: HearthTheme.color.parchmentRaised },
+  moreTools: { backgroundColor: HearthTheme.color.sageSoft, borderColor: HearthTheme.color.sage },
+  eraserText: {
+    color: HearthTheme.color.ink,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
+  toolText: {
+    color: HearthTheme.color.ink,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
+  toolsPanel: {
+    width: '100%',
+    gap: HearthTheme.space.sm,
+    padding: HearthTheme.space.md,
+    borderRadius: HearthTheme.radius.md,
+    backgroundColor: HearthTheme.color.parchmentWarm,
+  },
+  panelLabel: {
+    color: HearthTheme.color.ink,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
+  brushes: { flexDirection: 'row', flexWrap: 'wrap', gap: HearthTheme.space.sm },
+  brush: {
+    minHeight: HearthTheme.touch.minimum,
+    flexBasis: '47%',
+    flexGrow: 1,
+    paddingHorizontal: HearthTheme.space.sm,
+    borderRadius: HearthTheme.radius.md,
+    backgroundColor: HearthTheme.color.parchmentRaised,
+    borderWidth: 1,
+    borderColor: HearthTheme.color.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: HearthTheme.space.sm,
+  },
+  brushOn: { backgroundColor: HearthTheme.color.coralSoft, borderColor: HearthTheme.color.clay },
+  brushDot: { backgroundColor: HearthTheme.color.ink },
+  brushText: {
+    color: HearthTheme.color.inkMuted,
+    fontFamily: HearthTheme.type.body,
+    fontSize: HearthTheme.type.caption,
+  },
+  brushTextOn: { color: HearthTheme.color.clayPressed, fontFamily: HearthTheme.type.bodyStrong },
+  clear: {
+    minHeight: HearthTheme.touch.minimum,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: HearthTheme.radius.md,
+  },
+  clearText: {
+    color: HearthTheme.color.danger,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
+  clearConfirm: { gap: HearthTheme.space.sm },
+  clearConfirmText: {
+    color: HearthTheme.color.danger,
+    fontFamily: HearthTheme.type.body,
+    fontSize: HearthTheme.type.caption,
+    lineHeight: HearthTheme.type.captionLine,
+  },
+  clearActions: { flexDirection: 'row', gap: HearthTheme.touch.gap },
+  clearKeep: {
+    minHeight: HearthTheme.touch.minimum,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: HearthTheme.radius.md,
+    borderWidth: 1,
+    borderColor: HearthTheme.color.lineStrong,
+    backgroundColor: HearthTheme.color.parchmentRaised,
+  },
+  clearDanger: {
+    minHeight: HearthTheme.touch.minimum,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: HearthTheme.radius.md,
+    borderWidth: 1,
+    borderColor: HearthTheme.color.danger,
+    backgroundColor: HearthTheme.color.dangerSoft,
+  },
+  clearKeepText: {
+    color: HearthTheme.color.ink,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
+  clearDangerText: {
+    color: HearthTheme.color.danger,
+    fontFamily: HearthTheme.type.bodyStrong,
+    fontSize: HearthTheme.type.caption,
+  },
 });

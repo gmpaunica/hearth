@@ -175,7 +175,7 @@ test('one ritual snapshot drives the physical fire while Fireplace adds only tem
   assert.match(sync, /useDailyRitualStore\.getState\(\)\.refresh/);
   assert.match(drawing, /currentHomeDate/);
   assert.match(drawing, /useDailyRitualStore\.getState\(\)\.refresh/);
-  assert.match(read('src/components/DailyDrawing.tsx'), /if \(homeDate\) void load\(\)/);
+  assert.match(read('src/components/DailyDrawing.tsx'), /if \(homeDate && !reviewMode\) void load\(\)/);
   assert.match(ritual, /completed_units/);
   assert.doesNotMatch(ritual, /partner.*completed|streak|failure|relationship score/i);
 });
@@ -186,7 +186,8 @@ test('drawing reminder and reactions preserve privacy and exactly-once spatial p
   const overlay = read('src/components/SpatialReactionOverlay.tsx');
   const store = read('src/state/momentV2Store.ts');
   const sync = read('src/state/useHearthSync.ts');
-  assert.match(drawingUi, /pencilSatellite/);
+  assert.match(drawingUi, /Evening prompt:/);
+  assert.match(drawingUi, /Your partner cannot see this choice/);
   assert.match(drawingUi, /Tiny sketch tonight\?/);
   assert.doesNotMatch(drawingUi, /partner.*(?:missing|completion|sketch tonight)/i);
   for (const anchor of ['fireplace', 'garden', 'sofa', 'table', 'rest', 'romantic', 'drawing']) {

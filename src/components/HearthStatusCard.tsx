@@ -124,7 +124,7 @@ export function HearthStatusCard() {
           <Text style={styles.eyebrow}>The hearth</Text>
           <View style={styles.titleRow}>
             <Text style={styles.title}>Fire: {fire.label}</Text>
-            <View style={styles.fireChip}><Text style={styles.fireChipText}>{Math.round(fire.intensity * 100)}% warm</Text></View>
+            <View style={styles.fireChip}><Text style={styles.fireChipText}>Optional ritual</Text></View>
           </View>
           <Text style={styles.body}>{fire.description}</Text>
           {activeFireplace && (

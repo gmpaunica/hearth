@@ -28,6 +28,9 @@ export type DomainOperation =
   | 'unblock_partner'
   | 'moment_sync'
   | 'moment_action'
+  | 'drawing_load'
+  | 'drawing_save'
+  | 'drawing_delete'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {

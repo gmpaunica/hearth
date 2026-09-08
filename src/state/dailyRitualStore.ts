@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import type { DailyRitualSnapshot, RitualFireState } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from './authStore';
+import { useRitualPreferencesStore } from './ritualPreferencesStore';
 
 const FIRE_STATES = new Set<RitualFireState>(['steady', 'low', 'warming', 'glowing']);
 const MAX_TIMER_MS = 2_000_000_000;
@@ -114,7 +115,8 @@ export const useDailyRitualStore = create<DailyRitualState>((set, get) => ({
     const auth = useAuthStore.getState();
     if (!snapshot || !auth.couple?.id || !auth.userId) return;
     set({ mineSavedDay: snapshot.home_date, mineSaved });
-    if (!snapshot.after_evening_check || mineSaved) {
+    const reminderEnabled = useRitualPreferencesStore.getState().sketchReminderEnabled;
+    if (!reminderEnabled || !snapshot.after_evening_check || mineSaved) {
       set({ reminderVisible: false });
       return;
     }

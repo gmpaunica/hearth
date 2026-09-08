@@ -9,7 +9,7 @@
 
 ## Current program checkpoint — 8 September 2026
 
-Milestones 1 through 6 of the comprehensive improvement program are locally
+Milestones 1 through 6 and the Daily Sketch slice of Milestone 7 are locally
 complete. The installed `1.0.4` client remains the technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -40,6 +40,15 @@ failures through safe domain copy. Note removal and whole-Moment cancellation
 are now separate confirmed loss actions. Automated checks pass 145/145 and the
 actual sheet passes responsive browser review across all six journey states.
 
+Milestone 7A makes the daily sketch explicitly optional. Creation begins with
+the canvas and progressively reveals the optional title and brush sizes; a
+versioned, per-person local preference controls only that phone's evening
+prompt. The fire no longer exposes a numeric warmth meter. The sketchbook adds
+direct date navigation, readable day context, and confirmed author-only
+removal that respects the existing server-owned closed daily slot. Automated
+checks pass 151/151 and all six deterministic states pass the three-viewport
+browser matrix without overflow or runtime errors.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
@@ -52,7 +61,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, `MILESTONE_3_PRIVATE_BY_DEFAULT.md`,
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
-`MILESTONE_6_MEET_BY_THE_FIRE.md` before changing publication state.
+`MILESTONE_6_MEET_BY_THE_FIRE.md`, and
+`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

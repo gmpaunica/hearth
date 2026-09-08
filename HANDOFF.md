@@ -14,13 +14,15 @@
 ## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 6 of the comprehensive improvement
-program are locally complete. Read `MILESTONE_1_BASELINE.md`,
+`app/integration`. Milestones 1 through 6 and the Daily Sketch slice of
+Milestone 7 are locally complete. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
-`MILESTONE_6_MEET_BY_THE_FIRE.md` before changing or publishing the client.
+`MILESTONE_6_MEET_BY_THE_FIRE.md`, and
+`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md` before changing or publishing the
+client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -54,6 +56,14 @@ status while retaining its last saved snapshot, and all failures use the shared
 domain-error boundary. Note removal and whole-Moment cancellation have distinct
 confirmations with clear consequences and safe exits. The development-only
 `moments-qa` route covers all representative states without backend mutations.
+
+Milestone 7A keeps the daily sketch as a gentle, optional ritual. The creation
+surface is canvas-first with progressive title and brush controls;
+`ritualPreferencesStore` persists the private per-person evening prompt; and
+`drawingStore` now reads the server-owned slot state and performs confirmed,
+author-only deletion through the deployed daily-artifact RPC. `Sketchbook`
+uses direct dated navigation and accessible summaries. The development-only
+`daily-sketch-qa` route covers the representative states without backend calls.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent
