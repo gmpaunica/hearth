@@ -14,7 +14,7 @@
 ## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 7 and milestones 8A–8B are locally complete. Read
+`app/integration`. Milestones 1 through 7 and milestones 8A–8C are locally complete. Read
 `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
@@ -25,7 +25,8 @@ The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
 `MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
 `MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
 `MILESTONE_8A_WARDROBE_AND_STYLE.md`, and
-`MILESTONE_8B_DECORATING.md` before changing or publishing the client.
+`MILESTONE_8B_DECORATING.md`, and
+`MILESTONE_8C_PROGRESSION_GARDEN_AND_ROOMS.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -96,6 +97,14 @@ Save, placement, undo/redo, cancel, Put away, and conflict resolution now have
 explicit state and in-sheet consequences with 48-point controls. Store save
 failures map through `home_edit` and retain the local draft for retry. The
 development-only `home-studio-qa` route covers six backend-free review states.
+
+Milestone 8C keeps every authoritative progression threshold while replacing
+reward-ladder language with calm shared-home chapters. `homeProgress.ts` names
+the discoveries at each stage; `HomeGrewCard` is safe-area-aware, scrollable at
+large text, and moves screen-reader focus to the new chapter. Future-room copy
+in the rail and scene notice uses the same static shared-day milestone without
+a countdown. The development-only `home-growth-qa` route covers six
+persistence-free review stages.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent

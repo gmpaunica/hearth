@@ -52,7 +52,7 @@ export function RoomRail() {
               onPress={() => focusRoom(room.id, reduceMotion)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              accessibilityLabel={`${ROOM_LABELS[room.id]}${locked ? `, opens on day ${unlockDay}` : ''}`}
+              accessibilityLabel={`${ROOM_LABELS[room.id]}${locked ? `, grows into view after ${unlockDay} shared active days` : ''}`}
               accessibilityHint="Move the home view to this room"
             >
               <Text

@@ -91,7 +91,7 @@ export function lockedRoomCopy(room: RoomId, daysTogether: number): LockedRoomCo
   return {
     title: room === 'bedroom' ? 'Bedroom' : 'Garden',
     detail: remaining === 0
-      ? 'Ready to unlock'
-      : `Unlocks in ${remaining} ${remaining === 1 ? 'day' : 'days'}`,
+      ? 'Ready whenever you are.'
+      : `Grows into view after ${ROOM_UNLOCK_DAYS[room]} shared active days.`,
   };
 }

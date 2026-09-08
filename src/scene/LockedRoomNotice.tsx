@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useHomeProgress } from '@/state/homeProgress';
 import { useDrawingStore } from '@/state/drawingStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
-import { ui } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 import { getFocusedRoom, subscribeFocusedRoom } from './cameraState';
 import { lockedRoomCopy } from './roomNavigation';
 
@@ -33,10 +33,10 @@ export function LockedRoomNotice() {
       style={[styles.wrap, hasTopOverlay && styles.wrapShifted]}
       accessible
       accessibilityRole="text"
-      accessibilityLabel={`${copy.title} locked. ${copy.detail}.`}
+      accessibilityLabel={`${copy.title}. ${copy.detail}`}
     >
       <View style={styles.pill}>
-        <Text style={styles.eyebrow}>LOCKED ROOM</Text>
+        <Text style={styles.eyebrow}>A FUTURE CHAPTER</Text>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.detail}>{copy.detail}</Text>
       </View>
@@ -58,27 +58,28 @@ const styles = StyleSheet.create({
   pill: {
     minWidth: 152,
     alignItems: 'center',
-    backgroundColor: 'rgba(24, 29, 46, 0.88)',
-    borderColor: 'rgba(221, 188, 119, 0.5)',
+    backgroundColor: HearthTheme.color.cover,
+    borderColor: HearthTheme.color.gold,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
   eyebrow: {
-    color: '#d0ae68',
+    color: HearthTheme.color.gold,
     fontSize: 9,
-    fontWeight: '700',
+    fontFamily: HearthTheme.type.bodyStrong,
     letterSpacing: 1.8,
   },
   title: {
-    color: ui.text,
+    color: HearthTheme.color.onAccent,
+    fontFamily: HearthTheme.type.display,
     fontSize: 16,
-    fontWeight: '700',
     marginTop: 2,
   },
   detail: {
-    color: ui.textDim,
+    color: HearthTheme.color.twilightSoft,
+    fontFamily: HearthTheme.type.body,
     fontSize: 12,
     marginTop: 1,
   },

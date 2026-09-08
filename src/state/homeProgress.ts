@@ -19,6 +19,7 @@ export interface HomeStage {
   atDays: number;
   title: string;
   blurb: string;
+  discoveries: string[];
   components: HomeComponent[];
   signals: SignalType[];
 }
@@ -30,63 +31,72 @@ export const HOME_STAGES: HomeStage[] = [
   {
     atDays: 0,
     title: 'Moving in',
-    blurb: 'Your compact home begins with every core emotional signal.',
+    blurb: 'A small shared place is ready for your first ordinary days together.',
+    discoveries: ['The living room', 'Moments by the fire', 'Your daily sketch'],
     components: ['fireplace', 'restnook', 'easel', 'sofa', 'table'],
     signals: ['fireplace', 'rest', 'sofa', 'table', 'romantic', 'garden'],
   },
   {
     atDays: 3,
     title: 'Signs of you',
-    blurb: 'Finishes, lighting, indoor decor, and small planters become yours to arrange.',
+    blurb: 'A few thoughtful details are ready whenever you feel like making the place yours.',
+    discoveries: ['Room finishes', 'Gentle lighting and decor', 'Small indoor plants'],
     components: ['plants'],
     signals: [],
   },
   {
     atDays: 6,
     title: 'A little more room',
-    blurb: 'After 144 active hours, the standard living room is ready before day seven ends.',
+    blurb: 'The living room has opened up, with more breathing room for the things you keep here.',
+    discoveries: ['A roomier living room', 'More space for shared pieces'],
     components: [],
     signals: [],
   },
   {
     atDays: 14,
     title: 'A warmer hearth',
-    blurb: 'Fireplace tier II and its first architectural details unlock.',
+    blurb: 'The heart of the room has gained a little more warmth and character.',
+    discoveries: ['A new fireplace style', 'Bookshelf and architectural details'],
     components: ['bookshelf'],
     signals: [],
   },
   {
     atDays: 21,
     title: 'Growing closer',
-    blurb: 'A bedroom, bed, and wardrobe family become available.',
+    blurb: 'A quieter room is ready for rest, closeness, and the character of your shared home.',
+    discoveries: ['The bedroom', 'Beds and bedside pieces', 'Wardrobes and bedroom seating'],
     components: ['bed', 'easel'],
     signals: [],
   },
   {
     atDays: 30,
     title: 'Room to grow',
-    blurb: 'The standard garden opens with paths, planting, furniture, and small water features.',
+    blurb: 'The garden gate has opened onto a calm place for space, memories, and fresh details.',
+    discoveries: ['The garden', 'Paths, planting, and seating', 'The memory greenhouse'],
     components: ['garden'],
     signals: [],
   },
   {
     atDays: 60,
     title: 'Room to imagine',
-    blurb: 'Large interiors and garden structures become available.',
+    blurb: 'There is more room to shape each place in a way that feels like the two of you.',
+    discoveries: ['Larger interior layouts', 'Garden structures', 'A future extra room'],
     components: [],
     signals: [],
   },
   {
     atDays: 90,
     title: 'A garden landmark',
-    blurb: 'A large garden, major water features, and fireplace tier III unlock.',
+    blurb: 'The garden has space for one meaningful landmark and a fuller gathering place.',
+    discoveries: ['A larger garden', 'Ponds and fountains', 'A grander fireplace style'],
     components: [],
     signals: [],
   },
   {
     atDays: 180,
     title: 'A grand garden',
-    blurb: 'Grand grounds, large trees, a gazebo, and major statues become available.',
+    blurb: 'The grounds have grown into their widest shape, ready for a few lasting landmarks.',
+    discoveries: ['Grand garden grounds', 'Large trees and a gazebo', 'Monumental garden pieces'],
     components: [],
     signals: [],
   },

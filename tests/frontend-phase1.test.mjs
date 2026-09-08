@@ -749,11 +749,11 @@ test('locked-room copy uses the real day-21 and day-30 milestones', () => {
 
   assert.deepEqual(lockedRoomCopy('bedroom', 20.2), {
     title: 'Bedroom',
-    detail: 'Unlocks in 1 day',
+    detail: 'Grows into view after 21 shared active days.',
   });
   assert.deepEqual(lockedRoomCopy('garden', 12), {
     title: 'Garden',
-    detail: 'Unlocks in 18 days',
+    detail: 'Grows into view after 30 shared active days.',
   });
   assert.equal(lockedRoomCopy('living', 0), null);
 });

@@ -47,3 +47,24 @@ test('progression never hides the current authored room or garden tier', () => {
   assert.match(studio, /size === room\.sizeTier[\s\S]*growthDays >= roomSizeUnlockDay/);
   assert.match(studio, /tier === draft\.gardenTier \|\| growthDays >= gardenTierUnlockDay/);
 });
+
+test('home growth is explained as shared chapters without pressure or scorekeeping', () => {
+  const progressStore = read('src/state/homeProgress.ts');
+  const card = read('src/components/HomeGrewCard.tsx');
+  const notice = read('src/scene/LockedRoomNotice.tsx');
+  const rail = read('src/components/RoomRail.tsx');
+  const qa = read('src/app/home-growth-qa.tsx');
+  assert.match(progressStore, /discoveries: string\[\]/);
+  assert.doesNotMatch(progressStore, /tier II|tier III|144 active hours/);
+  assert.match(card, /Nothing needs to be earned or rushed/);
+  assert.match(card, /Now at home/);
+  assert.match(card, /HearthTheme/);
+  assert.doesNotMatch(card, /import \{ editorial \}/);
+  assert.match(notice, /A FUTURE CHAPTER/);
+  assert.doesNotMatch(notice, /LOCKED ROOM/);
+  assert.match(rail, /grows into view after/);
+  assert.match(qa, /if \(!__DEV__\) return <Redirect href="\/"/);
+  for (const state of ['moving', 'details', 'bedroom', 'garden', 'landmark', 'grand']) {
+    assert.match(qa, new RegExp(`'${state}'`));
+  }
+});
