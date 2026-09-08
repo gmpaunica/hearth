@@ -57,7 +57,7 @@ test('the draft store persists commands, supports history, and resolves revision
   assert.match(store, /touchedConflictMessages/);
   assert.match(store, /keepLocalResolution/);
   assert.match(store, /usePartnerVersion/);
-  assert.match(store, /Draft kept offline/);
+  assert.match(store, /decorating draft is kept on this phone/);
   assert.match(store, /validateHomeDraft\(state\.draftSnapshot\)/);
 });
 
@@ -84,6 +84,30 @@ test('saving remains atomic and editing preserves the mounted scene', () => {
   assert.match(homeStore, /previewing: true/);
   assert.match(scene, /PlacementGhost/);
   assert.match(scene, /ghost\.valid/);
+});
+
+test('decorating keeps loss, conflicts, and offline recovery explicit and accessible', () => {
+  const studio = read('src/components/HomeStudio.tsx');
+  const store = read('src/state/homeStudioStore.ts');
+  const qa = read('src/app/home-studio-qa.tsx');
+  assert.match(studio, /HearthTheme/);
+  assert.doesNotMatch(studio, /import \{ editorial \}/);
+  assert.match(studio, /Discard your changes\?/);
+  assert.match(studio, /Put this piece away\?/);
+  assert.match(studio, /Replace your draft\?/);
+  assert.match(studio, /Keep my draft/);
+  assert.match(studio, /Use shared version/);
+  assert.match(studio, /accessibilityLiveRegion="polite"/);
+  assert.match(studio, /HearthTheme\.touch\.minimum/);
+  assert.match(studio, /accessibilityLabel="Confirm this placement"/);
+  assert.doesNotMatch(studio, /notice: \{ position: 'absolute'/);
+  assert.match(store, /mapDomainError\(error, 'home_edit'\)/);
+  assert.match(store, /decorating draft is kept on this phone/);
+  assert.match(qa, /if \(!__DEV__\) return <Redirect href="\/"/);
+  for (const state of ['catalog', 'selected', 'placing', 'blocked', 'conflict', 'offline']) {
+    assert.match(qa, new RegExp(`'${state}'`));
+  }
+  assert.match(qa, /<HomeStudio reviewMode \/>/);
 });
 
 test('every foundation object and its scene anchors render from resolved instances', () => {

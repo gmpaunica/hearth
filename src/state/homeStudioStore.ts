@@ -13,6 +13,7 @@ import {
 import { HOME_ASSET_REGISTRY } from '@/home/catalog';
 import { LEGACY_COTTAGE_V2_SNAPSHOT } from '@/home/layouts';
 import type { HomeOperation, HomeSnapshot, HomeSurface } from '@/home/types';
+import { mapDomainError, reportDomainError } from '@/lib/domainError';
 import { useAuthStore } from './authStore';
 import { useHomeStore } from './homeStore';
 
@@ -451,9 +452,11 @@ export const useHomeStudioStore = create<HomeStudioState>((set, get) => ({
       await persistDraft({ baseSnapshot: conflictSnapshot, operations: replayed.operations, pendingRequestId: null, mode: state.mode });
       return false;
     } catch (error) {
+      const domainError = mapDomainError(error, 'home_edit');
+      reportDomainError(domainError);
       set({
         saving: false,
-        message: `Draft kept offline. ${error instanceof Error ? error.message : 'Save needs a current server revision.'}`,
+        message: `${domainError.message} Your decorating draft is kept on this phone. Try Save again when you are ready.`,
       });
       return false;
     }

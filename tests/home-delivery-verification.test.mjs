@@ -43,7 +43,7 @@ test('the release contract covers every editor and scene validation gate', () =>
   assert.match(studio, /touchedConflictMessages/);
   assert.match(studio, /keepLocalResolution/);
   assert.match(studio, /usePartnerVersion/);
-  assert.match(studio, /Draft kept offline/);
+  assert.match(studio, /decorating draft is kept on this phone/);
 
   // Realtime is revision-only, foregrounding refetches truth, and every
   // navigation/camera/interaction consumer shares the resolved scene.

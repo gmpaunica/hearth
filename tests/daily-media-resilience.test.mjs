@@ -76,7 +76,7 @@ test('daily media failures use typed domain mapping and QA stays development-onl
   const photo = read('src/components/daily/DailyPhotoScreen.tsx');
   const voice = read('src/components/daily/DailyRecordScreen.tsx');
   const diary = read('src/components/daily/OurDiaryScreen.tsx');
-  for (const operation of ['daily_media_load', 'daily_media_upload', 'daily_media_delete', 'daily_media_receipt', 'diary_load', 'diary_delete', 'greenhouse_load', 'greenhouse_delete', 'avatar_load', 'avatar_save']) {
+  for (const operation of ['daily_media_load', 'daily_media_upload', 'daily_media_delete', 'daily_media_receipt', 'diary_load', 'diary_delete', 'greenhouse_load', 'greenhouse_delete', 'avatar_load', 'avatar_save', 'home_edit']) {
     assert.match(domain, new RegExp(`'${operation}'`));
   }
   assert.match(store, /mapDomainError/);

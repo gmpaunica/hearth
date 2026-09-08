@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HOME_ASSETS, HOME_ASSET_REGISTRY } from '@/home/catalog';
 import {
@@ -40,8 +41,23 @@ import {
 } from '@/state/homeStudioStore';
 import { useMomentV2Store } from '@/state/momentV2Store';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
-import { editorial } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 import { HomeAssetThumbnail } from './HomeAssetThumbnail';
+
+const editorial = {
+  paper: HearthTheme.color.parchmentRaised,
+  paperStrong: HearthTheme.color.parchment,
+  paperTint: HearthTheme.color.parchmentWarm,
+  ink: HearthTheme.color.ink,
+  inkSoft: HearthTheme.color.inkMuted,
+  clay: HearthTheme.color.clay,
+  onAccent: HearthTheme.color.onAccent,
+  line: HearthTheme.color.line,
+  lineStrong: HearthTheme.color.lineStrong,
+  sage: HearthTheme.color.sage,
+  danger: HearthTheme.color.danger,
+  shadow: HearthTheme.shadow.color,
+};
 
 const TRAYS: readonly { id: HomeStudioTray; label: string; help: string }[] = [
   { id: 'furnish', label: 'Furniture', help: 'Seats, tables, beds and storage' },
@@ -158,7 +174,12 @@ function PlacedCard({ object, selected, onPress }: {
   );
 }
 
-export function HomeStudio() {
+interface HomeStudioProps {
+  reviewMode?: boolean;
+}
+
+export function HomeStudio({ reviewMode = false }: HomeStudioProps = {}) {
+  const insets = useSafeAreaInsets();
   const isOpen = useHomeStudioStore((state) => state.isOpen);
   const mode = useHomeStudioStore((state) => state.mode);
   const draft = useHomeStudioStore((state) => state.draftSnapshot);
@@ -178,10 +199,20 @@ export function HomeStudio() {
   const activeMoment = useMomentV2Store((state) => Boolean(state.snapshot?.active));
   const homeStatus = useHomeStore((state) => state.status);
   const [section, setSection] = useState<'catalog' | 'world' | 'diagnostics'>('catalog');
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [partnerConfirmOpen, setPartnerConfirmOpen] = useState(false);
+  const [putAwayId, setPutAwayId] = useState<string | null>(null);
+  const titleRef = useRef<Text>(null);
   const execute = useHomeStudioStore((state) => state.execute);
   const setMessage = useHomeStudioStore((state) => state.setMessage);
   const setGhost = useHomeStudioStore((state) => state.setPlacementGhost);
   const isDeveloper = mode === 'developer';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => titleRef.current?.focus(), 220);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   const room = draft?.rooms.find((candidate) => candidate.id === selectedRoomId) ?? null;
   const selected = draft?.objects.find((object) => object.id === selectedObjectId) ?? null;
@@ -195,16 +226,19 @@ export function HomeStudio() {
     useMomentV2Store.getState().resumePlayback();
   };
 
+  const discardChanges = async () => {
+    setDiscardOpen(false);
+    if (reviewMode) {
+      setMessage('Review mode keeps this decorating draft open.');
+      return;
+    }
+    await useHomeStudioStore.getState().cancel();
+    exitStudioSurface();
+  };
+
   const cancel = () => {
-    const discard = async () => {
-      await useHomeStudioStore.getState().cancel();
-      exitStudioSurface();
-    };
-    if (!operations.length) return void discard();
-    Alert.alert('Discard your changes?', 'The shared home will stay exactly as it was before you opened the editor.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => void discard() },
-    ]);
+    if (!operations.length) return void discardChanges();
+    setDiscardOpen(true);
   };
 
   const save = async () => {
@@ -213,6 +247,7 @@ export function HomeStudio() {
     if (!isDeveloper && !draft?.capabilities.edit) {
       return setMessage('Your shared world is currently view-only. Everything remains safe and visible.');
     }
+    if (reviewMode) return setMessage('Your home would be saved here. Review mode made no changes.');
     const saved = await useHomeStudioStore.getState().save();
     if (saved) exitStudioSurface();
   };
@@ -415,10 +450,10 @@ export function HomeStudio() {
 
   return (
     <View style={styles.overlay} pointerEvents="box-none" accessibilityViewIsModal>
-      <View style={styles.toolbar} pointerEvents="auto">
-        <Pressable style={styles.closeButton} onPress={cancel} accessibilityLabel="Cancel Home Studio"><Text style={styles.closeButtonText}>Cancel</Text></Pressable>
-        <View style={styles.toolbarTitleWrap} pointerEvents="none"><Text style={styles.eyebrow}>{isDeveloper ? 'Developer tools' : `Day ${Math.floor(growthDays) + 1}`}</Text><Text style={styles.toolbarTitle}>{isDeveloper ? 'Home Studio' : 'Decorate home'}</Text></View>
-        <Pressable style={[styles.saveButton, saveDisabled && styles.buttonDisabled]} onPress={() => void save()} disabled={saveDisabled}><Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text></Pressable>
+      <View style={[styles.toolbar, { paddingTop: Math.max(insets.top, HearthTheme.space.sm) }]} pointerEvents="auto">
+        <Pressable style={styles.closeButton} onPress={cancel} accessibilityRole="button" accessibilityLabel="Cancel decorating"><Text style={styles.closeButtonText}>Cancel</Text></Pressable>
+        <View style={styles.toolbarTitleWrap} pointerEvents="none"><Text style={styles.eyebrow}>{isDeveloper ? 'Developer tools' : `Day ${Math.floor(growthDays) + 1}`}</Text><Text ref={titleRef} accessible accessibilityRole="header" style={styles.toolbarTitle}>{isDeveloper ? 'Home Studio' : 'Decorate home'}</Text></View>
+        <Pressable style={[styles.saveButton, saveDisabled && styles.buttonDisabled]} onPress={() => void save()} disabled={saveDisabled} accessibilityRole="button" accessibilityState={{ disabled: saveDisabled, busy: saving }} accessibilityHint={saveDisabled ? 'Finish placing pieces or resolve the message below first.' : `${operations.length} change${operations.length === 1 ? '' : 's'} will be saved to your shared home.`}><Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text></Pressable>
       </View>
 
       <View style={styles.areaBar} pointerEvents="auto">
@@ -436,14 +471,48 @@ export function HomeStudio() {
         <View style={styles.panel} pointerEvents="auto">
           <View style={styles.panelHandle} />
           <View style={styles.panelHeader}>
-            <View style={styles.panelHeaderCopy}><Text style={styles.panelTitle}>{ghost ? `Place ${friendly(ghost.assetId)}` : selected ? friendly(selected.assetId) : 'Choose what to change'}</Text><Text style={styles.helpText}>{ghost ? 'Green means the spot is clear. Red means keep moving.' : room ? roomName(room.moduleId) : 'Shared home'}</Text></View>
+            <View style={styles.panelHeaderCopy}><Text style={styles.panelTitle}>{ghost ? `Place ${friendly(ghost.assetId)}` : selected ? friendly(selected.assetId) : 'Choose what to change'}</Text><Text style={styles.helpText}>{ghost ? 'Green means this spot is clear. Red means keep moving.' : operations.length ? `${operations.length} unsaved change${operations.length === 1 ? '' : 's'} · ${room ? roomName(room.moduleId) : 'Shared home'}` : room ? `${roomName(room.moduleId)} · no unsaved changes` : 'Shared home'}</Text></View>
             <View style={styles.historyRow}>
-              <Pressable style={[styles.iconButton, !undoStack.length && styles.buttonDisabled]} onPress={() => useHomeStudioStore.getState().undo()} disabled={!undoStack.length} accessibilityLabel="Undo home edit"><Text style={styles.iconText}>↶</Text></Pressable>
-              <Pressable style={[styles.iconButton, !redoStack.length && styles.buttonDisabled]} onPress={() => useHomeStudioStore.getState().redo()} disabled={!redoStack.length} accessibilityLabel="Redo home edit"><Text style={styles.iconText}>↷</Text></Pressable>
+              <Pressable style={[styles.iconButton, !undoStack.length && styles.buttonDisabled]} onPress={() => useHomeStudioStore.getState().undo()} disabled={!undoStack.length} accessibilityRole="button" accessibilityState={{ disabled: !undoStack.length }} accessibilityLabel="Undo home edit"><Text style={styles.iconText}>↶</Text></Pressable>
+              <Pressable style={[styles.iconButton, !redoStack.length && styles.buttonDisabled]} onPress={() => useHomeStudioStore.getState().redo()} disabled={!redoStack.length} accessibilityRole="button" accessibilityState={{ disabled: !redoStack.length }} accessibilityLabel="Redo home edit"><Text style={styles.iconText}>↷</Text></Pressable>
             </View>
           </View>
 
-          {ghost && <View style={[styles.placementBar, !ghost.valid && styles.placementBarInvalid]}><Pressable style={styles.placementCancel} onPress={cancelPlacement}><Text style={styles.placementCancelText}>Cancel</Text></Pressable><Pressable style={styles.rotateButton} onPress={rotatePlacement} accessibilityLabel="Rotate piece"><Text style={styles.rotateButtonText}>↻ Rotate</Text></Pressable><Pressable style={[styles.confirmButton, !ghost.valid && styles.buttonDisabled]} onPress={confirmPlacement} disabled={!ghost.valid} accessibilityLabel="Confirm this placement"><Text style={styles.confirmButtonText}>✓</Text></Pressable></View>}
+          {(message || conflicts.length > 0 || activeMoment) && (
+            <View style={styles.notice} accessibilityLiveRegion="polite">
+              <Text style={styles.noticeText}>{activeMoment ? 'Home editing pauses until the active Moment ends.' : message}</Text>
+              {conflicts.map((conflict) => <Text key={conflict} style={styles.conflictText}>• {conflict.replaceAll('-', ' ').replaceAll('_', ' ')}</Text>)}
+              {conflicts.length > 0 && !partnerConfirmOpen && (
+                <View style={styles.actionRow}>
+                  <Pressable style={styles.noticeButton} accessibilityRole="button" onPress={() => useHomeStudioStore.getState().keepLocalResolution()}><Text style={styles.noticeButtonText}>Keep my draft</Text></Pressable>
+                  <Pressable style={styles.noticeButton} accessibilityRole="button" onPress={() => setPartnerConfirmOpen(true)}><Text style={styles.noticeButtonText}>Use shared version</Text></Pressable>
+                </View>
+              )}
+              {partnerConfirmOpen && (
+                <View style={styles.confirmationCard}>
+                  <Text style={styles.confirmationTitle}>Replace your draft?</Text>
+                  <Text style={styles.confirmationText}>Your local decorating changes will be discarded and the newest shared home will be loaded.</Text>
+                  <View style={styles.actionRow}>
+                    <Pressable style={styles.noticeButton} accessibilityRole="button" onPress={() => setPartnerConfirmOpen(false)}><Text style={styles.noticeButtonText}>Keep my draft</Text></Pressable>
+                    <Pressable style={[styles.noticeButton, styles.noticeDangerButton]} accessibilityRole="button" onPress={() => { setPartnerConfirmOpen(false); void useHomeStudioStore.getState().usePartnerVersion(); }}><Text style={styles.noticeButtonText}>Replace draft</Text></Pressable>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {discardOpen && (
+            <View style={styles.discardCard} accessibilityLiveRegion="polite">
+              <Text style={styles.confirmationTitle}>Discard your changes?</Text>
+              <Text style={styles.confirmationText}>The shared home will stay exactly as it was before you started decorating.</Text>
+              <View style={styles.actionRow}>
+                <Pressable style={styles.secondaryButton} accessibilityRole="button" onPress={() => setDiscardOpen(false)}><Text style={styles.secondaryButtonText}>Keep editing</Text></Pressable>
+                <Pressable style={[styles.secondaryButton, styles.dangerButton]} accessibilityRole="button" onPress={() => void discardChanges()}><Text style={styles.dangerButtonText}>Discard changes</Text></Pressable>
+              </View>
+            </View>
+          )}
+
+          {ghost && <View style={[styles.placementBar, !ghost.valid && styles.placementBarInvalid]} accessibilityLiveRegion="polite"><Pressable style={styles.placementCancel} onPress={cancelPlacement} accessibilityLabel="Cancel placing this piece"><Text style={styles.placementCancelText}>Cancel piece</Text></Pressable><Pressable style={styles.rotateButton} onPress={rotatePlacement} accessibilityLabel="Rotate piece"><Text style={styles.rotateButtonText}>↻ Rotate</Text></Pressable><Pressable style={[styles.confirmButton, !ghost.valid && styles.buttonDisabled]} onPress={confirmPlacement} disabled={!ghost.valid} accessibilityLabel="Confirm this placement" accessibilityState={{ disabled: !ghost.valid }}><Text style={styles.confirmButtonText}>Place</Text></Pressable></View>}
 
           {isDeveloper && <View style={styles.sectionTabs}>{([['catalog', 'Catalog'], ['world', 'World'], ['diagnostics', 'QA']] as const).map(([id, label]) => <Pressable key={id} onPress={() => setSection(id)} style={[styles.sectionTab, section === id && styles.sectionTabSelected]}><Text style={[styles.sectionTabText, section === id && styles.sectionTabTextSelected]}>{label}</Text></Pressable>)}</View>}
 
@@ -459,10 +528,10 @@ export function HomeStudio() {
             ) : (
               <>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trays}>
-                  {availableTrays.map((candidate) => <Pressable key={candidate.id} style={[styles.tray, tray === candidate.id && styles.traySelected]} onPress={() => useHomeStudioStore.getState().setTray(candidate.id)} accessibilityHint={candidate.help}><Text style={[styles.trayText, tray === candidate.id && styles.trayTextSelected]}>{candidate.label}</Text></Pressable>)}
+                  {availableTrays.map((candidate) => <Pressable key={candidate.id} style={[styles.tray, tray === candidate.id && styles.traySelected]} onPress={() => useHomeStudioStore.getState().setTray(candidate.id)} accessibilityRole="tab" accessibilityState={{ selected: tray === candidate.id }} accessibilityHint={candidate.help}><Text style={[styles.trayText, tray === candidate.id && styles.trayTextSelected]}>{candidate.label}</Text></Pressable>)}
                 </ScrollView>
                 <ScrollView style={styles.panelScroll} contentContainerStyle={styles.panelContent}>
-                  {(selected || ghost) && activeDefinition && <View style={styles.sectionCard}><Text style={styles.panelTitle}>Make it yours</Text><Text style={styles.helpText}>Drag the piece itself in the scene. Colors and styles update in this draft.</Text>{paletteEditor}{!ghost?.isNew && selected && <View style={styles.actionRow}><Pressable style={styles.secondaryButton} onPress={rotatePlacement}><Text style={styles.secondaryButtonText}>Rotate</Text></Pressable><Pressable style={styles.secondaryButton} onPress={stageDuplicate}><Text style={styles.secondaryButtonText}>Duplicate</Text></Pressable><Pressable style={[styles.secondaryButton, styles.dangerButton]} onPress={() => Alert.alert('Put this piece away?', 'You can bring it back later from Put away.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Put away', onPress: () => execute({ type: 'store', objectId: selected.id }) }])}><Text style={styles.dangerButtonText}>Put away</Text></Pressable></View>}</View>}
+                  {(selected || ghost) && activeDefinition && <View style={styles.sectionCard}><Text style={styles.panelTitle}>Make it yours</Text><Text style={styles.helpText}>Drag the piece itself in the scene. Colors and styles update only in this draft until you Save.</Text>{paletteEditor}{!ghost?.isNew && selected && <View style={styles.actionRow}><Pressable style={styles.secondaryButton} onPress={rotatePlacement}><Text style={styles.secondaryButtonText}>Rotate</Text></Pressable><Pressable style={styles.secondaryButton} onPress={stageDuplicate}><Text style={styles.secondaryButtonText}>Duplicate</Text></Pressable><Pressable style={[styles.secondaryButton, styles.dangerButton]} onPress={() => setPutAwayId(selected.id)}><Text style={styles.dangerButtonText}>Put away</Text></Pressable></View>}{putAwayId === selected?.id && <View style={styles.inlineConfirmation}><Text style={styles.confirmationTitle}>Put this piece away?</Text><Text style={styles.confirmationText}>It will leave this room, but you can bring it back later from Put away.</Text><View style={styles.actionRow}><Pressable style={styles.secondaryButton} onPress={() => setPutAwayId(null)}><Text style={styles.secondaryButtonText}>Keep it here</Text></Pressable><Pressable style={[styles.secondaryButton, styles.dangerButton]} onPress={() => { execute({ type: 'store', objectId: selected.id }); setPutAwayId(null); }}><Text style={styles.dangerButtonText}>Put away</Text></Pressable></View></View>}</View>}
                   <Text style={styles.listHeading}>{trayObjects ? TRAYS.find((item) => item.id === tray)?.label : `Already in ${roomName(room?.moduleId ?? 'room')}`}</Text>
                   <View style={styles.placedGrid}>{(trayObjects ?? placedObjects).map((object) => <PlacedCard key={object.id} object={object} selected={selectedObjectId === object.id} onPress={() => trayObjects ? stageStoredObject(object) : useHomeStudioStore.getState().selectObject(object.id)} />)}</View>
                   {(trayObjects ?? placedObjects).length === 0 && <Text style={styles.emptyText}>Nothing here yet.</Text>}
@@ -471,7 +540,6 @@ export function HomeStudio() {
               </>
             )}
 
-          {(message || conflicts.length > 0 || activeMoment) && <View style={styles.notice}><Text style={styles.noticeText}>{activeMoment ? 'Home editing pauses until the active Moment ends.' : message}</Text>{conflicts.map((conflict) => <Text key={conflict} style={styles.conflictText}>• {conflict}</Text>)}{conflicts.length > 0 && <View style={styles.actionRow}><Pressable style={styles.noticeButton} onPress={() => useHomeStudioStore.getState().keepLocalResolution()}><Text style={styles.noticeButtonText}>Keep my changes</Text></Pressable><Pressable style={styles.noticeButton} onPress={() => void useHomeStudioStore.getState().usePartnerVersion()}><Text style={styles.noticeButtonText}>Use partner version</Text></Pressable></View>}</View>}
         </View>
       </View>
     </View>
@@ -480,53 +548,53 @@ export function HomeStudio() {
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 300, elevation: 70 },
-  toolbar: { minHeight: 76, paddingTop: 18, paddingHorizontal: 12, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,250,241,0.98)', borderBottomWidth: 1, borderBottomColor: editorial.lineStrong },
-  closeButton: { width: 68, minHeight: 42, justifyContent: 'center', alignItems: 'flex-start' },
-  closeButtonText: { color: editorial.clay, fontSize: 13, fontWeight: '900' },
+  toolbar: { minHeight: 72, paddingHorizontal: HearthTheme.space.md, paddingBottom: HearthTheme.space.sm, flexDirection: 'row', alignItems: 'center', backgroundColor: editorial.paperStrong, borderBottomWidth: 1, borderBottomColor: editorial.lineStrong },
+  closeButton: { width: 76, minHeight: HearthTheme.touch.minimum, justifyContent: 'center', alignItems: 'flex-start' },
+  closeButtonText: { color: editorial.clay, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
   toolbarTitleWrap: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-  eyebrow: { color: editorial.inkSoft, fontSize: 8, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
-  toolbarTitle: { color: editorial.ink, fontFamily: 'serif', fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  saveButton: { width: 68, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.clay },
-  saveText: { color: editorial.onAccent, fontSize: 13, fontWeight: '900' },
+  eyebrow: { color: editorial.inkSoft, fontFamily: HearthTheme.type.bodyStrong, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
+  toolbarTitle: { color: editorial.ink, fontFamily: HearthTheme.type.display, fontSize: 19, lineHeight: 23, textAlign: 'center' },
+  saveButton: { width: 76, minHeight: HearthTheme.touch.minimum, borderRadius: HearthTheme.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.clay },
+  saveText: { color: editorial.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
   buttonDisabled: { opacity: 0.35 },
   areaBar: { backgroundColor: 'rgba(255,250,241,0.95)', borderBottomWidth: 1, borderBottomColor: editorial.line },
   areaContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  areaChoice: { borderRadius: 14, minHeight: 38, justifyContent: 'center', paddingHorizontal: 16, backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
+  areaChoice: { borderRadius: 14, minHeight: HearthTheme.touch.minimum, justifyContent: 'center', paddingHorizontal: 16, backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
   areaChoiceSelected: { backgroundColor: editorial.clay, borderColor: editorial.clay },
-  areaText: { color: editorial.inkSoft, fontSize: 12, fontWeight: '800' },
+  areaText: { color: editorial.inkSoft, fontFamily: HearthTheme.type.bodyStrong, fontSize: HearthTheme.type.caption },
   areaTextSelected: { color: editorial.onAccent },
   workArea: { flex: 1, justifyContent: 'flex-end' },
   sceneHint: { position: 'absolute', top: 10, alignSelf: 'center', maxWidth: 330, borderRadius: 15, backgroundColor: 'rgba(255,250,241,0.90)', paddingHorizontal: 13, paddingVertical: 8 },
-  sceneHintText: { color: editorial.inkSoft, fontSize: 10, lineHeight: 14, textAlign: 'center', fontWeight: '700' },
-  panel: { alignSelf: 'center', width: '100%', maxWidth: 520, height: '48%', minHeight: 360, backgroundColor: editorial.paperStrong, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: editorial.lineStrong, shadowColor: editorial.shadow, shadowOpacity: 0.24, shadowRadius: 20, shadowOffset: { width: 0, height: -8 }, elevation: 20, overflow: 'hidden' },
+  sceneHintText: { color: editorial.inkSoft, fontFamily: HearthTheme.type.body, fontSize: 11, lineHeight: 15, textAlign: 'center' },
+  panel: { alignSelf: 'center', width: '100%', maxWidth: 520, height: '54%', minHeight: 320, maxHeight: 560, backgroundColor: editorial.paperStrong, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: editorial.lineStrong, shadowColor: editorial.shadow, shadowOpacity: 0.24, shadowRadius: 20, shadowOffset: { width: 0, height: -8 }, elevation: 20, overflow: 'hidden' },
   panelHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: editorial.lineStrong, alignSelf: 'center', marginTop: 8 },
   panelHeader: { minHeight: 62, paddingHorizontal: 15, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
   panelHeaderCopy: { flex: 1 },
-  panelTitle: { color: editorial.ink, fontSize: 15, lineHeight: 20, fontWeight: '900' },
-  helpText: { color: editorial.inkSoft, fontSize: 10, lineHeight: 14, marginTop: 2 },
+  panelTitle: { color: editorial.ink, fontFamily: HearthTheme.type.display, fontSize: 16, lineHeight: 21 },
+  helpText: { color: editorial.inkSoft, fontFamily: HearthTheme.type.body, fontSize: 12, lineHeight: 17, marginTop: 2 },
   historyRow: { flexDirection: 'row', gap: 6 },
-  iconButton: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
+  iconButton: { width: HearthTheme.touch.minimum, height: HearthTheme.touch.minimum, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
   iconText: { color: editorial.ink, fontSize: 20, fontWeight: '900' },
   placementBar: { marginHorizontal: 13, marginBottom: 7, minHeight: 54, borderRadius: 18, padding: 7, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(111,151,101,0.16)', borderWidth: 1, borderColor: editorial.sage },
   placementBarInvalid: { backgroundColor: 'rgba(167,66,50,0.10)', borderColor: editorial.danger },
-  placementCancel: { paddingHorizontal: 9, minHeight: 40, justifyContent: 'center' },
+  placementCancel: { paddingHorizontal: 9, minHeight: HearthTheme.touch.minimum, justifyContent: 'center' },
   placementCancelText: { color: editorial.danger, fontSize: 11, fontWeight: '900' },
-  rotateButton: { flex: 1, minHeight: 40, justifyContent: 'center', alignItems: 'center', borderRadius: 12, backgroundColor: editorial.paper },
+  rotateButton: { flex: 1, minHeight: HearthTheme.touch.minimum, justifyContent: 'center', alignItems: 'center', borderRadius: 12, backgroundColor: editorial.paper },
   rotateButtonText: { color: editorial.ink, fontSize: 11, fontWeight: '900' },
-  confirmButton: { width: 48, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.sage },
-  confirmButtonText: { color: editorial.onAccent, fontSize: 22, fontWeight: '900' },
+  confirmButton: { minWidth: 72, minHeight: HearthTheme.touch.minimum, paddingHorizontal: 12, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.sage },
+  confirmButtonText: { color: editorial.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12 },
   sectionTabs: { flexDirection: 'row', paddingHorizontal: 13, paddingBottom: 8, gap: 7 },
-  sectionTab: { flex: 1, minHeight: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint },
+  sectionTab: { flex: 1, minHeight: HearthTheme.touch.minimum, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint },
   sectionTabSelected: { backgroundColor: editorial.ink },
   sectionTabText: { color: editorial.inkSoft, fontSize: 11, fontWeight: '900' },
   sectionTabTextSelected: { color: editorial.onAccent },
   trays: { paddingHorizontal: 13, paddingBottom: 9, gap: 7 },
-  tray: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 13, borderRadius: 13, borderWidth: 1, borderColor: editorial.line, backgroundColor: editorial.paper },
+  tray: { minHeight: HearthTheme.touch.minimum, justifyContent: 'center', paddingHorizontal: 13, borderRadius: 13, borderWidth: 1, borderColor: editorial.line, backgroundColor: editorial.paper },
   traySelected: { borderColor: editorial.clay, backgroundColor: 'rgba(177,103,76,0.13)' },
   trayText: { color: editorial.inkSoft, fontSize: 11, fontWeight: '800' },
   trayTextSelected: { color: editorial.clay },
   panelScroll: { flex: 1 },
-  panelContent: { paddingHorizontal: 13, paddingBottom: 100, gap: 10 },
+  panelContent: { paddingHorizontal: 13, paddingBottom: HearthTheme.space.xl, gap: 10 },
   sectionCard: { borderRadius: 19, padding: 13, gap: 10, backgroundColor: editorial.paper, borderWidth: 1, borderColor: editorial.lineStrong },
   paletteEditor: { gap: 10 },
   paletteBlock: { gap: 6 },
@@ -538,12 +606,12 @@ const styles = StyleSheet.create({
   paletteChoiceText: { color: editorial.ink, fontSize: 10, fontWeight: '800' },
   variantRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choiceButton: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
+  choiceButton: { minHeight: HearthTheme.touch.minimum, borderRadius: 13, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
   choiceButtonSelected: { backgroundColor: editorial.clay, borderColor: editorial.clay },
   choiceButtonText: { color: editorial.inkSoft, fontSize: 11, fontWeight: '900' },
   choiceButtonTextSelected: { color: editorial.onAccent },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  secondaryButton: { flexGrow: 1, minHeight: 42, borderRadius: 13, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
+  secondaryButton: { flexGrow: 1, minHeight: HearthTheme.touch.minimum, borderRadius: 13, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.line },
   secondaryButtonText: { color: editorial.ink, fontSize: 10, fontWeight: '900' },
   dangerButton: { backgroundColor: 'rgba(167,66,50,0.08)' },
   dangerButtonText: { color: editorial.danger, fontSize: 10, fontWeight: '900' },
@@ -558,7 +626,7 @@ const styles = StyleSheet.create({
   assetCard: { width: '50%', paddingHorizontal: 4, paddingBottom: 10 },
   assetName: { color: editorial.ink, fontSize: 12, fontWeight: '900', marginTop: 6 },
   assetKind: { color: editorial.inkSoft, fontSize: 9, marginTop: 1 },
-  assetAction: { minHeight: 38, marginTop: 7, borderRadius: 12, backgroundColor: editorial.clay, alignItems: 'center', justifyContent: 'center' },
+  assetAction: { minHeight: HearthTheme.touch.minimum, marginTop: 7, borderRadius: 12, backgroundColor: editorial.clay, alignItems: 'center', justifyContent: 'center' },
   assetActionText: { color: editorial.onAccent, fontSize: 11, fontWeight: '900' },
   emptyText: { color: editorial.inkSoft, fontSize: 11, paddingVertical: 14, textAlign: 'center' },
   metricRow: { flexDirection: 'row', gap: 8 },
@@ -572,9 +640,15 @@ const styles = StyleSheet.create({
   issueCard: { borderRadius: 14, padding: 10, backgroundColor: 'rgba(167,66,50,0.08)', borderWidth: 1, borderColor: 'rgba(167,66,50,0.20)' },
   issueTitle: { color: editorial.danger, fontSize: 10, fontWeight: '900' },
   issueText: { color: editorial.ink, fontSize: 10, lineHeight: 14, marginTop: 2 },
-  notice: { position: 'absolute', left: 12, right: 12, bottom: 10, borderRadius: 15, padding: 10, backgroundColor: editorial.ink, gap: 4 },
-  noticeText: { color: editorial.onAccent, fontSize: 10, lineHeight: 14, fontWeight: '700' },
-  conflictText: { color: editorial.paperTint, fontSize: 9, lineHeight: 12 },
-  noticeButton: { flexGrow: 1, minHeight: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)' },
-  noticeButtonText: { color: editorial.onAccent, fontSize: 9, fontWeight: '900' },
+  notice: { marginHorizontal: 13, marginBottom: 8, borderRadius: 15, padding: 11, backgroundColor: editorial.ink, gap: 6 },
+  noticeText: { color: editorial.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, lineHeight: 17 },
+  conflictText: { color: editorial.paperTint, fontFamily: HearthTheme.type.body, fontSize: 11, lineHeight: 15 },
+  noticeButton: { flexGrow: 1, minHeight: HearthTheme.touch.minimum, borderRadius: 10, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)' },
+  noticeDangerButton: { backgroundColor: HearthTheme.color.danger },
+  noticeButtonText: { color: editorial.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 11 },
+  discardCard: { marginHorizontal: 13, marginBottom: 8, borderRadius: 16, padding: 12, gap: 8, backgroundColor: HearthTheme.color.dangerSoft, borderWidth: 1, borderColor: editorial.danger },
+  inlineConfirmation: { marginTop: 4, paddingTop: 10, gap: 8, borderTopWidth: 1, borderTopColor: editorial.line },
+  confirmationCard: { gap: 6, marginTop: 4 },
+  confirmationTitle: { color: editorial.ink, fontFamily: HearthTheme.type.display, fontSize: 14, lineHeight: 18 },
+  confirmationText: { color: editorial.inkSoft, fontFamily: HearthTheme.type.body, fontSize: 12, lineHeight: 17 },
 });

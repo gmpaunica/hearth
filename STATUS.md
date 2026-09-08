@@ -9,7 +9,7 @@
 
 ## Current program checkpoint — 8 September 2026
 
-Milestones 1 through 7 and milestone 8A are locally complete. The installed `1.0.4` client remains the
+Milestones 1 through 7 and milestones 8A–8B are locally complete. The installed `1.0.4` client remains the
 technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
@@ -75,6 +75,14 @@ deterministic states pass all 18 responsive browser combinations without
 overflow or runtime errors. Expo-approved SDK 57 patch updates also pass all
 21 Doctor checks and Android/iOS/web production exports.
 
+Milestone 8B makes decorating draft-safe and conflict-aware without unmounting
+the voxel home. The editor exposes unsaved change count, clear placement/save
+boundaries, 48-point undo/redo and actions, inline discard and Put away
+confirmations, and explicit local-draft versus shared-version conflict choices.
+Offline saves retain the command draft and use typed domain copy. Automated
+checks pass 161/161; six deterministic states pass all 18 responsive browser
+combinations without overflow or runtime errors, and all platform exports pass.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
@@ -91,7 +99,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
 `MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md`, and
 `MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
-`MILESTONE_8A_WARDROBE_AND_STYLE.md` before changing publication state.
+`MILESTONE_8A_WARDROBE_AND_STYLE.md`, and
+`MILESTONE_8B_DECORATING.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 
