@@ -26,6 +26,8 @@ export type DomainOperation =
   | 'delete_account'
   | 'block_partner'
   | 'unblock_partner'
+  | 'moment_sync'
+  | 'moment_action'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {

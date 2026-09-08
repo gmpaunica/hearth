@@ -11,6 +11,12 @@ import type {
   RestMomentPayload,
   MomentSnapshotV2,
 } from '@/lib/db';
+import {
+  mapDomainError,
+  reportDomainError,
+  type DomainErrorCode,
+  type DomainOperation,
+} from '@/lib/domainError';
 import { supabase } from '@/lib/supabase';
 import { consequenceFor } from '@/moments/consequenceCatalog';
 import { requestMomentCameraFocus, restoreMomentCameraFocus } from '@/scene/cameraState';
@@ -43,6 +49,7 @@ export interface RestMomentResponseInput {
 }
 
 export type SpatialReactionAnchor = MomentDestination | 'drawing';
+export type MomentSyncStatus = 'idle' | 'checking' | 'current' | 'reconnecting';
 
 export interface SpatialReactionEvent {
   id: string;
@@ -57,8 +64,11 @@ interface MomentV2State {
   ctx: MomentSyncContext | null;
   snapshot: MomentSnapshotV2 | null;
   loading: boolean;
+  syncStatus: MomentSyncStatus;
+  lastSyncedAt: string | null;
   busyAction: string | null;
   error: string | null;
+  errorCode: DomainErrorCode | null;
   liveCompletion: MomentCompletionEventV2 | null;
   liveAction: MomentActionEventV2 | null;
   liveReaction: SpatialReactionEvent | null;
@@ -66,6 +76,7 @@ interface MomentV2State {
   hydrate: (snapshot: MomentSnapshotV2, snapScene?: boolean) => Promise<void>;
   refresh: (snapScene?: boolean) => Promise<void>;
   clearError: () => void;
+  setSyncStatus: (status: MomentSyncStatus) => void;
   startMoment: (input: StartMomentInput) => Promise<boolean>;
   respondToMoment: (signalId: string, input: RespondMomentInput) => Promise<boolean>;
   respondToRestMoment: (signalId: string, input: RestMomentResponseInput) => Promise<boolean>;
@@ -160,11 +171,10 @@ function reactionForReadiness(event: MomentReadinessEventV2): SpatialReactionEve
   };
 }
 
-function messageOf(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return 'Something changed before that action finished. Please try again.';
+function safeMomentError(error: unknown, operation: DomainOperation) {
+  const mapped = mapDomainError(error, operation);
+  reportDomainError(mapped);
+  return mapped;
 }
 
 async function persistSeen(ctx: MomentSyncContext | null): Promise<void> {
@@ -345,7 +355,14 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
           .map(reactionForReadiness));
       }
     }
-    set({ snapshot, loading: false, error: null });
+    set({
+      snapshot,
+      loading: false,
+      syncStatus: 'current',
+      lastSyncedAt: new Date().toISOString(),
+      error: null,
+      errorCode: null,
+    });
     projectScene(snapshot, ctx, snapScene);
     const surface = useMomentsSurfaceStore.getState();
     if (homeSurfaceAllowsPlayback(surface)) {
@@ -360,7 +377,7 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
     args: Record<string, unknown>,
   ): Promise<boolean> => {
     if (get().busyAction) return false;
-    set({ busyAction, error: null });
+      set({ busyAction, error: null, errorCode: null });
     try {
       const { error } = await supabase.rpc(rpc, args);
       if (error) throw error;
@@ -368,7 +385,13 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
       set({ busyAction: null });
       return true;
     } catch (error) {
-      set({ busyAction: null, error: messageOf(error) });
+      const mapped = safeMomentError(error, 'moment_action');
+      set({
+        busyAction: null,
+        error: mapped.message,
+        errorCode: mapped.code,
+        syncStatus: mapped.code === 'offline' ? 'reconnecting' : get().syncStatus,
+      });
       return false;
     }
   };
@@ -377,8 +400,11 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
     ctx: null,
     snapshot: null,
     loading: false,
+    syncStatus: 'idle',
+    lastSyncedAt: null,
     busyAction: null,
     error: null,
+    errorCode: null,
     liveCompletion: null,
     liveAction: null,
     liveReaction: null,
@@ -387,7 +413,8 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
       newestRefresh += 1;
       newestAppliedRefresh = newestRefresh;
       const nextKey = ctx ? `${ctx.coupleId}:${ctx.userId}` : null;
-      if (nextKey !== completionContextKey) {
+      const contextChanged = nextKey !== completionContextKey;
+      if (contextChanged) {
         completionContextKey = nextKey;
         completionBaselinePending = true;
         actionBaselinePending = true;
@@ -435,7 +462,13 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
           }
         }
       }
-      set({ ctx });
+      set({
+        ctx,
+        syncStatus: ctx ? 'checking' : 'idle',
+        lastSyncedAt: ctx && !contextChanged ? get().lastSyncedAt : null,
+        error: null,
+        errorCode: null,
+      });
     },
 
     hydrate: async (snapshot, snapScene = false) => {
@@ -445,18 +478,32 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
     refresh: async (snapScene = false) => {
       if (!get().ctx) return;
       const requestId = ++newestRefresh;
-      set({ loading: get().snapshot == null, error: null });
+      set({
+        loading: get().snapshot == null,
+        syncStatus: 'checking',
+        error: null,
+        errorCode: null,
+      });
       const { data, error } = await supabase.rpc('get_moment_snapshot_v2');
       if (requestId < newestAppliedRefresh) return;
       newestAppliedRefresh = requestId;
       if (error) {
-        set({ loading: false, error: messageOf(error) });
+        const mapped = safeMomentError(error, 'moment_sync');
+        set({
+          loading: false,
+          syncStatus: 'reconnecting',
+          error: mapped.message,
+          errorCode: mapped.code,
+        });
         return;
       }
       await applySnapshot(normalizeMomentSnapshotV2(data), snapScene);
     },
 
-    clearError: () => set({ error: null }),
+    clearError: () => set({ error: null, errorCode: null }),
+    setSyncStatus: (syncStatus) => set((state) => ({
+      syncStatus: state.ctx ? syncStatus : 'idle',
+    })),
     startMoment: (input) => mutate('start', 'start_moment', {
       p_type: input.type,
       p_intent: input.intent ?? null,
@@ -476,7 +523,7 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
     }),
     setReadiness: async (signalId, ready) => {
       if (get().busyAction) return false;
-      set({ busyAction: 'readiness', error: null });
+      set({ busyAction: 'readiness', error: null, errorCode: null });
       try {
         const { data, error } = await supabase.rpc('set_moment_readiness', {
           p_signal_id: signalId,
@@ -488,7 +535,13 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
         set({ busyAction: null });
         return true;
       } catch (error) {
-        set({ busyAction: null, error: messageOf(error) });
+        const mapped = safeMomentError(error, 'moment_action');
+        set({
+          busyAction: null,
+          error: mapped.message,
+          errorCode: mapped.code,
+          syncStatus: mapped.code === 'offline' ? 'reconnecting' : get().syncStatus,
+        });
         return false;
       }
     },
@@ -547,8 +600,11 @@ export const useMomentV2Store = create<MomentV2State>((set, get) => {
         ctx: null,
         snapshot: null,
         loading: false,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
         busyAction: null,
         error: null,
+        errorCode: null,
         liveCompletion: null,
         liveAction: null,
         liveReaction: null,

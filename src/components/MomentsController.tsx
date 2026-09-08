@@ -2,6 +2,7 @@
  * intentionally mutated from UI-thread gesture worklets. */
 import { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   BackHandler,
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +34,7 @@ import {
 import type { MomentParticipantV2, MomentSnapshotV2 } from '@/lib/db';
 import type { MomentConsequence } from '@/moments/consequenceCatalog';
 import {
+  momentJourneyPresentation,
   momentStatusCopy,
   participantFor,
   partnerParticipant,
@@ -106,13 +108,76 @@ function SecondaryButton({ label, onPress, disabled = false }: {
   );
 }
 
+function DangerButton({ label, onPress, disabled = false }: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.dangerButton, disabled && styles.disabled, pressed && styles.pressed]}
+    >
+      <Text style={styles.dangerButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function MomentConnectionNotice() {
+  const snapshot = useMomentV2Store((state) => state.snapshot);
+  const loading = useMomentV2Store((state) => state.loading);
+  const syncStatus = useMomentV2Store((state) => state.syncStatus);
+  const error = useMomentV2Store((state) => state.error);
+  const errorCode = useMomentV2Store((state) => state.errorCode);
+  const refresh = useMomentV2Store((state) => state.refresh);
+
+  if (!error && syncStatus === 'current') return null;
+  if (!snapshot && (loading || syncStatus === 'checking' || syncStatus === 'idle')) {
+    return (
+      <View accessibilityLiveRegion="polite" style={styles.syncNotice}>
+        <ActivityIndicator color={editorial.clayDark} />
+        <View style={styles.syncCopy}>
+          <Text style={styles.syncTitle}>Bringing your shared Moment home</Text>
+          <Text style={styles.syncBody}>Checking the latest saved state without replaying old reactions.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!error && syncStatus === 'checking') {
+    return (
+      <View accessibilityLiveRegion="polite" style={styles.syncNotice}>
+        <ActivityIndicator color={editorial.clayDark} />
+        <Text style={styles.syncBody}>Checking for anything new…</Text>
+      </View>
+    );
+  }
+
+  const interruptedAction = Boolean(error && errorCode !== 'offline');
+  return (
+    <View accessibilityLiveRegion="polite" style={[styles.syncNotice, styles.syncNoticePaused]}>
+      <View style={styles.syncCopy}>
+        <Text style={styles.syncTitle}>{interruptedAction ? 'That action did not finish' : 'Updates are paused'}</Text>
+        <Text accessibilityRole={error ? 'alert' : undefined} style={styles.syncBody}>
+          {error ?? (snapshot
+            ? 'Your last saved Moment is still here. Check again whenever you are ready.'
+            : 'Hearth could not check for a shared Moment. Nothing was changed.')}
+        </Text>
+      </View>
+      <SecondaryButton label="Check current state" onPress={() => void refresh(false)} />
+    </View>
+  );
+}
+
 function CreationFlow({ onSent }: { onSent: () => void }) {
   const [destination, setDestination] = useState<SignalType | null>(null);
   const [intent, setIntent] = useState<FireplacePathwayId | null>(null);
   const [note, setNote] = useState('');
   const startMoment = useMomentV2Store((state) => state.startMoment);
   const busy = useMomentV2Store((state) => state.busyAction != null);
-  const error = useMomentV2Store((state) => state.error);
 
   if (!destination) {
     const aboutUs = MOMENT_FEELINGS.filter((feeling) => ['fireplace', 'table', 'romantic'].includes(feeling.type));
@@ -184,7 +249,6 @@ function CreationFlow({ onSent }: { onSent: () => void }) {
         }}
       />
       <SecondaryButton label="Choose another place" onPress={() => { setDestination(null); setIntent(null); }} />
-      {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -196,6 +260,7 @@ function SentNote({ participant, ownerLabel, mine, busy, onRemove }: {
   busy: boolean;
   onRemove: () => void;
 }) {
+  const [confirmRemove, setConfirmRemove] = useState(false);
   if (!participant.note && !participant.note_removed) return null;
   return (
     <View style={styles.sentNote}>
@@ -203,10 +268,25 @@ function SentNote({ participant, ownerLabel, mine, busy, onRemove }: {
       <Text style={participant.note_removed ? styles.removedNote : styles.noteText}>
         {participant.note_removed ? MOMENT_V2.noteRemoved : participant.note}
       </Text>
-      {mine && participant.note && (
-        <Pressable accessibilityRole="button" disabled={busy} onPress={onRemove} style={styles.inlineButton}>
+      {mine && participant.note && !confirmRemove && (
+        <Pressable accessibilityRole="button" disabled={busy} onPress={() => setConfirmRemove(true)} style={styles.inlineButton}>
           <Text style={styles.inlineDanger}>Remove note</Text>
         </Pressable>
+      )}
+      {mine && participant.note && confirmRemove && (
+        <View style={styles.dangerConfirm}>
+          <Text accessibilityRole="header" style={styles.dangerTitle}>Remove this note?</Text>
+          <Text style={styles.body}>The Moment and your chosen need stay open. This sentence cannot be restored.</Text>
+          <DangerButton
+            label="Remove note"
+            disabled={busy}
+            onPress={() => {
+              onRemove();
+              setConfirmRemove(false);
+            }}
+          />
+          <SecondaryButton label="Keep note" onPress={() => setConfirmRemove(false)} />
+        </View>
       )}
     </View>
   );
@@ -231,10 +311,10 @@ function ResponseComposer({ action, onBack, onConfirm, busy }: {
 }
 
 const RESOLUTION_LABEL: Record<string, string> = {
-  resolve_table: 'We talked — resolve',
-  resolve_garden: 'I’m ready to come back',
-  resolve_sofa: 'I feel cared for',
-  resolve_rest: 'I’m feeling ready',
+  resolve_table: 'Close after we talked',
+  resolve_garden: 'I’m ready to return',
+  resolve_sofa: 'Close when care feels received',
+  resolve_rest: 'Close when I feel ready',
   resolve_romantic: 'Close this moment warmly',
 };
 
@@ -247,30 +327,24 @@ function PinnedActionCard({ snapshot, onCollapse }: {
   const busy = useMomentV2Store((state) => state.busyAction != null);
   const join = useMomentV2Store((state) => state.joinMoment);
   const resolveMoment = useMomentV2Store((state) => state.resolveMoment);
+  const journey = momentJourneyPresentation(snapshot);
   const run = (work: Promise<boolean>) => void work.then((ok) => { if (ok) onCollapse(); });
   const showReconnectHeart = () => {
     onCollapse();
     requestMomentCameraFocus('fireplace', useSceneStore.getState().reduceMotion);
   };
 
-  let title = 'Waiting gently';
-  if (kind.startsWith('respond_')) title = 'Choose your response below';
-  else if (kind === 'join_fireplace') title = 'Ready now? Join them at the fire';
-  else if (kind === 'join_table') title = 'Ready now? Join them at the table';
-  else if (kind === 'confirm_fireplace') title = 'The heart above the fireplace is waiting';
-  else if (kind in RESOLUTION_LABEL) title = RESOLUTION_LABEL[kind];
-  else if (active.author_id === snapshot.identity.user_id) title = `Waiting for ${snapshot.identity.partner_name}`;
-
   return (
     <View accessibilityRole="summary" style={styles.pinnedAction}>
       <View pointerEvents="none" style={styles.pinnedTape} />
-      <Text style={styles.nextEyebrow}>Next for you</Text>
-      <Text style={styles.nextTitle}>{title}</Text>
+      <Text style={styles.nextEyebrow}>{journey.eyebrow}</Text>
+      <Text style={styles.nextTitle}>{journey.title}</Text>
+      <Text style={styles.nextDetail}>{journey.detail}</Text>
       {(kind === 'join_fireplace' || kind === 'join_table') && (
-        <PrimaryButton label={kind === 'join_fireplace' ? 'Join them at the fire' : 'Join them at the table'} disabled={busy} onPress={() => run(join(active.signal_id))} />
+        <PrimaryButton label={kind === 'join_fireplace' ? 'Meet by the fire' : 'Meet at the table'} disabled={busy} onPress={() => run(join(active.signal_id))} />
       )}
       {kind === 'confirm_fireplace' && (
-        <SecondaryButton label="Show reconnect heart" onPress={showReconnectHeart} />
+        <PrimaryButton label="Go to our reconnect heart" onPress={showReconnectHeart} />
       )}
       {kind in RESOLUTION_LABEL && (
         <PrimaryButton label={RESOLUTION_LABEL[kind]} disabled={busy} onPress={() => run(resolveMoment(active.signal_id))} />
@@ -291,7 +365,6 @@ function ActiveMomentView({ snapshot, onCollapse }: { snapshot: MomentSnapshotV2
   const leaveMoment = useMomentV2Store((state) => state.leaveMoment);
   const returnToMoment = useMomentV2Store((state) => state.returnToMoment);
   const busy = useMomentV2Store((state) => state.busyAction != null);
-  const error = useMomentV2Store((state) => state.error);
   const mine = participantFor(snapshot, snapshot.identity.user_id);
   const partner = partnerParticipant(snapshot);
   const invited = active.author_id !== snapshot.identity.user_id;
@@ -328,6 +401,22 @@ function ActiveMomentView({ snapshot, onCollapse }: { snapshot: MomentSnapshotV2
     );
   }
 
+  if (confirmCancel) {
+    return (
+      <View>
+        <Text style={styles.eyebrow}>Moment options</Text>
+        <View style={styles.dangerConfirm}>
+          <Text accessibilityRole="header" style={styles.dangerTitle}>Take this Moment back?</Text>
+          <Text style={styles.body}>This closes the open Moment for both of you without calling it resolved.</Text>
+          <DangerButton label="Close without resolving" disabled={busy} onPress={() => {
+            void cancelMoment(active.signal_id).then((ok) => { if (ok) onCollapse(); });
+          }} />
+          <SecondaryButton label="Keep moment open" onPress={() => setConfirmCancel(false)} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View>
       <Text style={styles.eyebrow}>{config.label}</Text>
@@ -336,12 +425,9 @@ function ActiveMomentView({ snapshot, onCollapse }: { snapshot: MomentSnapshotV2
         <Text style={styles.body}>{FIREPLACE_PATHWAYS.find((pathway) => pathway.id === active.intent)?.title}</Text>
       )}
 
-      {mine && <SentNote participant={mine} ownerLabel="Your note" mine busy={busy} onRemove={() => void removeNote(active.signal_id)} />}
-      {partner && <SentNote participant={partner} ownerLabel={`${snapshot.identity.partner_name}’s note`} mine={false} busy={busy} onRemove={() => {}} />}
-
       {invited && snapshot.personal_action.kind.startsWith('respond_') && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Choose one response</Text>
+          <Text accessibilityRole="header" style={styles.sectionLabel}>Choose one response</Text>
           {responseActions.map((action) => (
             <Pressable key={action.id} accessibilityRole="button" onPress={() => setSelectedAction(action)} style={({ pressed }) => [styles.actionRow, pressed && styles.pressed]}>
               <Text style={styles.actionTitle}>{action.title}</Text>
@@ -351,11 +437,14 @@ function ActiveMomentView({ snapshot, onCollapse }: { snapshot: MomentSnapshotV2
         </View>
       )}
 
+      {mine && <SentNote participant={mine} ownerLabel="Your note" mine busy={busy} onRemove={() => void removeNote(active.signal_id)} />}
+      {partner && <SentNote participant={partner} ownerLabel={`${snapshot.identity.partner_name}’s note`} mine={false} busy={busy} onRemove={() => {}} />}
+
       {partner?.response_action && (
         <View style={styles.responseSummary}>
           <Text style={styles.sectionLabel}>{snapshot.identity.partner_name} responded</Text>
           <Text style={styles.responseTitle}>
-            {responseActions.find((action) => action.id === partner.response_action)?.title ?? partner.response_action}
+            {responseActions.find((action) => action.id === partner.response_action)?.title ?? 'A gentle response was shared.'}
           </Text>
         </View>
       )}
@@ -371,22 +460,11 @@ function ActiveMomentView({ snapshot, onCollapse }: { snapshot: MomentSnapshotV2
 
       {!invited && (
         <View style={styles.cancelSection}>
-          {!confirmCancel ? (
-            <Pressable accessibilityRole="button" onPress={() => setConfirmCancel(true)} style={styles.inlineButton}>
-              <Text style={styles.inlineDanger}>Cancel this moment</Text>
-            </Pressable>
-          ) : (
-            <>
-              <Text style={styles.body}>Cancel without marking this resolved?</Text>
-              <PrimaryButton label="Confirm cancellation" disabled={busy} onPress={() => {
-                void cancelMoment(active.signal_id).then((ok) => { if (ok) onCollapse(); });
-              }} />
-              <SecondaryButton label="Keep moment open" onPress={() => setConfirmCancel(false)} />
-            </>
-          )}
+          <Pressable accessibilityRole="button" onPress={() => setConfirmCancel(true)} style={styles.inlineButton}>
+            <Text style={styles.inlineDanger}>Cancel this moment</Text>
+          </Pressable>
         </View>
       )}
-      {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -441,7 +519,7 @@ export function MomentsController() {
   const openComposer = useMomentsSurfaceStore((state) => state.openComposer);
   const minimize = useMomentsSurfaceStore((state) => state.minimize);
   const snapshot = useMomentV2Store((state) => state.snapshot);
-  const loading = useMomentV2Store((state) => state.loading);
+  const syncStatus = useMomentV2Store((state) => state.syncStatus);
   const resumePlayback = useMomentV2Store((state) => state.resumePlayback);
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -581,7 +659,11 @@ export function MomentsController() {
                 <View style={styles.headerMark}><Text style={styles.headerMarkText}>♥</Text></View>
                 <View style={styles.headerCopy}>
                   {expanded && <Text style={styles.headerEyebrow}>{snapshot?.active ? MOMENT_V2.destinations[snapshot.active.destination].label : 'Moments'}</Text>}
-                  <Text numberOfLines={1} style={styles.headerTitle}>{snapshot?.active ? status.minimized : view === 'new' ? 'New moment' : 'Shared moments'}</Text>
+                  <Text numberOfLines={1} style={styles.headerTitle}>
+                    {!snapshot && syncStatus !== 'current'
+                      ? 'Checking Moments'
+                      : snapshot?.active ? status.minimized : view === 'new' ? 'New moment' : 'Shared moments'}
+                  </Text>
                 </View>
                 {expanded && <View style={styles.headerSticker}><Text style={styles.headerStickerText}>✦</Text></View>}
               </View>
@@ -589,6 +671,7 @@ export function MomentsController() {
           </GestureDetector>
           <GestureDetector gesture={contentPan}>
             <View style={styles.sheetContent}>
+              <MomentConnectionNotice />
               {snapshot?.active && <PinnedActionCard snapshot={snapshot} onCollapse={minimize} />}
               <GestureDetector gesture={nativeScroll}>
                 <ScrollView
@@ -601,8 +684,8 @@ export function MomentsController() {
                   scrollEventThrottle={16}
                   onScroll={(event) => { scrollY.value = event.nativeEvent.contentOffset.y; }}
                 >
-                  {loading && !snapshot ? <Text style={styles.body}>Loading your home…</Text>
-                    : snapshot?.active ? <ActiveMomentView key={snapshot.active.signal_id} snapshot={snapshot} onCollapse={minimize} />
+                  {!snapshot ? null
+                    : snapshot.active ? <ActiveMomentView key={snapshot.active.signal_id} snapshot={snapshot} onCollapse={minimize} />
                       : view === 'new' ? <CreationFlow onSent={minimize} />
                         : <EmptyMoments snapshot={snapshot} onNew={openComposer} />}
                 </ScrollView>
@@ -633,6 +716,12 @@ const styles = StyleSheet.create({
   pinnedTape: { position: 'absolute', top: -5, alignSelf: 'center', width: 58, height: 15, backgroundColor: 'rgba(255, 244, 205, 0.9)', transform: [{ rotate: '2deg' }] },
   nextEyebrow: { color: editorial.clayDark, fontFamily: momentsTypography.bodyBold, fontSize: 11 },
   nextTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 18, lineHeight: 23, marginTop: 3 },
+  nextDetail: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 13, lineHeight: 19, marginTop: 5 },
+  syncNotice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 11, marginHorizontal: 12, marginTop: 12, padding: 13, borderRadius: 18, borderWidth: 1, borderColor: hearthUi.outline, backgroundColor: hearthUi.shellRaised },
+  syncNoticePaused: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', backgroundColor: hearthUi.butter },
+  syncCopy: { flex: 1 },
+  syncTitle: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14, lineHeight: 19 },
+  syncBody: { flex: 1, color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 12, lineHeight: 17 },
   sheetContent: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 42 },
@@ -658,6 +747,10 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#FFFFFF', fontFamily: momentsTypography.bodyBold, fontSize: 14, textAlign: 'center' },
   secondaryButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 1.5, borderColor: hearthUi.outline, backgroundColor: hearthUi.shellRaised, marginTop: 8, paddingHorizontal: 14 },
   secondaryButtonText: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
+  dangerButton: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 1.5, borderColor: editorial.danger, backgroundColor: '#FDE8E2', marginTop: 11, paddingHorizontal: 14 },
+  dangerButtonText: { color: editorial.danger, fontFamily: momentsTypography.bodyBold, fontSize: 14, textAlign: 'center' },
+  dangerConfirm: { marginTop: 8, padding: 13, borderRadius: 18, borderWidth: 1, borderColor: '#D49A8F', backgroundColor: '#FFF7F2' },
+  dangerTitle: { color: editorial.danger, fontFamily: momentsTypography.heading, fontSize: 17, lineHeight: 22 },
   responseComposer: { paddingBottom: 8 },
   sentNote: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: editorial.lineStrong, paddingVertical: 12, marginTop: 12 },
   reviewLabel: { color: editorial.inkSoft, fontFamily: momentsTypography.bodyBold, fontSize: 11 },

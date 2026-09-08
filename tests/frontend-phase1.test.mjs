@@ -260,7 +260,7 @@ test('F1 exposes all six complete fireplace pathways and shared readiness choice
   assert.match(heart, /Tap to reconnect/);
   assert.match(heart, /Tap if you need more time/);
   assert.match(heart, /setReadiness\(active\.signal_id, !mineOn\)/);
-  assert.match(controller, /We talked — resolve/);
+  assert.match(controller, /Close after we talked/);
   assert.match(controller, /MomentNoteComposer/);
   assert.doesNotMatch(controller, /Connect this signal|Choose an open moment|Continue when ready/);
 

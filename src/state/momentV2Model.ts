@@ -71,6 +71,88 @@ export interface MomentStatusCopy {
   minimized: string;
 }
 
+export type MomentJourneyKind =
+  | 'send'
+  | 'waiting'
+  | 'respond'
+  | 'acknowledge'
+  | 'meet'
+  | 'return';
+
+export interface MomentJourneyPresentation {
+  kind: MomentJourneyKind;
+  eyebrow: string;
+  title: string;
+  detail: string;
+}
+
+/**
+ * One calm, user-facing next state for every server personal-action value.
+ * Server enum names stay behind this boundary so they can never leak into UI.
+ */
+export function momentJourneyPresentation(
+  snapshot: MomentSnapshotV2 | null,
+): MomentJourneyPresentation {
+  const active = snapshot?.active;
+  if (!snapshot || !active) {
+    return {
+      kind: 'send',
+      eyebrow: 'When words feel hard',
+      title: 'Share one gentle signal',
+      detail: 'Choose a place and an optional sentence. It stays between the two of you.',
+    };
+  }
+
+  const action = snapshot.personal_action.kind;
+  if (action.startsWith('respond_')) {
+    const givingSpace = active.destination === 'garden';
+    return {
+      kind: givingSpace ? 'acknowledge' : 'respond',
+      eyebrow: givingSpace ? 'Acknowledge' : 'Respond',
+      title: givingSpace ? 'Help them have space without disappearing' : 'Choose the response that feels true',
+      detail: givingSpace
+        ? 'You can respect the quiet or leave a small sign of care. Reply only if and when you choose.'
+        : 'Each choice says what happens next. A note is always optional.',
+    };
+  }
+
+  if (action === 'join_fireplace' || action === 'join_table') {
+    const atFire = action === 'join_fireplace';
+    return {
+      kind: 'meet',
+      eyebrow: 'Meet when you choose',
+      title: atFire ? 'The fire is still open to you' : 'The table is still open to you',
+      detail: 'Join whenever it feels right, or leave the Moment open for later.',
+    };
+  }
+
+  if (action === 'confirm_fireplace') {
+    return {
+      kind: 'meet',
+      eyebrow: 'Mutually meet',
+      title: 'Your half of the reconnect heart is yours',
+      detail: 'Either of you can change your own readiness. Hearth closes this only when both halves are ready.',
+    };
+  }
+
+  if (action.startsWith('resolve_')) {
+    return {
+      kind: 'return',
+      eyebrow: active.destination === 'garden' ? 'Return in your own time' : 'Close when it feels true',
+      title: active.destination === 'garden' ? 'You decide when your quiet is complete' : 'You decide when this Moment is complete',
+      detail: 'Closing records only a gentle ending. It does not judge what happened between you.',
+    };
+  }
+
+  const authoredByMe = active.author_id === snapshot.identity.user_id;
+  return {
+    kind: 'waiting',
+    eyebrow: 'Nothing is required now',
+    title: authoredByMe ? 'Your signal is waiting gently' : 'You have answered with care',
+    detail: 'This Moment stays open until one of you chooses to close it. Nothing closes automatically or measures your relationship.',
+  };
+}
+
 export function momentStatusCopy(snapshot: MomentSnapshotV2 | null): MomentStatusCopy {
   const active = snapshot?.active;
   if (!snapshot || !active) {
@@ -80,16 +162,15 @@ export function momentStatusCopy(snapshot: MomentSnapshotV2 | null): MomentStatu
       minimized: 'New moment',
     };
   }
-  const partnerName = snapshot.identity.partner_name || 'your partner';
   const invited = active.author_id !== snapshot.identity.user_id;
   const partner = partnerParticipant(snapshot);
   const headline = MOMENT_V2.destinations[active.destination].headline;
 
   if (invited && snapshot.personal_action.kind.startsWith('respond_')) {
-    return { headline, subtitle: 'Your response matters.', minimized: `Reply to ${partnerName}` };
+    return { headline, subtitle: 'Choose what feels true for you.', minimized: 'A response is waiting' };
   }
   if (!invited && !partner?.response_action) {
-    return { headline, subtitle: `Waiting for ${partnerName}.`, minimized: `Waiting for ${partnerName}` };
+    return { headline, subtitle: 'Your signal is there when they return.', minimized: 'Waiting gently' };
   }
   if (snapshot.personal_action.kind === 'join_fireplace') {
     return { headline, subtitle: 'The fire is still waiting.', minimized: 'Join them at the fire' };
@@ -98,7 +179,7 @@ export function momentStatusCopy(snapshot: MomentSnapshotV2 | null): MomentStatu
     return { headline, subtitle: 'The table is still waiting.', minimized: 'Join them at the table' };
   }
   if (snapshot.personal_action.kind === 'confirm_fireplace') {
-    return { headline, subtitle: 'Your private check-in is ready.', minimized: 'Open moment' };
+    return { headline, subtitle: 'Each heart half belongs to one person.', minimized: 'Meet by the fire' };
   }
   return { headline, subtitle: 'This shared moment is still open.', minimized: 'Open moment' };
 }

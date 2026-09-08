@@ -11,15 +11,16 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
-## Current checkpoint — 7 September 2026
+## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 5 of the comprehensive improvement
+`app/integration`. Milestones 1 through 6 of the comprehensive improvement
 program are locally complete. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
-`MILESTONE_5_SIMPLIFIED_HOME.md` before changing or publishing the client.
+`MILESTONE_5_SIMPLIFIED_HOME.md`, and
+`MILESTONE_6_MEET_BY_THE_FIRE.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -45,6 +46,14 @@ drawer; and bounded horizontal gestures plus named controls snap among Garden,
 Living room, and Bedroom. The only permanent content controls are the top
 wordmark/day/account row, room rail, Moments dock, and Our things trigger.
 Duplicate floating controls and production-facing filming preferences are gone.
+
+Milestone 6 makes Moments an explicit state-led journey. A typed presentation
+model gives send, wait, response, acknowledge-space, meet, and return states one
+obvious next action. The Moment store exposes truthful cold-start and reconnect
+status while retaining its last saved snapshot, and all failures use the shared
+domain-error boundary. Note removal and whole-Moment cancellation have distinct
+confirmations with clear consequences and safe exits. The development-only
+`moments-qa` route covers all representative states without backend mutations.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent

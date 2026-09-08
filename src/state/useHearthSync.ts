@@ -197,7 +197,13 @@ export function useHearthSync() {
         queueHydrate,
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
+        if (status !== 'SUBSCRIBED') {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            useMomentV2Store.getState().setSyncStatus('reconnecting');
+          }
+          return;
+        }
+        useMomentV2Store.getState().setSyncStatus('current');
         // The initial fetch can finish before every postgres_changes binding is
         // live. Re-read once just after subscription so a signal or need sent
         // during that narrow pairing window cannot disappear between the two.
