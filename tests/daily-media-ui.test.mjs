@@ -63,7 +63,7 @@ test('processed photos are size-checked, previewed, replaceable, and sent only b
   assert.match(screen, />PREVIEW</);
   assert.match(screen, />Replace</);
   assert.match(screen, /submitPhoto\(preview\)/);
-  assert.match(screen, /'Sending…'\s*:\s*'Send'/);
+  assert.match(screen, /'Sending…'\s*:\s*error\s*\?\s*'Try sending again'\s*:\s*'Send photo'/);
   assert.doesNotMatch(screen, /TextInput/);
 });
 

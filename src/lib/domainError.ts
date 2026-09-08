@@ -31,6 +31,12 @@ export type DomainOperation =
   | 'drawing_load'
   | 'drawing_save'
   | 'drawing_delete'
+  | 'daily_media_load'
+  | 'daily_media_upload'
+  | 'daily_media_delete'
+  | 'daily_media_receipt'
+  | 'diary_load'
+  | 'diary_delete'
   | 'general';
 
 const COPY: Record<DomainErrorCode, string> = {

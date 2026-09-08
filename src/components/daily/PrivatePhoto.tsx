@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { createSignedMediaUrl } from '@/daily/api';
 import type { DailyMediaItem, GreenhousePhoto } from '@/daily/model';
 import { useDailyMediaStore } from '@/daily/store';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 interface Props {
   item?: DailyMediaItem | GreenhousePhoto | null;
@@ -16,6 +16,7 @@ interface Props {
 
 export function PrivatePhoto({ item, localUri, markViewed = false, accessibilityLabel }: Props) {
   const [signed, setSigned] = useState<{ path: string; uri: string | null; error: boolean } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const markReceived = useDailyMediaStore((state) => state.markReceived);
 
   useEffect(() => {
@@ -26,11 +27,21 @@ export function PrivatePhoto({ item, localUri, markViewed = false, accessibility
         .catch(() => { if (current) setSigned({ path: item.storage_path, uri: null, error: true }); });
     }
     return () => { current = false; };
-  }, [item, localUri]);
+  }, [attempt, item, localUri]);
 
   const uri = localUri ?? (item && signed?.path === item.storage_path ? signed.uri : null);
   const error = !localUri && !!item && signed?.path === item.storage_path && signed.error;
-  if (error) return <View style={styles.placeholder}><Text style={styles.error}>Couldn’t open this private photo.</Text></View>;
+  if (error) return <View style={styles.placeholder}>
+    <Text accessibilityRole="alert" style={styles.error}>Couldn’t open this private photo.</Text>
+    <Pressable
+      style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+      onPress={() => { setSigned(null); setAttempt((value) => value + 1); }}
+      accessibilityRole="button"
+      accessibilityLabel="Try opening private photo again"
+    >
+      <Text style={styles.retryText}>Try again</Text>
+    </Pressable>
+  </View>;
   if (!uri) return <View style={styles.placeholder}><Text style={styles.loading}>Opening photo…</Text></View>;
   return (
     <Image
@@ -50,8 +61,11 @@ export function PrivatePhoto({ item, localUri, markViewed = false, accessibility
 }
 
 const styles = StyleSheet.create({
-  photo: { width: '100%', aspectRatio: 4 / 5, borderRadius: 19, backgroundColor: editorial.paperTint },
-  placeholder: { width: '100%', aspectRatio: 4 / 5, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.paperTint },
-  loading: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 12 },
-  error: { color: editorial.danger, fontFamily: momentsTypography.bodyBold, fontSize: 12, textAlign: 'center', padding: 20 },
+  photo: { width: '100%', aspectRatio: 4 / 5, borderRadius: 19, backgroundColor: HearthTheme.color.parchmentWarm },
+  placeholder: { width: '100%', aspectRatio: 4 / 5, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: HearthTheme.color.parchmentWarm },
+  loading: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 12 },
+  error: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, textAlign: 'center', padding: 20 },
+  retry: { minHeight: HearthTheme.touch.minimum, minWidth: 120, alignItems: 'center', justifyContent: 'center', borderRadius: HearthTheme.radius.md, borderWidth: 1, borderColor: HearthTheme.color.lineStrong, backgroundColor: HearthTheme.color.parchmentRaised },
+  retryText: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.bodyStrong, fontSize: 13 },
+  pressed: { opacity: 0.72 },
 });

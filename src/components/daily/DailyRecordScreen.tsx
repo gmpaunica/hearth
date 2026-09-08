@@ -7,7 +7,6 @@ import {
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   AppState,
   BackHandler,
   Platform,
@@ -25,7 +24,7 @@ import { mineFor, partnerFor } from '@/daily/model';
 import { useDailyMediaStore } from '@/daily/store';
 import { useAuthStore } from '@/state/authStore';
 import { useMusicStore } from '@/state/musicStore';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 import { DailyMediaScaffold } from './DailyMediaScaffold';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 
@@ -42,7 +41,21 @@ const restoreHomeAudioMode = () => setAudioModeAsync({
   interruptionMode: 'mixWithOthers',
 });
 
-export function DailyRecordScreen() {
+interface DailyRecordScreenProps {
+  reviewMode?: boolean;
+  reviewPhase?: RecordingPhase;
+  reviewPreviewUri?: string | null;
+  reviewMediaUri?: string | null;
+  reviewDeleteOpen?: boolean;
+}
+
+export function DailyRecordScreen({
+  reviewMode = false,
+  reviewPhase = 'idle',
+  reviewPreviewUri = null,
+  reviewMediaUri = null,
+  reviewDeleteOpen = false,
+}: DailyRecordScreenProps = {}) {
   const recorder = useAudioRecorder(DAILY_VOICE_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, 100);
   const snapshot = useDailyMediaStore((state) => state.snapshot);
@@ -52,13 +65,16 @@ export function DailyRecordScreen() {
   const refresh = useDailyMediaStore((state) => state.refresh);
   const submitVoice = useDailyMediaStore((state) => state.submitVoice);
   const deleteArtifact = useDailyMediaStore((state) => state.deleteArtifact);
+  const clearError = useDailyMediaStore((state) => state.clearError);
   const userId = useAuthStore((state) => state.userId);
-  const [phase, setPhase] = useState<RecordingPhase>('idle');
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [previewDuration, setPreviewDuration] = useState(0);
+  const [phase, setPhase] = useState<RecordingPhase>(reviewPhase);
+  const [previewUri, setPreviewUri] = useState<string | null>(reviewPreviewUri);
+  const [previewDuration, setPreviewDuration] = useState(reviewPreviewUri ? 12_000 : 0);
   const [localError, setLocalError] = useState<string | null>(null);
   const [playingPreview, setPlayingPreview] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(reviewDeleteOpen);
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const stopPromiseRef = useRef<Promise<void> | null>(null);
   const closingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -69,7 +85,7 @@ export function DailyRecordScreen() {
   useEffect(() => {
     mountedRef.current = true;
     useMusicStore.getState().setMediaSessionBusy(true);
-    void refresh(false);
+    if (!reviewMode) void refresh(false);
     return () => {
       mountedRef.current = false;
       if (!closingRef.current) {
@@ -81,7 +97,7 @@ export function DailyRecordScreen() {
           .finally(() => useMusicStore.getState().setMediaSessionBusy(false));
       }
     };
-  }, [refresh]);
+  }, [refresh, reviewMode]);
 
   const stopRecorder = useCallback(() => {
     if (stopPromiseRef.current) return stopPromiseRef.current;
@@ -190,7 +206,7 @@ export function DailyRecordScreen() {
   }, [closeScreen]);
 
   const startRecording = async () => {
-    if (Platform.OS === 'web' || mine || busy) return;
+    if (reviewMode || Platform.OS === 'web' || mine || busy) return;
     setLocalError(null);
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
@@ -219,6 +235,7 @@ export function DailyRecordScreen() {
   };
 
   const send = async () => {
+    if (reviewMode) return;
     if (!previewUri || previewDuration <= 0 || playingPreview) return;
     if (await submitVoice(previewUri, previewDuration)) {
       setPreviewUri(null);
@@ -227,14 +244,13 @@ export function DailyRecordScreen() {
     }
   };
 
-  const confirmDelete = (id: string) => Alert.alert(
-    'Delete your voice note?',
-    'This is permanent and will not reopen today’s recording slot.',
-    [
-      { text: 'Keep it', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => void deleteArtifact('voice', id) },
-    ],
-  );
+  const confirmDelete = async (id: string) => {
+    if (reviewMode) return;
+    if (await deleteArtifact('voice', id)) {
+      setDeleteOpen(false);
+      setDeleteNotice('Your voice note was removed. Today’s recording page stays closed.');
+    }
+  };
 
   return (
     <DailyMediaScaffold
@@ -245,8 +261,14 @@ export function DailyRecordScreen() {
       onBack={() => void closeScreen()}
       backDisabled={closing}
     >
+      {!!deleteNotice && (
+        <View style={styles.successCard} accessibilityLiveRegion="polite">
+          <Text style={styles.successText}>{deleteNotice}</Text>
+        </View>
+      )}
       {(error || localError) && (
         <View style={styles.errorCard} accessibilityLiveRegion="polite">
+          <Text style={styles.errorTitle}>{previewUri ? 'Your recording is still here' : 'That didn’t work yet'}</Text>
           <Text style={styles.errorText}>{localError ?? error}</Text>
         </View>
       )}
@@ -255,16 +277,27 @@ export function DailyRecordScreen() {
         <View style={styles.answerCard}>
           <Text style={styles.answerLabel}>YOUR ANSWER</Text>
           <Text style={styles.sentTitle}>Sent for today</Text>
-          <VoiceNotePlayer item={mine} label="your daily voice note" />
-          <Pressable
-            style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
-            onPress={() => confirmDelete(mine.id)}
-            disabled={busy != null}
-            accessibilityRole="button"
-            accessibilityLabel="Permanently delete your daily voice note"
-          >
-            <Text style={styles.deleteText}>Delete my note</Text>
-          </Pressable>
+          <VoiceNotePlayer item={mine} localUri={reviewMediaUri} label="your daily voice note" />
+          {deleteOpen ? (
+            <View style={styles.deleteConfirm} accessibilityLiveRegion="polite">
+              <Text style={styles.deleteTitle}>Remove your voice note?</Text>
+              <Text style={styles.deleteBody}>It disappears for both of you and today’s recording page will stay closed.</Text>
+              <View style={styles.row}>
+                <Pressable style={[styles.secondary, styles.flex]} onPress={() => setDeleteOpen(false)} disabled={busy != null}><Text style={styles.secondaryText}>Keep note</Text></Pressable>
+                <Pressable style={[styles.deleteAction, styles.flex]} onPress={() => void confirmDelete(mine.id)} disabled={busy != null}><Text style={styles.deleteActionText}>{busy === 'delete-voice' ? 'Removing…' : 'Remove forever'}</Text></Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+              onPress={() => setDeleteOpen(true)}
+              disabled={busy != null}
+              accessibilityRole="button"
+              accessibilityLabel="Permanently delete your daily voice note"
+            >
+              <Text style={styles.deleteText}>Remove my note</Text>
+            </Pressable>
+          )}
         </View>
       ) : (
         <View style={styles.recordCard}>
@@ -273,12 +306,16 @@ export function DailyRecordScreen() {
               <View style={styles.recordArt}><View style={styles.recordDot} /></View>
               <Text style={styles.recordTitle}>Up to 30 seconds</Text>
               <Text style={styles.recordBody}>Record, listen back, then choose Send. Nothing leaves your phone before that.</Text>
+              <View style={styles.privacyNote}>
+                <Text style={styles.privacyNoteText}>Microphone access is requested only after Record. Hearth records only while this page is in the foreground.</Text>
+              </View>
               <Pressable
-                style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.primary, Platform.OS === 'web' && styles.disabled, pressed && styles.pressed]}
                 onPress={() => void startRecording()}
                 disabled={loading || busy != null || Platform.OS === 'web'}
                 accessibilityRole="button"
                 accessibilityLabel="Start recording"
+                accessibilityState={{ disabled: loading || busy != null || Platform.OS === 'web' }}
               >
                 <Text style={styles.primaryText}>{Platform.OS === 'web' ? 'Recording is available on your phone' : 'Record'}</Text>
               </Pressable>
@@ -311,6 +348,8 @@ export function DailyRecordScreen() {
                 <Pressable
                   style={({ pressed }) => [styles.secondary, styles.flex, pressed && styles.pressed]}
                   onPress={() => {
+                    clearError();
+                    setLocalError(null);
                     setPreviewUri(null);
                     setPreviewDuration(0);
                     setPhase('idle');
@@ -329,7 +368,7 @@ export function DailyRecordScreen() {
                   accessibilityLabel="Send voice note for today"
                   accessibilityState={{ busy: busy === 'voice-upload' }}
                 >
-                  <Text style={styles.primaryText}>{busy === 'voice-upload' ? 'Sending…' : 'Send'}</Text>
+                  <Text style={styles.primaryText}>{busy === 'voice-upload' ? 'Sending…' : error ? 'Try sending again' : 'Send voice note'}</Text>
                 </Pressable>
               </View>
             </>
@@ -341,7 +380,7 @@ export function DailyRecordScreen() {
         <View style={[styles.answerCard, styles.partnerCard]}>
           <Text style={styles.answerLabel}>A VOICE FOR YOU</Text>
           <Text style={styles.sentTitle}>Their answer is here</Text>
-          <VoiceNotePlayer item={partner} label="your partner’s daily voice note" />
+          <VoiceNotePlayer item={partner} localUri={reviewMediaUri} label="your partner’s daily voice note" />
         </View>
       )}
     </DailyMediaScaffold>
@@ -349,32 +388,43 @@ export function DailyRecordScreen() {
 }
 
 const styles = StyleSheet.create({
-  errorCard: { borderRadius: 16, padding: 12, backgroundColor: '#f7ddd6', borderWidth: 1, borderColor: editorial.lineStrong },
-  errorText: { color: editorial.danger, fontFamily: momentsTypography.bodyBold, fontSize: 12, lineHeight: 17 },
+  errorCard: { borderRadius: HearthTheme.radius.md, padding: HearthTheme.space.md, backgroundColor: HearthTheme.color.dangerSoft, borderWidth: 1, borderColor: HearthTheme.color.lineStrong },
+  errorTitle: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 17, lineHeight: 21, marginBottom: 2 },
+  errorText: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, lineHeight: 17 },
+  successCard: { borderRadius: HearthTheme.radius.md, padding: HearthTheme.space.md, backgroundColor: HearthTheme.color.successSoft, borderWidth: 1, borderColor: HearthTheme.color.lineStrong },
+  successText: { color: HearthTheme.color.success, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, lineHeight: 17 },
   recordCard: {
-    borderRadius: 27, padding: 18, alignItems: 'center', backgroundColor: editorial.paper,
-    borderWidth: 1, borderColor: editorial.lineStrong,
+    borderRadius: HearthTheme.radius.page, padding: 18, alignItems: 'center', backgroundColor: HearthTheme.color.parchmentRaised,
+    borderWidth: 1, borderColor: HearthTheme.color.lineStrong,
   },
-  answerCard: { borderRadius: 24, padding: 16, backgroundColor: editorial.paper, borderWidth: 1, borderColor: editorial.lineStrong },
-  partnerCard: { backgroundColor: '#f6eadf' },
-  answerLabel: { color: editorial.clay, fontFamily: momentsTypography.bodyBold, fontSize: 10, letterSpacing: 1.3 },
-  sentTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 20, lineHeight: 24, marginTop: 3 },
+  answerCard: { borderRadius: HearthTheme.radius.lg, padding: 16, backgroundColor: HearthTheme.color.parchmentRaised, borderWidth: 1, borderColor: HearthTheme.color.lineStrong },
+  partnerCard: { backgroundColor: HearthTheme.color.parchmentWarm },
+  answerLabel: { color: HearthTheme.color.clayPressed, fontFamily: HearthTheme.type.bodyStrong, fontSize: 10, letterSpacing: 1.3 },
+  sentTitle: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 20, lineHeight: 24, marginTop: 3 },
   recordArt: {
     width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: editorial.ink, borderWidth: 8, borderColor: '#5f3d31', marginBottom: 12,
+    backgroundColor: HearthTheme.color.ink, borderWidth: 8, borderColor: HearthTheme.color.inkMuted, marginBottom: 12,
   },
-  recordArtLive: { borderColor: editorial.rose },
-  recordDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: editorial.clayWash, borderWidth: 5, borderColor: editorial.gold },
-  recordTitle: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 22 },
-  recordBody: { color: editorial.inkSoft, fontFamily: momentsTypography.body, fontSize: 12, lineHeight: 18, textAlign: 'center', maxWidth: 290, marginTop: 5, marginBottom: 14 },
-  timer: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 28, marginBottom: 2 },
-  primary: { minHeight: 48, minWidth: 150, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, backgroundColor: editorial.clay },
-  primaryText: { color: editorial.onAccent, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
-  secondary: { minHeight: 48, minWidth: 120, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: editorial.paperTint, borderWidth: 1, borderColor: editorial.lineStrong },
-  secondaryText: { color: editorial.ink, fontFamily: momentsTypography.bodyBold, fontSize: 14 },
+  recordArtLive: { borderColor: HearthTheme.color.coral },
+  recordDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: HearthTheme.color.coralSoft, borderWidth: 5, borderColor: HearthTheme.color.gold },
+  recordTitle: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 22 },
+  recordBody: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 12, lineHeight: 18, textAlign: 'center', maxWidth: 290, marginTop: 5, marginBottom: 14 },
+  privacyNote: { width: '100%', marginBottom: 14, padding: 12, borderRadius: HearthTheme.radius.md, backgroundColor: HearthTheme.color.sageSoft },
+  privacyNoteText: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  timer: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 28, marginBottom: 2 },
+  primary: { minHeight: HearthTheme.touch.minimum, minWidth: 150, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, backgroundColor: HearthTheme.color.clayPressed },
+  primaryText: { color: HearthTheme.color.onAccent, fontFamily: HearthTheme.type.bodyStrong, fontSize: 14 },
+  secondary: { minHeight: HearthTheme.touch.minimum, minWidth: 120, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: HearthTheme.color.parchmentWarm, borderWidth: 1, borderColor: HearthTheme.color.lineStrong },
+  secondaryText: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.bodyStrong, fontSize: 14 },
   row: { width: '100%', flexDirection: 'row', gap: 9, marginTop: 12 },
   flex: { flex: 1, minWidth: 0 },
-  deleteButton: { alignSelf: 'flex-start', minHeight: 38, justifyContent: 'center', paddingHorizontal: 2 },
-  deleteText: { color: editorial.danger, fontFamily: momentsTypography.bodyBold, fontSize: 11 },
+  deleteButton: { alignSelf: 'flex-start', minHeight: 48, justifyContent: 'center', paddingHorizontal: 2 },
+  deleteText: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.bodyStrong, fontSize: 11 },
+  deleteConfirm: { marginTop: 8, padding: 14, borderRadius: 18, backgroundColor: HearthTheme.color.dangerSoft, borderWidth: 1, borderColor: HearthTheme.color.coral },
+  deleteTitle: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 18, lineHeight: 22 },
+  deleteBody: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.body, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  deleteAction: { minHeight: HearthTheme.touch.minimum, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderWidth: 1, borderColor: HearthTheme.color.danger, backgroundColor: HearthTheme.color.parchmentRaised },
+  deleteActionText: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12 },
+  disabled: { opacity: 0.48 },
   pressed: { opacity: 0.7 },
 });

@@ -9,8 +9,9 @@
 
 ## Current program checkpoint — 8 September 2026
 
-Milestones 1 through 6 and the Daily Sketch slice of Milestone 7 are locally
-complete. The installed `1.0.4` client remains the technical baseline; the
+Milestones 1 through 6 and the Daily Sketch plus Photo/Voice/Diary slices of
+Milestone 7 are locally complete. The installed `1.0.4` client remains the
+technical baseline; the
 `1.0.3` gate below is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
 migration, optional email-OTP recovery, optional device/PIN app lock, capture
@@ -49,6 +50,14 @@ removal that respects the existing server-owned closed daily slot. Automated
 checks pass 151/151 and all six deterministic states pass the three-viewport
 browser matrix without overflow or runtime errors.
 
+Milestone 7B strengthens Daily Photo, Daily Record, and Our Diary. Permission
+timing is explained before camera or microphone access; failed sends retain
+their local preview and expose a truthful retry; private image and audio access
+can recover; and author removal uses inline consequences plus completion
+feedback. These surfaces now use only `HearthTheme`, and provider failures pass
+through typed domain mapping. Automated checks pass 157/157; 13 deterministic
+states pass 39 responsive browser combinations with zero runtime errors.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
 installed versionCode 8 APK. The current local Android fingerprint
@@ -62,7 +71,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
-`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md` before changing publication state.
+`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
+`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

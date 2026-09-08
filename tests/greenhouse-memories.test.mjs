@@ -86,7 +86,7 @@ test('Our Diary is paginated by date and contains voice notes and sketches but n
   assert.doesNotMatch(diary, /PrivatePhoto|GreenhousePhoto/);
   assert.match(collections, /fetchDiaryPage/);
   assert.match(collections, /p_before_date|current\.at\(-1\)/);
-  assert.match(diary, /does not reopen that day/);
+  assert.match(diary, /submission slot stays closed/);
 });
 
 test('Our things keeps both retained Sketchbook and Our Diary destinations', () => {

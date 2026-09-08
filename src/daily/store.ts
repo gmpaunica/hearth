@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { useAuthStore } from '@/state/authStore';
+import { mapDomainError, reportDomainError, type DomainOperation } from '@/lib/domainError';
 import {
   createMediaId,
   deleteDailyArtifact,
@@ -42,12 +43,14 @@ interface DailyMediaState {
   reset: () => void;
 }
 
-function errorMessage(error: unknown, fallback: string) {
+function errorMessage(error: unknown, operation: DomainOperation, fallback: string) {
   const message = error && typeof error === 'object' && 'message' in error
     ? String((error as { message: unknown }).message)
     : '';
   if (/slot is already finalized/i.test(message)) return 'Your answer for today is already sent.';
-  return fallback;
+  const safe = mapDomainError(error, operation);
+  reportDomainError(safe);
+  return safe.code === 'unknown' ? fallback : safe.message;
 }
 
 export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
@@ -88,7 +91,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
       refreshTimer = setTimeout(() => void get().refresh(false), delay);
     } catch (error) {
       if (requestId === newestRefresh) {
-        set({ loading: false, error: errorMessage(error, 'Couldn’t open today’s shared prompts.') });
+        set({ loading: false, error: errorMessage(error, 'daily_media_load', 'Couldn’t open today’s shared prompts. Try again when you are ready.') });
       }
     }
   },
@@ -121,7 +124,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
     } catch (error) {
       set({
         busy: null,
-        error: errorMessage(error, 'Couldn’t send your recording. Your daily slot is still safe.'),
+        error: errorMessage(error, 'daily_media_upload', 'Couldn’t send your recording. It is still here—try again when you are ready.'),
       });
       return false;
     }
@@ -157,7 +160,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
     } catch (error) {
       set({
         busy: null,
-        error: errorMessage(error, 'Couldn’t send your photo. Your daily slot is still safe.'),
+        error: errorMessage(error, 'daily_media_upload', 'Couldn’t send your photo. It is still here—try again when you are ready.'),
       });
       return false;
     }
@@ -176,7 +179,8 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
         } : null,
       }));
     } catch (error) {
-      console.warn('[hearth] daily media receipt failed:', error);
+      const safe = mapDomainError(error, 'daily_media_receipt');
+      reportDomainError(safe);
     }
   },
 
@@ -189,7 +193,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
       set({ busy: null });
       return true;
     } catch (error) {
-      set({ busy: null, error: errorMessage(error, 'Couldn’t delete this artifact.') });
+      set({ busy: null, error: errorMessage(error, 'daily_media_delete', 'Couldn’t remove this yet. Your copy is still safe.') });
       return false;
     }
   },
@@ -204,7 +208,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
       set({ busy: null });
       return true;
     } catch (error) {
-      set({ busy: null, error: errorMessage(error, 'Couldn’t keep this day in the greenhouse.') });
+      set({ busy: null, error: errorMessage(error, 'daily_media_upload', 'Couldn’t keep this day in the greenhouse.') });
       return false;
     }
   },
@@ -219,7 +223,7 @@ export const useDailyMediaStore = create<DailyMediaState>((set, get) => ({
       set({ busy: null });
       return true;
     } catch (error) {
-      set({ busy: null, error: errorMessage(error, 'Couldn’t remove this greenhouse memory.') });
+      set({ busy: null, error: errorMessage(error, 'daily_media_delete', 'Couldn’t remove this greenhouse memory.') });
       return false;
     }
   },

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { mapDomainError, reportDomainError } from '@/lib/domainError';
+
 import {
   deleteDailyArtifact,
   fetchDiaryPage,
@@ -10,6 +12,12 @@ import type { DailyMedium, DiaryDay, GreenhouseMemory } from './model';
 
 const DIARY_PAGE_SIZE = 20;
 const GREENHOUSE_PAGE_SIZE = 12;
+
+function collectionError(error: unknown, operation: 'diary_load' | 'diary_delete', fallback: string) {
+  const safe = mapDomainError(error, operation);
+  reportDomainError(safe);
+  return safe.code === 'unknown' ? fallback : safe.message;
+}
 
 interface CollectionState {
   diary: DiaryDay[];
@@ -48,8 +56,8 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
         diaryHasMore: page.length === DIARY_PAGE_SIZE,
         diaryLoading: false,
       });
-    } catch {
-      set({ diaryLoading: false, error: 'Couldn\u2019t open Our Diary.' });
+    } catch (error) {
+      set({ diaryLoading: false, error: collectionError(error, 'diary_load', 'Couldn\u2019t open Our Diary. Try again when you are ready.') });
     }
   },
 
@@ -64,8 +72,8 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
         greenhouseHasMore: page.length === GREENHOUSE_PAGE_SIZE,
         greenhouseLoading: false,
       });
-    } catch {
-      set({ greenhouseLoading: false, error: 'Couldn\u2019t open the greenhouse.' });
+    } catch (error) {
+      set({ greenhouseLoading: false, error: collectionError(error, 'diary_load', 'Couldn\u2019t open the greenhouse.') });
     }
   },
 
@@ -83,8 +91,8 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
         })).filter((day) => day.sketches.length > 0 || day.voices.length > 0),
       }));
       return true;
-    } catch {
-      set({ busy: null, error: 'Couldn\u2019t delete this diary item.' });
+    } catch (error) {
+      set({ busy: null, error: collectionError(error, 'diary_delete', 'Couldn\u2019t remove this diary item. It is still safe.') });
       return false;
     }
   },
@@ -99,8 +107,8 @@ export const useDailyCollectionStore = create<CollectionState>((set, get) => ({
         greenhouse: state.greenhouse.filter((memory) => memory.home_date !== homeDate),
       }));
       return true;
-    } catch {
-      set({ busy: null, error: 'Couldn\u2019t remove this greenhouse memory.' });
+    } catch (error) {
+      set({ busy: null, error: collectionError(error, 'diary_delete', 'Couldn\u2019t remove this greenhouse memory.') });
       return false;
     }
   },

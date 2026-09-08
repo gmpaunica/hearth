@@ -14,15 +14,16 @@
 ## Current checkpoint — 8 September 2026
 
 The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 6 and the Daily Sketch slice of
-Milestone 7 are locally complete. Read `MILESTONE_1_BASELINE.md`,
+`app/integration`. Milestones 1 through 6 and the Daily Sketch plus
+Photo/Voice/Diary slices of Milestone 7 are locally complete. Read
+`MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
 `MILESTONE_6_MEET_BY_THE_FIRE.md`, and
-`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md` before changing or publishing the
-client.
+`MILESTONE_7A_DAILY_SKETCH_AND_RITUALS.md`, and
+`MILESTONE_7B_PHOTO_VOICE_AND_DIARY.md` before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -64,6 +65,13 @@ surface is canvas-first with progressive title and brush controls;
 author-only deletion through the deployed daily-artifact RPC. `Sketchbook`
 uses direct dated navigation and accessible summaries. The development-only
 `daily-sketch-qa` route covers the representative states without backend calls.
+
+Milestone 7B moves all daily-media presentation onto `HearthTheme`, adds
+permission-before-prompt explanations, retained-preview retry, signed-photo
+retry, clearer user-started audio playback, and inline author-removal outcomes.
+`daily/store.ts` and `daily/collectionStore.ts` now map provider failures through
+typed domain operations. The development-only `daily-media-qa` route covers 13
+photo, voice, and diary states without refreshes or backend mutations.
 
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent

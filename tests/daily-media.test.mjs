@@ -39,7 +39,7 @@ test('recording is cancelled safely when backgrounded or interrupted and never a
   assert.match(screen, /Nothing was sent/);
   assert.match(screen, /LISTEN BEFORE SENDING/);
   assert.match(screen, /Re-record/);
-  assert.match(screen, /'Sending…'\s*:\s*'Send'/);
+  assert.match(screen, /'Sending…'\s*:\s*error\s*\?\s*'Try sending again'\s*:\s*'Send voice note'/);
   assert.doesNotMatch(screen, /submitVoice\([^)]*\)[\s\S]{0,120}finishRecording/);
 });
 
@@ -105,7 +105,7 @@ test('the daily record copy is shared, optional, independent, and has a final au
   assert.match(screen, /YOUR ANSWER/);
   assert.match(screen, /A VOICE FOR YOU/);
   assert.match(scaffold, /Optional, always/);
-  assert.match(screen, /will not reopen today’s recording slot/);
+  assert.match(screen, /today’s recording page will stay closed/);
   assert.match(screen, /deleteArtifact\(['"]voice['"]/);
   assert.doesNotMatch(screen + scaffold, /streak|score|countdown|reminder|complete today/i);
 });

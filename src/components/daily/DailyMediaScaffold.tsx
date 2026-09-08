@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode, useEffect, useRef } from 'react';
+import { AccessibilityInfo, findNodeHandle, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 interface Props {
   eyebrow: string;
@@ -24,6 +24,15 @@ export function DailyMediaScaffold({
   backDisabled = false,
   children,
 }: Props) {
+  const headingRef = useRef<Text>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (Platform.OS === 'web') return;
+      const handle = findNodeHandle(headingRef.current);
+      if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'bottom', 'left']}>
       <View style={styles.header}>
@@ -40,7 +49,7 @@ export function DailyMediaScaffold({
         </Pressable>
         <View style={styles.heading}>
           <Text style={styles.eyebrow}>{eyebrow}</Text>
-          <Text style={styles.title}>{title}</Text>
+          <Text ref={headingRef} accessible accessibilityRole="header" style={styles.title}>{title}</Text>
         </View>
         {/* Preserve the centered title without presenting decoration as a fake button. */}
         <View style={styles.headerSpacer} pointerEvents="none" />
@@ -65,32 +74,32 @@ export function DailyMediaScaffold({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: editorial.canvas },
+  safeArea: { flex: 1, backgroundColor: HearthTheme.color.parchment },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
   back: {
     width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: editorial.paperStrong, borderWidth: 1, borderColor: editorial.lineStrong,
+    backgroundColor: HearthTheme.color.parchmentRaised, borderWidth: 1, borderColor: HearthTheme.color.lineStrong,
   },
-  backText: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 34, lineHeight: 36, marginTop: -3 },
+  backText: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 34, lineHeight: 36, marginTop: -3 },
   heading: { flex: 1, paddingHorizontal: 12 },
-  eyebrow: { color: editorial.clay, fontFamily: momentsTypography.bodyBold, fontSize: 10, letterSpacing: 1.4 },
-  title: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 27, lineHeight: 31 },
+  eyebrow: { color: HearthTheme.color.clayPressed, fontFamily: HearthTheme.type.bodyStrong, fontSize: 10, letterSpacing: 1.4 },
+  title: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 27, lineHeight: 31 },
   headerSpacer: { width: 44, height: 44 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 7, paddingBottom: 34, gap: 14 },
   promptCard: {
     borderRadius: 27, paddingHorizontal: 20, paddingTop: 25, paddingBottom: 20,
-    backgroundColor: editorial.paperStrong, borderWidth: 1, borderColor: editorial.lineStrong,
-    shadowColor: editorial.shadow, shadowOpacity: 0.14, shadowRadius: 14,
+    backgroundColor: HearthTheme.color.parchmentRaised, borderWidth: 1, borderColor: HearthTheme.color.lineStrong,
+    shadowColor: HearthTheme.shadow.color, shadowOpacity: 0.14, shadowRadius: 14,
     shadowOffset: { width: 0, height: 7 }, elevation: 7,
   },
   tape: {
     position: 'absolute', top: -7, alignSelf: 'center', width: 78, height: 20,
     borderRadius: 4, backgroundColor: 'rgba(245, 211, 155, 0.72)', transform: [{ rotate: '-2deg' }],
   },
-  promptLabel: { color: editorial.clay, fontFamily: momentsTypography.bodyBold, fontSize: 10, letterSpacing: 1.5 },
-  prompt: { color: editorial.ink, fontFamily: momentsTypography.heading, fontSize: 24, lineHeight: 31, marginTop: 8 },
-  sharedCopy: { color: editorial.inkSoft, fontFamily: momentsTypography.bodyBold, fontSize: 12, lineHeight: 17, marginTop: 12 },
-  optional: { color: editorial.inkFaint, fontFamily: momentsTypography.body, fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  promptLabel: { color: HearthTheme.color.clayPressed, fontFamily: HearthTheme.type.bodyStrong, fontSize: 10, letterSpacing: 1.5 },
+  prompt: { color: HearthTheme.color.ink, fontFamily: HearthTheme.type.display, fontSize: 24, lineHeight: 31, marginTop: 8 },
+  sharedCopy: { color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.bodyStrong, fontSize: 12, lineHeight: 17, marginTop: 12 },
+  optional: { color: HearthTheme.color.inkFaint, fontFamily: HearthTheme.type.body, fontSize: 11, textAlign: 'center', lineHeight: 16 },
   pressed: { opacity: 0.7 },
 });

@@ -6,7 +6,7 @@ import { createSignedMediaUrl, markMediaReceived } from '@/daily/api';
 import type { DailyMediaItem, DiaryVoice } from '@/daily/model';
 import { useDailyMediaStore } from '@/daily/store';
 import { useAuthStore } from '@/state/authStore';
-import { editorial, momentsTypography } from '@/theme/hearth';
+import { HearthTheme } from '@/theme/hearth';
 
 interface Props {
   item?: DailyMediaItem | DiaryVoice | null;
@@ -51,7 +51,8 @@ export function VoiceNotePlayer({ item, localUri, label, onPlaybackChange }: Pro
         else void markMediaReceived(item.id, 'voice_playback_started');
       }
     } catch {
-      setError('Couldn’t play this note.');
+      if (!localUri) setLoadedPath(null);
+      setError('Couldn’t play this note. Try again when you’re ready.');
     } finally {
       setLoading(false);
     }
@@ -65,11 +66,18 @@ export function VoiceNotePlayer({ item, localUri, label, onPlaybackChange }: Pro
         onPress={() => void toggle()}
         disabled={loading}
         accessibilityRole="button"
-        accessibilityLabel={`${status.playing ? 'Pause' : 'Play'} ${label}`}
+        accessibilityLabel={`${error ? 'Try again playing' : status.playing ? 'Pause' : 'Play'} ${label}`}
+        accessibilityHint="Playback starts only when you choose this button"
         accessibilityState={{ busy: loading }}
       >
-        <View style={styles.playDisc}>
-          <Text style={styles.playIcon}>{loading ? '…' : status.playing ? 'Ⅱ' : '▶'}</Text>
+        <View style={styles.playDisc} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {loading ? (
+            <View style={styles.loadingDots}><View style={styles.loadingDot} /><View style={styles.loadingDot} /><View style={styles.loadingDot} /></View>
+          ) : status.playing ? (
+            <View style={styles.pauseIcon}><View style={styles.pauseBar} /><View style={styles.pauseBar} /></View>
+          ) : (
+            <View style={styles.playTriangle} />
+          )}
         </View>
         <View style={styles.track}>
           <View style={[styles.progress, {
@@ -78,7 +86,7 @@ export function VoiceNotePlayer({ item, localUri, label, onPlaybackChange }: Pro
         </View>
         <Text style={styles.time}>{clock(status.playing ? status.currentTime : duration)}</Text>
       </Pressable>
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -87,12 +95,16 @@ const styles = StyleSheet.create({
   player: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10 },
   playDisc: {
     width: 45, height: 45, borderRadius: 23, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: editorial.clay,
+    backgroundColor: HearthTheme.color.clayPressed,
   },
-  playIcon: { color: editorial.onAccent, fontFamily: momentsTypography.bodyBold, fontSize: 15, marginLeft: 1 },
-  track: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden', backgroundColor: editorial.claySoft },
-  progress: { height: '100%', borderRadius: 4, backgroundColor: editorial.rose },
-  time: { width: 38, color: editorial.inkSoft, fontFamily: momentsTypography.bodyBold, fontSize: 11 },
-  error: { color: editorial.danger, fontFamily: momentsTypography.body, fontSize: 11, marginTop: 4 },
+  playTriangle: { width: 0, height: 0, marginLeft: 3, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 11, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: HearthTheme.color.onAccent },
+  pauseIcon: { flexDirection: 'row', gap: 4 },
+  pauseBar: { width: 4, height: 15, borderRadius: 2, backgroundColor: HearthTheme.color.onAccent },
+  loadingDots: { flexDirection: 'row', gap: 3 },
+  loadingDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: HearthTheme.color.onAccent },
+  track: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden', backgroundColor: HearthTheme.color.coralSoft },
+  progress: { height: '100%', borderRadius: 4, backgroundColor: HearthTheme.color.coral },
+  time: { width: 38, color: HearthTheme.color.inkMuted, fontFamily: HearthTheme.type.bodyStrong, fontSize: 11 },
+  error: { color: HearthTheme.color.danger, fontFamily: HearthTheme.type.body, fontSize: 11, marginTop: 4 },
   pressed: { opacity: 0.72 },
 });
