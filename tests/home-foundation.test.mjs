@@ -84,10 +84,15 @@ test('one resolver supplies render positions, collisions, walking, roles, camera
 });
 
 test('snapshot refresh and realtime revision invalidation preserve a fallback on rollout errors', () => {
+  const api = read('src/home/api.ts');
   const store = read('src/state/homeStore.ts');
   const sync = read('src/state/useHearthSync.ts');
   assert.match(store, /LEGACY_COTTAGE_V2_SNAPSHOT/);
   assert.match(store, /fetchHomeSnapshot\(\)/);
+  assert.match(api, /void recordActiveHomeDay\(\)/);
+  assert.match(api, /supabase\.rpc\('record_active_home_day'\)/);
+  const recorder = api.match(/export async function recordActiveHomeDay[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.doesNotMatch(recorder, /throw/);
   assert.match(store, /status: state\.snapshot\.revision > 0 \? 'error' : 'fallback'/);
   assert.match(store, /invalidate: \(revision\)/);
   assert.match(sync, /table: 'home_states'/);

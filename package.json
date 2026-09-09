@@ -1,7 +1,7 @@
 {
   "name": "hearth",
   "main": "expo-router/entry",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "dependencies": {
     "@expo/ui": "~57.0.17",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -64,7 +64,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
-    "export:all": "node scripts/export-all.mjs"
+    "export:all": "node scripts/export-all.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
   },
   "private": true
 }

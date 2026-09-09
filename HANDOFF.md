@@ -11,10 +11,12 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
-## Current checkpoint — 8 September 2026
+## Current checkpoint — 9 September 2026
 
-The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
-`app/integration`. Milestones 1 through 7 and milestones 8A–8C are locally complete. Read
+The installed phone baseline is `1.0.4` (Android versionCode 8). The canonical
+phone checkout on branch `app/integration` now stages release candidate `1.0.5`
+(Android versionCode 9, runtime `1.0.5`). Milestones 1 through 9 are locally
+complete. Read
 `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, and
 `MILESTONE_3_PRIVATE_BY_DEFAULT.md`, and
@@ -26,7 +28,9 @@ The canonical phone baseline is `1.0.4` (Android versionCode 8) on branch
 `MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
 `MILESTONE_8A_WARDROBE_AND_STYLE.md`, and
 `MILESTONE_8B_DECORATING.md`, and
-`MILESTONE_8C_PROGRESSION_GARDEN_AND_ROOMS.md` before changing or publishing the client.
+`MILESTONE_8C_PROGRESSION_GARDEN_AND_ROOMS.md`, and
+`MILESTONE_9_RELEASE_HARDENING.md`, plus `RELEASE_CHECKLIST_1.0.5.md` and
+`ROLLBACK_NOTES_1.0.5.md`, before changing or publishing the client.
 The older `1.0.3` release notes in this document are historical.
 
 Milestone 2 establishes `HearthTheme`, `HearthPrimitives`, the storybook
@@ -106,15 +110,24 @@ in the rail and scene notice uses the same static shared-day milestone without
 a countdown. The development-only `home-growth-qa` route covers six
 persistence-free review stages.
 
+Milestone 9 makes the candidate reproducible and runtime-safe. The root and web
+scene now preserve a deterministic server/client loading shell through static
+hydration. `verify:release` enforces the Milestone 1 bundle ceiling and rejects
+unfinished static Suspense output. Compatible lockfile updates reduce audit
+findings without leaving Expo SDK 57. All 165 tests, strict typecheck/lint, 21
+Doctor checks, dependency checks, and Android/iOS/web exports pass; bundle
+deltas remain below 4%. Production Chrome reports no errors and retains stable
+DOM/canvas/heap behavior across 100 drawer and room-gesture cycles.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. The new privacy/ownership modules require native code and are absent
-from the installed APK.
-The local Android fingerprint
-`381c477f269790578e227da636f96a838e2faf81` differs from installed versionCode
-8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client;
-the next preview requires explicit owner authorization for a new APK, and the
-backend requires separate deployment authorization. Native privacy, sharing,
-recovery, account ownership, and two-phone behavior remain unverified.
+from the installed APK. Candidate fingerprint
+`a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed versionCode
+8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`; runtime `1.0.5` is deliberately
+isolated from runtime `1.0.4`. Do not OTA this candidate to the installed APK.
+The next preview requires explicit owner authorization for a versionCode 9 APK,
+and the backend requires separate deployment authorization. Native privacy,
+sharing, recovery, account ownership, and two-phone behavior remain unverified.
 
 ---
 
@@ -573,10 +586,12 @@ From `STATUS.md` (keep that current) and `PRODUCTION_PLAN.md`:
 
 ## 15. Immediate open items for whoever picks this up
 
-1. Review `MILESTONE_1_BASELINE.md` and complete its two-phone owner checklist.
-2. Restart Codex, then run `codex mcp login expo`; the hosted Expo MCP entry was
-   installed but is not visible to the already-running process.
-3. Keep the recorded fingerprint mismatch as a hard gate: do not publish an OTA
-   to versionCode 8. Obtain explicit authorization for a new APK.
-4. Authorize the storybook front-door milestone before starting it. A later
-   native build or database deployment remains a separate explicit gate.
+1. Follow `RELEASE_CHECKLIST_1.0.5.md` in order; do not skip the backend gate.
+2. Obtain explicit authorization before deploying the nine pending migrations
+   and four relationship-safety Edge Functions from the backend checkout.
+3. After authenticated backend validation passes, obtain separate authorization
+   to build the `1.0.5` / versionCode 9 preview APK.
+4. Install that APK on both phones and complete the native, privacy, realtime,
+   accessibility, recovery, export, deletion, block, and regression matrix.
+5. Publish an OTA only to runtime `1.0.5`, only after its fingerprint matches the
+   installed candidate APK and the specific publication is authorized.

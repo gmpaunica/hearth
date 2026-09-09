@@ -155,12 +155,12 @@ test('six code-native mosaics replace raster Moment photographs', () => {
   assert.doesNotMatch(read('src/moments/consequenceCatalog.ts'), /MOMENT_BANNER_IMAGES|expo-image|\.webp/);
 });
 
-test('SDK 57 and runtime 1.0.4 use the compatible patch baseline', () => {
+test('SDK 57 and runtime 1.0.5 use the compatible patch baseline', () => {
   const app = JSON.parse(read('app.json'));
   const pkg = JSON.parse(read('package.json'));
-  assert.equal(app.expo.version, '1.0.4');
+  assert.equal(app.expo.version, '1.0.5');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
-  assert.equal(pkg.version, '1.0.4');
+  assert.equal(pkg.version, '1.0.5');
   assert.equal(pkg.dependencies.expo, '~57.0.21');
   assert.equal(pkg.dependencies['@expo/ui'], '~57.0.17');
   assert.equal(pkg.dependencies['expo-glass-effect'], '~57.0.2');

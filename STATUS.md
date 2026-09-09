@@ -7,11 +7,12 @@
 > and one-feature-at-a-time review queue), `dev/README.md` (browser
 > verification).
 
-## Current program checkpoint — 8 September 2026
+## Current program checkpoint — 9 September 2026
 
-Milestones 1 through 7 and milestones 8A–8C are locally complete. The installed `1.0.4` client remains the
-technical baseline; the
-`1.0.3` gate below is historical. Milestone 2 established the semantic
+Milestones 1 through 9 are locally complete. The installed `1.0.4` / Android
+versionCode 8 client remains the technical baseline, while the staged release
+candidate is `1.0.5` / versionCode 9 / runtime `1.0.5`. The `1.0.3` gate below
+is historical. Milestone 2 established the semantic
 storybook front door. Milestone 3 adds verified native SecureStore session
 migration, optional email-OTP recovery, optional device/PIN app lock, capture
 protection for paired and sensitive surfaces, and generic-by-default local
@@ -91,13 +92,27 @@ without a ticking countdown, tier, or active-hour target. Automated checks pass
 162/162; six deterministic stages pass all 18 responsive browser combinations
 without overflow or runtime errors, and all platform exports pass.
 
+Milestone 9 hardens the `1.0.5` release candidate. Web static rendering now
+uses a hydration-stable storybook loading shell and defers WebGL until the
+client is ready. Controlled compatible dependency updates reduce the audit from
+24 to 19 build-tool findings without leaving the SDK 57 compatibility set.
+TypeScript, zero-warning lint, 165/165 tests, Expo Doctor 21/21, dependency
+checks, and fresh Android/iOS/web exports pass. Main bundle deltas remain between
++3.31% and +3.87% versus Milestone 1, and 100 production-browser drawer/room-
+gesture cycles retain exactly 80 DOM nodes and one canvas with no runtime error
+or measured unbounded heap growth. Read `MILESTONE_9_RELEASE_HARDENING.md`,
+`RELEASE_CHECKLIST_1.0.5.md`, and `ROLLBACK_NOTES_1.0.5.md`.
+The isolated backend also passes 91/91 tests and now contains the ninth pending,
+content-free metrics migration documented in its `MIGRATION_LEDGER.md`.
+
 No OTA, native build, APK, database migration, or Edge Function was created or
 deployed. Milestones 3 and 4 add native modules that are absent from the
-installed versionCode 8 APK. The current local Android fingerprint
-`381c477f269790578e227da636f96a838e2faf81` differs from installed fingerprint
-`f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`. Do not OTA this local client; the
-next phone preview requires explicit owner authorization for a new APK, and the
-backend requires separate deployment authorization. No physical-device,
+installed versionCode 8 APK. The `1.0.5` candidate fingerprint
+`a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed fingerprint
+`f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`, and its runtime is intentionally
+separate. Do not OTA this candidate to `1.0.4`; the next phone preview requires
+explicit owner authorization for a versionCode 9 APK, and the backend requires
+separate deployment authorization. No physical-device,
 two-phone, native-sharing, recovery, RLS, export, deletion, or block claim has
 been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, `MILESTONE_3_PRIVATE_BY_DEFAULT.md`,
@@ -109,7 +124,8 @@ been verified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_7C_GREENHOUSE_AND_MEMORIES.md`, and
 `MILESTONE_8A_WARDROBE_AND_STYLE.md`, and
 `MILESTONE_8B_DECORATING.md`, and
-`MILESTONE_8C_PROGRESSION_GARDEN_AND_ROOMS.md` before changing publication state.
+`MILESTONE_8C_PROGRESSION_GARDEN_AND_ROOMS.md`, and
+`MILESTONE_9_RELEASE_HARDENING.md` before changing publication state.
 
 ## Development workflow — 22 August 2026
 

@@ -22,6 +22,11 @@ Durable owner feedback and accepted staged product decisions live in
 - **[`STATUS.md`](./STATUS.md)** — the living status + backlog. Keep it current.
 - **[`MILESTONE_1_BASELINE.md`](./MILESTONE_1_BASELINE.md)** — the verified
   `1.0.4` technical baseline, migration ledger, and owner gates.
+- **[`MILESTONE_9_RELEASE_HARDENING.md`](./MILESTONE_9_RELEASE_HARDENING.md)** —
+  the verified `1.0.5` local release candidate and performance evidence.
+- [`RELEASE_CHECKLIST_1.0.5.md`](./RELEASE_CHECKLIST_1.0.5.md) and
+  [`ROLLBACK_NOTES_1.0.5.md`](./ROLLBACK_NOTES_1.0.5.md) — ordered authorization,
+  two-phone, rollout, and recovery gates.
 - [`PRODUCTION_PLAN.md`](./PRODUCTION_PLAN.md) — the original phased roadmap.
 - [`AGENTS.md`](./AGENTS.md) — Expo changed a lot in v57; use the exact versioned
   docs.

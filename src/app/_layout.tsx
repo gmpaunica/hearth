@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -7,7 +9,15 @@ import { BackgroundMusic } from '@/components/BackgroundMusic';
 import { AppErrorBoundary, AppLoadingScreen } from '@/components/AppErrorBoundary';
 import { AppPrivacyGate } from '@/components/AppPrivacyGate';
 
+const subscribeHydration = () => () => {};
+
 export default function RootLayout() {
+  const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
+  if (Platform.OS === 'web' && !hydrated) return <AppLoadingScreen />;
+  return <HydratedRootLayout />;
+}
+
+function HydratedRootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     HearthFredoka: require('../../assets/fonts/Fredoka-SemiBold.ttf'),
     HearthNunito: require('../../assets/fonts/Nunito-Regular.ttf'),

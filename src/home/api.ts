@@ -4,7 +4,19 @@ import type { HomeApplyResult, HomeOperation, HomeSnapshot } from './types';
 export async function fetchHomeSnapshot(): Promise<HomeSnapshot> {
   const { data, error } = await supabase.rpc('get_home_snapshot');
   if (error) throw error;
+  void recordActiveHomeDay();
   return data as HomeSnapshot;
+}
+
+/**
+ * Best-effort, content-free activity inference after a successful home load.
+ * Metrics must never make the shared home slower or surface a user-facing error.
+ */
+export async function recordActiveHomeDay(): Promise<void> {
+  await supabase.rpc('record_active_home_day').then(
+    () => undefined,
+    () => undefined,
+  );
 }
 
 export async function applyHomeEdit(

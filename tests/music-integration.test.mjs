@@ -74,15 +74,15 @@ test('settings expose saved music power and volume controls', () => {
   }
 });
 
-test('1.0.4 enables foreground voice recording while keeping background audio capabilities disabled', () => {
+test('1.0.5 enables foreground voice recording while keeping background audio capabilities disabled', () => {
   const app = JSON.parse(read('app.json'));
   const eas = JSON.parse(read('eas.json'));
   const audioPlugin = app.expo.plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-audio',
   );
 
-  assert.equal(app.expo.version, '1.0.4');
-  assert.equal(app.expo.android.versionCode, 8);
+  assert.equal(app.expo.version, '1.0.5');
+  assert.equal(app.expo.android.versionCode, 9);
   assert.ok(audioPlugin);
   assert.deepEqual(audioPlugin[1], {
     microphonePermission: 'Allow Hearth to record your optional Daily Record voice note.',

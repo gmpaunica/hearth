@@ -76,7 +76,6 @@ export function Rain() {
         transparent: true,
         depthWrite: false,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 

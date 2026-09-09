@@ -2,7 +2,7 @@
   "expo": {
     "name": "hearth",
     "slug": "hearth",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hearth",
@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "com.hearth.app",
-      "versionCode": 8,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

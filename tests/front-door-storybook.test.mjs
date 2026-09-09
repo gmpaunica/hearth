@@ -90,6 +90,8 @@ test('the root catches fatal render failures and shows an intentional loading st
   const boundary = read('src/components/AppErrorBoundary.tsx');
   assert.match(layout, /<AppErrorBoundary>/);
   assert.match(layout, /<AppLoadingScreen \/>/);
+  assert.match(layout, /useSyncExternalStore\(subscribeHydration, \(\) => true, \(\) => false\)/);
+  assert.match(layout, /Platform\.OS === 'web' && !hydrated/);
   assert.match(boundary, /<HearthScreen>/);
   assert.match(boundary, /fontFamily: HearthTheme\.type\.bodyStrong/);
   assert.match(boundary, /Hearth needs a fresh start/);

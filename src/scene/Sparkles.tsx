@@ -78,7 +78,6 @@ export function Sparkles() {
         transparent: true,
         depthWrite: false,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 

@@ -65,8 +65,9 @@ a specific need and gives the other partner a relationship-safe response.
 - `PRODUCT_BRIEF.md` records purpose, safety boundaries, and approved flows.
 - `EXPERIENCE_ROADMAP.md` records review gates and interaction direction.
 - `VOXEL_ART_DIRECTION.md` and `docs/art-bible.md` record scene constraints.
-- The repository contains the complete `1.0.4` phone client, existing voxel
-  assets, local fonts, tests, and production export tooling.
+- The repository contains the complete installed `1.0.4` baseline and staged
+  `1.0.5` release candidate, existing voxel assets, local fonts, tests, and
+  production export tooling.
 - There are no approved testimonials or external product claims; none may be
   fabricated.
 

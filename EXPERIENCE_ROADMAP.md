@@ -79,17 +79,19 @@ Garden-specific work should stay in `src/scene/rooms/Garden.tsx` plus its own
 assets/tests. Keep the small `RoomComposition.tsx` topology focused on shared
 room composition.
 
-## Current comprehensive program gate — 4 September 2026
+## Current comprehensive program gate — 9 September 2026
 
 The former `1.0.3` gate is retired. The installed `1.0.4` client is now the
 technical baseline. Work proceeds through the bounded milestones recorded in
 `MILESTONE_1_BASELINE.md`, preserving Moments and the shared home while privacy,
 recovery, accessibility, and the scene-led phone experience are improved.
 
-Milestone 1 is a technical owner checkpoint and intentionally has no OTA. Do
-not begin the storybook front-door milestone until its baseline report and
-remaining physical-device gates have been reviewed. Native builds and database
-deployments still require explicit authorization.
+Milestones 1 through 9 are locally complete. The installed baseline remains
+`1.0.4` / versionCode 8; native changes require the staged `1.0.5` / versionCode
+9 runtime and a newly authorized APK. No OTA, native build, database migration,
+or Edge Function was deployed. Follow `RELEASE_CHECKLIST_1.0.5.md` in order and
+use `ROLLBACK_NOTES_1.0.5.md`; native builds and database deployments remain
+explicit authorization gates.
 
 For every JavaScript/assets-only feature, publishing is part of completion, not
 an optional handoff step. Run the preview EAS Update command from `AGENTS.md`,

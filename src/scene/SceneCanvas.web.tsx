@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import type { ReactNode } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useMomentsSurfaceStore } from '@/state/momentsSurfaceStore';
 
@@ -11,6 +11,8 @@ interface SceneCanvasProps {
   onAccessibilityActivate?: (() => void) | null;
 }
 
+const subscribeHydration = () => () => {};
+
 /** Web canvas host (browser preview). */
 export function SceneCanvas({
   children,
@@ -19,6 +21,11 @@ export function SceneCanvas({
   accessibilityActionLabel = 'Open Moments and fireplace outcomes',
   onAccessibilityActivate = () => useMomentsSurfaceStore.getState().openMoments(),
 }: SceneCanvasProps) {
+  // WebGL has no server representation. Keep the static export and the first
+  // browser render identical, then mount R3F after hydration. This avoids
+  // forcing Expo Router's entire Suspense boundary into client recovery.
+  const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
+
   return (
     <View
       style={styles.container}
@@ -36,14 +43,16 @@ export function SceneCanvas({
         : undefined}
     >
       {/* flat = no tone mapping; hex colors round-trip exactly (see native). */}
-      <Canvas
-        orthographic
-        flat
-        camera={{ position: [12, 9.8, 12], zoom: 50, near: 0.1, far: 60 }}
-        gl={{ antialias: false }}
-      >
-        {children}
-      </Canvas>
+      {hydrated ? (
+        <Canvas
+          orthographic
+          flat
+          camera={{ position: [12, 9.8, 12], zoom: 50, near: 0.1, far: 60 }}
+          gl={{ antialias: false }}
+        >
+          {children}
+        </Canvas>
+      ) : null}
     </View>
   );
 }

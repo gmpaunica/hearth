@@ -83,3 +83,9 @@ test('room and drawer controls remain safe-area aware, scrollable, and at least 
   assert.match(drawer, /minHeight: 68/);
   assert.match(drawer, /width: HearthTheme\.touch\.minimum/);
 });
+
+test('the web scene defers WebGL until after static hydration', () => {
+  const sceneCanvas = read('src/scene/SceneCanvas.web.tsx');
+  assert.match(sceneCanvas, /useSyncExternalStore\(subscribeHydration, \(\) => true, \(\) => false\)/);
+  assert.match(sceneCanvas, /\{hydrated \? \(/);
+});
