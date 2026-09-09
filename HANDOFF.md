@@ -120,17 +120,16 @@ Doctor checks, dependency checks, and Android/iOS/web exports pass; bundle
 deltas remain below 4%. Production Chrome reports no errors and retains stable
 DOM/canvas/heap behavior across 100 drawer and room-gesture cycles.
 
-No OTA, native build, or APK was created or deployed. Ten backend migrations
-and four required Edge Functions were deployed separately from the isolated
-backend checkout and passed the authenticated production matrix. The new
-privacy/ownership modules require native code and are absent from the installed
-APK. Candidate fingerprint
+The authorized `1.0.5` versionCode 9 internal-distribution APK is complete and
+contains all phone-side Milestones 1-9. Ten backend migrations and four
+required Edge Functions were deployed separately and passed the authenticated
+production matrix. Candidate fingerprint
 `a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed versionCode
 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`; runtime `1.0.5` is deliberately
 isolated from runtime `1.0.4`. Do not OTA this candidate to the installed APK.
-The next preview requires explicit owner authorization for a versionCode 9 APK.
-Native privacy, sharing, recovery, account ownership, and two-phone behavior
-remain unverified.
+Install the new APK on both phones next; native privacy, sharing, recovery,
+account ownership, and two-phone behavior remain unverified. Build evidence is
+in `BUILD_LEDGER_1.0.5.md`.
 
 ---
 
@@ -590,9 +589,8 @@ From `STATUS.md` (keep that current) and `PRODUCTION_PLAN.md`:
 ## 15. Immediate open items for whoever picks this up
 
 1. Follow `RELEASE_CHECKLIST_1.0.5.md` in order; the backend gate is complete.
-2. Obtain explicit authorization before creating the versionCode 9 native APK
-   from this canonical phone checkout.
-3. Install that APK on both phones and complete the native, privacy, realtime,
+2. Install the completed versionCode 9 APK on both phones and complete the
+   native, privacy, realtime,
    accessibility, recovery, export, deletion, block, and regression matrix.
-4. Publish an OTA only to runtime `1.0.5`, only after its fingerprint matches the
+3. Publish an OTA only to runtime `1.0.5`, only after its fingerprint matches the
    installed candidate APK and the specific publication is authorized.

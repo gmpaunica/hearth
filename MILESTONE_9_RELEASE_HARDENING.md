@@ -2,9 +2,9 @@
 
 Date: 9 September 2026
 
-Status: local implementation and automated verification complete. The separate
-backend deployment gate is complete. No native build, APK, EAS Update, or store
-release was created or deployed.
+Status: local implementation, automated verification, backend deployment, and
+the authorized versionCode 9 preview APK are complete. Installation,
+two-phone validation, EAS Update, and store release remain pending.
 
 ## Release boundary
 
@@ -111,14 +111,15 @@ Neither warning occurs as a runtime failure or changes the native release gate.
 
 ## What remains outside local authority
 
-The local Milestone 9 work is complete, but release completion still requires
+The local Milestone 9 work and native APK build are complete, but release
+completion still requires
 the ordered authorization and owner checks in `RELEASE_CHECKLIST_1.0.5.md`:
 
-1. explicit authorization to create the `1.0.5` versionCode 9 APK;
-2. installation and full two-phone native/realtime/accessibility/privacy checks;
-3. only then, runtime-matched preview OTA eligibility and the two-open check.
+1. installation and full two-phone native/realtime/accessibility/privacy checks;
+2. only then, runtime-matched preview OTA eligibility and the two-open check.
 
 The backend prerequisites are complete: ten forward migrations and four Edge
 Functions are live, and authenticated production RLS/ownership checks passed.
+The completed APK identifiers and SHA-256 are in `BUILD_LEDGER_1.0.5.md`.
 
 Rollback constraints are recorded in `ROLLBACK_NOTES_1.0.5.md`.

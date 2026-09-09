@@ -107,16 +107,16 @@ The isolated backend passes 92/92 tests. Ten forward migrations are deployed
 through `20260909133000_release_lint_cleanup.sql`, and the four required Edge
 Functions are live; its `MIGRATION_LEDGER.md` records backup hashes and checks.
 
-No OTA, native build, or APK was created or deployed. Milestones 3 and 4 add
-native modules that are absent from the installed versionCode 8 APK. The
-`1.0.5` candidate fingerprint
+The authorized `1.0.5` versionCode 9 internal-distribution APK is built with
+all phone-side Milestones 1-9. Its EAS fingerprint
 `a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed fingerprint
 `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`, and its runtime is intentionally
-separate. Do not OTA this candidate to `1.0.4`; the next phone preview requires
-explicit owner authorization for a versionCode 9 APK. Production backend RLS,
+separate. Do not OTA this candidate to `1.0.4`. Install the new APK on both
+phones before testing. Production backend RLS,
 export, deletion, and block contracts passed a disposable three-user matrix;
 physical-device, two-phone, native-sharing, and recovery behavior remain
-unverified. Read `MILESTONE_1_BASELINE.md`,
+unverified. Build ID, artifact link, and SHA-256 are recorded in
+`BUILD_LEDGER_1.0.5.md`. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, `MILESTONE_3_PRIVATE_BY_DEFAULT.md`,
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and

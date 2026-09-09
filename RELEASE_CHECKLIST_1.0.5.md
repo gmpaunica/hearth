@@ -63,20 +63,22 @@ Stop if any backend check fails. Use forward corrective migrations or redeploy a
 known-good function; never edit an applied migration or delete production data
 to make histories appear aligned.
 
-## C. Native APK authorization and build — pending
+## C. Native APK authorization and build — complete; installation pending
 
-- [ ] Obtain separate explicit owner authorization for a native Android build.
-- [ ] Re-run the complete phone local gate from a clean install.
-- [ ] Confirm app `1.0.5`, versionCode 9, runtime `1.0.5`, package
+- [x] Obtain separate explicit owner authorization for a native Android build.
+- [x] Re-run the complete phone local gate from a clean install.
+- [x] Confirm app `1.0.5`, versionCode 9, runtime `1.0.5`, package
   `com.hearth.app`, and preview channel configuration.
-- [ ] Confirm the backend deployment and live contract checks in section B are
+- [x] Confirm the backend deployment and live contract checks in section B are
   complete.
-- [ ] Build the preview APK from `C:\Windows\System32\hearth` only.
-- [ ] Record EAS build ID, artifact URL/checksum, build profile, runtime, version,
+- [x] Build the preview APK from `C:\Windows\System32\hearth` only.
+- [x] Record EAS build ID, artifact URL/checksum, build profile, runtime, version,
   versionCode, Git commit, and native fingerprint.
-- [ ] Confirm the built fingerprint matches the final authorized source state.
+- [x] Confirm the built fingerprint matches the final authorized source state.
 - [ ] Install that APK on both owner phones. Do not use the versionCode 8 APK for
   native privacy or recovery verification.
+
+Build evidence is recorded in `BUILD_LEDGER_1.0.5.md`.
 
 ## D. Two-phone owner matrix — pending
 
