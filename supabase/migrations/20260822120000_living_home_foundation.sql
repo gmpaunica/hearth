@@ -279,7 +279,7 @@ begin
   perform private.seed_home_object(p_couple_id, 'hub', 'sofa', 'cottage-sofa', -0.40, -3.95);
   perform private.seed_home_object(p_couple_id, 'hub', 'table', 'shared-table', -0.35, 0.50);
   perform private.seed_home_object(p_couple_id, 'hub', 'rest', 'rest-nook', -3.15, 3.20);
-  perform private.seed_home_object(p_couple_id, 'hub', 'easel', 'drawing-easel', -4.28, 1.08, 1);
+  perform private.seed_home_object(p_couple_id, 'hub', 'easel', 'drawing-easel', -4.28, 1.08, 1::smallint);
   perform private.seed_home_object(p_couple_id, 'hub', 'media', 'daily-media-console', 3.55, 2.95);
   perform private.seed_home_object(p_couple_id, 'garden-west', 'garden-threshold', 'garden-threshold', -4.45, 2.50);
 
@@ -301,14 +301,14 @@ begin
     perform private.seed_home_object(p_couple_id, 'garden-west', 'pond', 'koi-pond-medium', -9.20, 4.55);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'tree', 'blossom-tree', -14.50, -2.70);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'rose-west', 'rose-bush', -14.70, 5.20);
-    perform private.seed_home_object(p_couple_id, 'garden-west', 'rose-east', 'rose-bush', -5.80, -2.20, 1);
+    perform private.seed_home_object(p_couple_id, 'garden-west', 'rose-east', 'rose-bush', -5.80, -2.20, 1::smallint);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'lantern-west', 'garden-lantern', -10.70, 1.70);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'lantern-east', 'garden-lantern', -7.00, 1.80);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'bench', 'garden-bench', -12.80, 3.60);
     perform private.seed_home_object(p_couple_id, 'garden-west', 'greenhouse', 'greenhouse-portal', -13.75, 0.25);
   else
     -- The compact daybed is the day-zero romantic signal fallback.
-    perform private.seed_home_object(p_couple_id, 'hub', 'bed', 'romantic-daybed', 2.75, -1.60, 1);
+    perform private.seed_home_object(p_couple_id, 'hub', 'bed', 'romantic-daybed', 2.75, -1.60, 1::smallint);
   end if;
 end;
 $$;

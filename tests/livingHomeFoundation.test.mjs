@@ -83,6 +83,8 @@ test('existing pairs receive cottage-v2 with their visible bedroom, garden, and 
     'lantern-west', 'lantern-east', 'bench', 'greenhouse',
   ]) assert.match(ensure, new RegExp(`'${seed}'`));
   assert.match(ensure, /'koi-pond-medium'/);
+  assert.equal((ensure.match(/1::smallint/g) ?? []).length, 3);
+  assert.doesNotMatch(ensure, /seed_home_object\([^\n]+,\s*1\);/);
   assert.match(migration, /for home in select id from public\.couples where member_b is not null/);
 });
 
