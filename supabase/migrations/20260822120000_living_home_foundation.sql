@@ -681,7 +681,7 @@ begin
   from public.home_objects o join public.home_catalog_assets a on a.id = o.asset_id
   where o.couple_id = p_couple_id and o.placement_state = 'placed'
     and a.category = 'water' and coalesce((a.progression ->> 'major_water')::boolean, false);
-  if water_count > case when tier = 'grand' then 2 when tier in ('standard', 'large') then 1 else 0 end
+  if water_count > (case when tier = 'grand' then 2 when tier in ('standard', 'large') then 1 else 0 end)
   then raise exception 'This garden tier has no free major water-feature socket'; end if;
 end;
 $$;
@@ -854,18 +854,18 @@ begin
       if room_module = 'garden'
           and array_position(array['courtyard','standard','large','grand'], requested_garden_tier)
             > array_position(array['courtyard','standard','large','grand'], state.garden_tier)
-          and growth < case requested_garden_tier
+          and growth < (case requested_garden_tier
             when 'standard' then 2592000 when 'large' then 7776000
-            when 'grand' then 15552000 else 0 end
+            when 'grand' then 15552000 else 0 end)
         then raise exception 'That garden tier has not unlocked yet';
       elsif room_module <> 'garden'
           and array_position(array['compact','standard','large'], op ->> 'sizeTier')
             > array_position(array['compact','standard','large'], current_room_size)
-          and growth < case
+          and growth < (case
             when op ->> 'sizeTier' = 'large' then 5184000
             when room_module = 'living' and op ->> 'sizeTier' = 'standard' then 518400
             when room_module = 'bedroom' and op ->> 'sizeTier' = 'standard' then 1814400
-            else 5184000 end
+            else 5184000 end)
       then raise exception 'That room size has not unlocked yet'; end if;
       update public.home_rooms set size_tier = op ->> 'sizeTier',
         bounds = authored_bounds, updated_at = now()
@@ -898,7 +898,7 @@ begin
             > (r.bounds ->> 'maxZ')::numeric
         );
     elsif action in ('change_terrain', 'change_finish') then
-      if growth < case when action = 'change_finish' then 259200 else 2592000 end
+      if growth < (case when action = 'change_finish' then 259200 else 2592000 end)
       then raise exception 'That finish has not unlocked yet'; end if;
       update public.home_states set finishes = finishes || jsonb_build_object(
         coalesce(op ->> 'target', case when action = 'change_terrain' then 'terrain' else 'home' end),
@@ -915,8 +915,8 @@ begin
       if authored_bounds is null or op -> 'bounds' is distinct from authored_bounds then
         raise exception 'Module must use an authored cottage-v2 mask';
       end if;
-      if growth < case op ->> 'moduleId'
-        when 'bedroom' then 1814400 else 5184000 end
+      if growth < (case op ->> 'moduleId'
+        when 'bedroom' then 1814400 else 5184000 end)
       then raise exception 'That room module has not unlocked yet'; end if;
       insert into public.home_rooms (id, couple_id, module_id, socket_id, size_tier, bounds)
       values ((op ->> 'roomId')::uuid, home.id, op ->> 'moduleId', op ->> 'socketId',

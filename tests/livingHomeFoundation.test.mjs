@@ -149,6 +149,7 @@ test('server validation covers authored masks, collisions, routes, roles, water 
   assert.match(validate, /render budget/);
   assert.match(validate, /major water-feature socket/);
   assert.match(validate, /when tier = 'grand' then 2/);
+  assert.doesNotMatch(migration, /\b(?:if|and)[^\n]*[<>]\s+case\b/i);
   assert.match(validate, /Garden paths must form one route from the house threshold/);
   assert.match(validate, /large tree hides a protected garden sightline/i);
 });
