@@ -241,7 +241,7 @@ test('active growth is authoritative, pauseable, irreversible, and gates normal 
   assert.doesNotMatch(apply, /developer_bypass|command ->> 'developer'/);
   assert.match(apply, /state\.world_frozen_at is not null/);
   assert.match(apply, /growth < coalesce\(\(asset\.progression->>'day'\)::numeric, 0\) \* 86400/);
-  assert.match(apply, /growth < case requested_garden_tier/);
+  assert.match(apply, /growth < \(case requested_garden_tier/);
 });
 
 test('positive shared milestones mint unique, placeable, irreversible keepsakes', () => {
