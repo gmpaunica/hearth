@@ -33,6 +33,10 @@ const milestoneKeepsakes = readFileSync(join(
   root,
   'supabase/migrations/20260822210000_home_milestone_keepsakes.sql',
 ), 'utf8');
+const releaseLintCleanup = readFileSync(join(
+  root,
+  'supabase/migrations/20260909133000_release_lint_cleanup.sql',
+), 'utf8');
 
 const functionBody = (schema, name) => migration.match(new RegExp(
   `create(?: or replace)? function ${schema}\\.${name}\\([^]*?\\n\\$\\$;`,
@@ -263,4 +267,20 @@ test('positive shared milestones mint unique, placeable, irreversible keepsakes'
   assert.match(milestoneKeepsakes, /private\.refresh_home_milestone_keepsakes\(home\.id\)/);
   assert.match(milestoneKeepsakes, /to_regclass\('public\.drawings'\)/);
   assert.doesNotMatch(milestoneKeepsakes, /author_id|from_user/);
+});
+
+test('the forward release cleanup removes the implicit loop-variable shadow only', () => {
+  assert.match(releaseLintCleanup, /create or replace function private\.refresh_home_milestone_keepsakes/);
+  assert.doesNotMatch(releaseLintCleanup, /anniversary_number integer/);
+  assert.match(releaseLintCleanup, /for anniversary_number in 1\.\.anniversary_count loop/);
+  assert.match(releaseLintCleanup, /revoke execute on function private\.refresh_home_milestone_keepsakes\(uuid\)/);
+  const definitionPattern = /create or replace function private\.refresh_home_milestone_keepsakes[\s\S]*?\n\$\$;/;
+  const original = milestoneKeepsakes.match(definitionPattern)?.[0] ?? '';
+  const corrected = releaseLintCleanup.match(definitionPattern)?.[0] ?? '';
+  const normalize = (source) => source
+    .replace(/anniversary_number integer;/, '')
+    .replace(/--[^\n]*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  assert.equal(normalize(corrected), normalize(original));
 });
