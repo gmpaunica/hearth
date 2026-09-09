@@ -2,8 +2,7 @@
 
 Date: 5 September 2026
 
-Status: locally implemented and statically validated; database and Edge
-Function deployment is intentionally pending owner authorization.
+Status: implemented, deployed, and live-verified on 9 September 2026.
 
 ## Checkout boundary
 
@@ -36,12 +35,12 @@ generated output was copied between the dirty trees.
 
 | Check | Result |
 | --- | --- |
-| Backend contract suite | pass; 87 tests |
+| Backend contract suite | pass; 92 tests in the current full suite |
 | Focused relationship-safety contracts | pass; 4 tests |
 | Deno type checking for four changed functions | pass |
 | Embedded private-key/JWT scan on changed files | pass |
 | `git diff --check` | pass |
-| Local Supabase database/RLS lint | pending; local Docker database is not running |
+| Linked Supabase database/RLS lint | pass; four pre-existing warnings only |
 | Deno lint | blocked by the checkout's existing URL-import convention in all four checked functions |
 
 The Deno lint finding is not a runtime or type error: the project consistently
@@ -49,16 +48,12 @@ imports Supabase from `https://esm.sh`, while current Deno lint recommends an
 import map. No broad module-system rewrite was mixed into this security
 milestone.
 
-## Deployment gate
+## Deployment result
 
-Nothing in this milestone has been deployed. Before a dependent phone preview:
-
-1. obtain explicit owner authorization;
-2. re-read linked migration history and confirm the undeployed chain;
-3. apply the additive relationship-safety migration in order;
-4. deploy `export-account`, `delete-account`, `notify-signal`, and
-   `notify-daily-media`;
-5. run authenticated two-user tests for both-direction blocks, export
-   isolation, survivor rekeying, session revocation, and notification privacy;
-6. record the final migration ledger and rollback notes.
-
+The relationship-safety migration is applied. `export-account` v1,
+`delete-account` v1, `notify-signal` v5, and `notify-daily-media` v2 are live.
+A disposable three-user production matrix passed both-direction blocks,
+privacy, safe export, unblock/rejoin, deletion, survivor unpair/rekey, and
+outsider isolation. Unauthenticated POST smoke tests returned 401 for all four
+functions. Exact hashes, backup details, and rollback notes are recorded in
+`MIGRATION_LEDGER.md`.

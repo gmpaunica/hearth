@@ -13,31 +13,29 @@ This checkout is the isolated backend-hardening tree. The canonical installed
 phone baseline is `1.0.4` in `C:\Windows\System32\hearth`; no phone preview may
 be published from this tree.
 
-The existing hardening work has been reviewed and locally checkpointed. Remote
-migration history was inspected read-only and ends at `20260819143000`. Nine
-later migrations remain local and undeployed. The living-home migration begins
-at `20260822120000`; its client-controlled developer bypass was removed before
-first deployment. The final migration adds content-free daily home activity,
-90-day raw retention, and service-only aggregates. No database migration, Edge
-Function, OTA, or native build was deployed. See `MIGRATION_LEDGER.md` for the
-exact ordered boundary.
+The owner-authorized production backend rollout is complete. Ten forward
+migrations were applied after the previous `20260819143000` boundary; linked
+history now ends at `20260909133000_release_lint_cleanup.sql` and matches local
+history. The chain removes client-controlled progression bypasses, adds the
+versioned home catalog and relationship-safety contracts, and finishes with an
+additive lint-only correction. No migration-history repair was used.
 
-Milestone 4 relationship-safety APIs are now also prepared locally: server-
-owned generic/gentle notification privacy, private bidirectional pairing
-blocks, requester-safe export, and retry-safe account deletion. The backend
-suite passes 91/91 and all changed Edge Functions pass Deno type checking.
-Local database/RLS execution remains pending because the Supabase Docker
-database is not running. A linked `db push --dry-run --include-all --skip-vault`
-listed exactly the nine pending migrations in ledger order and changed no
-database state. Nothing was deployed; see
-`MILESTONE_4_RELATIONSHIP_SAFETY.md` for the contract and authorization gate.
+Milestone 4 relationship-safety APIs are live: server-owned generic/gentle
+notification privacy, private bidirectional pairing blocks, requester-safe
+export, and retry-safe account deletion. `export-account` v1,
+`delete-account` v1, `notify-signal` v5, and `notify-daily-media` v2 are
+deployed. The backend suite passes 92/92, all changed functions pass Deno type
+checking, and a disposable three-user production matrix passed pairing, RLS,
+privacy, export, blocking, unblocking, deletion, and survivor rekeying. See
+`MIGRATION_LEDGER.md` for backup hashes, exact versions, and rollback notes.
 
 The `20260909120000_content_free_metrics.sql` migration adds
 `record_active_home_day()` as a best-effort, authenticated, server-derived
 signal after a successful shared-home load. It stores one user/home/day row and
 no content, names, invite codes, destinations, navigation, or screen time.
 Raw rows expire after 90 days; only the service role may read daily aggregates
-or run retention. Four focused metrics privacy tests pass. Nothing is deployed.
+or run retention. Four focused metrics privacy tests pass, and the deployed
+production grants, idempotency, RLS, and cron schedule were verified.
 
 ## Historical Moments Owner Review backend — deployed 2026-08-17
 

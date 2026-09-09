@@ -20,12 +20,16 @@ canonical installed phone baseline is `1.0.4` in
 copy changes between the two dirty histories without an explicit reconciliation
 task.
 
-No database migration or Edge Function was deployed during this checkpoint.
-Remote history ends at `20260819143000`; nine later local migrations remain
-pending explicit deployment authorization. The final migration provides the
-content-free `record_active_home_day()` contract, 90-day raw retention, and
-service-only domain aggregates. TypeScript, strict lint, secret/diff checks,
-and all 91 backend tests pass.
+The owner-authorized backend rollout completed on 9 September 2026. Ten
+forward migrations are applied, local and remote history end at
+`20260909133000_release_lint_cleanup.sql`, and four relationship-safety Edge
+Functions are deployed. The content-free `record_active_home_day()` contract,
+90-day raw retention, service-only domain aggregates, notification privacy,
+requester-safe export, pairing blocks, and retry-safe deletion are live.
+TypeScript, strict lint, secret/diff checks, and all 92 backend tests pass; a
+disposable three-user production matrix also passed. See `MIGRATION_LEDGER.md`
+for backup hashes, exact function versions, and rollback notes. No phone build
+or EAS Update was performed from this checkout.
 
 ---
 

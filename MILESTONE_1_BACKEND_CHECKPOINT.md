@@ -2,7 +2,8 @@
 
 Date: 4 September 2026
 
-Status: locally validated and checkpointed; nothing deployed.
+Status: historical local checkpoint; the chain was deployed and live-verified
+on 9 September 2026.
 
 ## Checkout boundary
 
@@ -14,7 +15,7 @@ copied between the two trees, and no EAS Update may be published from here.
 
 `npx supabase migration list --linked` was run read-only. The linked Supabase
 project is deployed through `20260819143000_fix_diary_voice_receipts.sql`.
-These later migrations remain local and undeployed:
+At this checkpoint, these later migrations remained local and undeployed:
 
 - `20260822120000_living_home_foundation.sql`
 - `20260822160000_home_attachment_safety.sql`
@@ -26,8 +27,9 @@ These later migrations remain local and undeployed:
 - `20260905120000_relationship_safety.sql`
 - `20260909120000_content_free_metrics.sql`
 
-No migration history was repaired and no migration or Edge Function was
-deployed.
+They were later deployed with the additive
+`20260909133000_release_lint_cleanup.sql` correction. No migration-history
+repair was used; see `MIGRATION_LEDGER.md`.
 
 ## Security work included
 
@@ -66,7 +68,6 @@ hardening.
 
 ## Next authorization gate
 
-Before any dependent phone preview, obtain explicit authorization to deploy the
-pending database chain. Re-run linked migration history and database/RLS tests
-immediately before deployment, record the resulting ledger, and keep rollback
-notes for the additive migrations.
+This gate is complete. The final migration boundary, backup, live validation,
+and rollback notes are recorded in `MIGRATION_LEDGER.md`. Native APK and EAS
+Update authorization remain separate gates.
