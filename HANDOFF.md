@@ -47,7 +47,8 @@ status, app lock, notification privacy, requester-safe export, private former-
 partner block management, exact leave/block consequences, recoverable sign-out,
 and typed account deletion. All 8 finish-review fixes are resolved and the
 targeted verdict is `ship`. The supporting backend contract remains isolated
-and undeployed in `C:\Users\Gmpau\hearth`.
+in `C:\Users\Gmpau\hearth`; its production deployment and disposable-account
+live verification completed on 9 September 2026.
 
 Milestone 5 recomposes the shared home around the voxel scene. A discriminated
 `HomeSurface` coordinator prevents stacked major overlays; the home action
@@ -119,15 +120,17 @@ Doctor checks, dependency checks, and Android/iOS/web exports pass; bundle
 deltas remain below 4%. Production Chrome reports no errors and retains stable
 DOM/canvas/heap behavior across 100 drawer and room-gesture cycles.
 
-No OTA, native build, APK, database migration, or Edge Function was created or
-deployed. The new privacy/ownership modules require native code and are absent
-from the installed APK. Candidate fingerprint
+No OTA, native build, or APK was created or deployed. Ten backend migrations
+and four required Edge Functions were deployed separately from the isolated
+backend checkout and passed the authenticated production matrix. The new
+privacy/ownership modules require native code and are absent from the installed
+APK. Candidate fingerprint
 `a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed versionCode
 8 fingerprint `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`; runtime `1.0.5` is deliberately
 isolated from runtime `1.0.4`. Do not OTA this candidate to the installed APK.
-The next preview requires explicit owner authorization for a versionCode 9 APK,
-and the backend requires separate deployment authorization. Native privacy,
-sharing, recovery, account ownership, and two-phone behavior remain unverified.
+The next preview requires explicit owner authorization for a versionCode 9 APK.
+Native privacy, sharing, recovery, account ownership, and two-phone behavior
+remain unverified.
 
 ---
 
@@ -586,12 +589,10 @@ From `STATUS.md` (keep that current) and `PRODUCTION_PLAN.md`:
 
 ## 15. Immediate open items for whoever picks this up
 
-1. Follow `RELEASE_CHECKLIST_1.0.5.md` in order; do not skip the backend gate.
-2. Obtain explicit authorization before deploying the nine pending migrations
-   and four relationship-safety Edge Functions from the backend checkout.
-3. After authenticated backend validation passes, obtain separate authorization
-   to build the `1.0.5` / versionCode 9 preview APK.
-4. Install that APK on both phones and complete the native, privacy, realtime,
+1. Follow `RELEASE_CHECKLIST_1.0.5.md` in order; the backend gate is complete.
+2. Obtain explicit authorization before creating the versionCode 9 native APK
+   from this canonical phone checkout.
+3. Install that APK on both phones and complete the native, privacy, realtime,
    accessibility, recovery, export, deletion, block, and regression matrix.
-5. Publish an OTA only to runtime `1.0.5`, only after its fingerprint matches the
+4. Publish an OTA only to runtime `1.0.5`, only after its fingerprint matches the
    installed candidate APK and the specific publication is authorized.

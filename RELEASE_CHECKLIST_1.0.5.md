@@ -7,8 +7,8 @@ Release candidate: `1.0.5`, Android versionCode 9, runtime `1.0.5`.
 Installed baseline: `1.0.4`, Android versionCode 8, runtime `1.0.4`.
 
 This checklist is intentionally ordered. Do not skip ahead: the native client
-depends on an undeployed additive backend chain, and the installed APK cannot
-load this candidate safely over the air.
+depends on its additive backend chain, now deployed, and the installed APK
+cannot load this candidate safely over the air.
 
 ## A. Local candidate — complete
 
@@ -16,7 +16,7 @@ load this candidate safely over the air.
 - [x] Phone TypeScript passes.
 - [x] Phone lint passes with zero warnings.
 - [x] Phone tests pass: 165/165.
-- [x] Backend tests pass: 91/91.
+- [x] Backend tests pass: 92/92.
 - [x] Expo Doctor passes: 21/21.
 - [x] Expo SDK 57 dependency check reports current compatible packages.
 - [x] Clean dependency install reproduces the lockfile.
@@ -31,31 +31,33 @@ load this candidate safely over the air.
 - [x] Installed versionCode 8 fingerprint retained:
   `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`.
 - [x] Candidate runtime separated from the installed runtime.
-- [x] No database, function, native build, APK, OTA, or store mutation occurred.
+- [x] No native build, APK, OTA, or store mutation occurred during the local
+  candidate checkpoint.
 
-## B. Backend authorization and deployment — pending
+## B. Backend authorization and deployment — complete
 
-- [ ] Obtain explicit owner authorization for database and Edge Function
+- [x] Obtain explicit owner authorization for database and Edge Function
   deployment.
-- [ ] Re-run linked migration history immediately before deployment and confirm
+- [x] Re-run linked migration history immediately before deployment and confirm
   the remote boundary is still `20260819143000`.
-- [ ] Confirm backup / point-in-time recovery posture before changing production.
-- [ ] Apply the nine pending migrations in filename order from the backend
-  checkout only; use `MIGRATION_LEDGER.md` there as the authoritative ledger.
-- [ ] Deploy `export-account`.
-- [ ] Deploy `delete-account`.
-- [ ] Deploy `notify-signal`.
-- [ ] Deploy `notify-daily-media`.
-- [ ] Re-run linked database lint and record any warning delta.
-- [ ] Run authenticated two-user tests for home edits, progression, attachments,
-  catalogs, milestone keepsakes, and relationship safety.
-- [ ] Verify pairing blocks in both directions and outsider denial.
-- [ ] Verify requester-only export boundaries and ten-minute media links.
-- [ ] Verify deletion unpairs/rekeys the survivor, revokes sessions, and cannot
+- [x] Create and verify a locally encrypted pre-deployment database backup.
+- [x] Apply the nine planned migrations plus one additive forward lint
+  correction from the backend checkout only.
+- [x] Deploy `export-account` v1.
+- [x] Deploy `delete-account` v1.
+- [x] Deploy `notify-signal` v5.
+- [x] Deploy `notify-daily-media` v2.
+- [x] Re-run linked database lint; only the four baseline warnings remain.
+- [x] Run authenticated disposable-user checks for home state, catalogs,
+  milestone keepsakes, and relationship safety.
+- [x] Verify pairing blocks in both directions and outsider denial.
+- [x] Verify requester-only export boundaries and private-field exclusions.
+- [x] Verify deletion unpairs/rekeys the survivor, removes the identity, and cannot
   expose deleted-user or partner-private content.
-- [ ] Verify generic and opt-in gentle notification copy contains no authored
+- [x] Verify generic and opt-in gentle privacy contracts contain no authored
   content or sensitive payload fields.
-- [ ] Record deployed migration/function identifiers and live test evidence.
+- [x] Record migration/function identifiers, backup hashes, and live evidence in
+  the backend `MIGRATION_LEDGER.md`.
 
 Stop if any backend check fails. Use forward corrective migrations or redeploy a
 known-good function; never edit an applied migration or delete production data

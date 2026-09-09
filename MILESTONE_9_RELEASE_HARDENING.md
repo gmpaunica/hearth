@@ -2,9 +2,9 @@
 
 Date: 9 September 2026
 
-Status: local implementation and automated verification complete. No database
-migration, Edge Function, native build, APK, EAS Update, or store release was
-created or deployed.
+Status: local implementation and automated verification complete. The separate
+backend deployment gate is complete. No native build, APK, EAS Update, or store
+release was created or deployed.
 
 ## Release boundary
 
@@ -38,7 +38,7 @@ JavaScript must never be published to the installed `1.0.4` runtime.
 - The release candidate version and runtime contract are covered by tests.
 - A successful shared-home snapshot now makes a best-effort call to the new
   backend `record_active_home_day()` contract. The call cannot delay or break
-  the home; the undeployed server migration enforces one content-free row per
+  the home; the deployed server migration enforces one content-free row per
   user/home/day, 90-day raw retention, and service-only aggregates.
 
 ## Dependency review
@@ -75,7 +75,7 @@ not a release blocker and was not deleted from this dirty checkout.
 | TypeScript | pass |
 | ESLint | pass with `--max-warnings=0` |
 | Repository tests | pass; 165/165 across 27 files |
-| Backend tests | pass; 91/91 |
+| Backend tests | pass; 92/92 |
 | Expo Doctor | pass; 21/21 |
 | Expo compatible dependency check | pass; dependencies current |
 | Android production export | pass |
@@ -114,11 +114,11 @@ Neither warning occurs as a runtime failure or changes the native release gate.
 The local Milestone 9 work is complete, but release completion still requires
 the ordered authorization and owner checks in `RELEASE_CHECKLIST_1.0.5.md`:
 
-1. explicit authorization for the pending backend migrations and four Edge
-   Functions;
-2. authenticated live RLS/ownership validation after that deployment;
-3. explicit authorization to create the `1.0.5` versionCode 9 APK;
-4. installation and full two-phone native/realtime/accessibility/privacy checks;
-5. only then, runtime-matched preview OTA eligibility and the two-open check.
+1. explicit authorization to create the `1.0.5` versionCode 9 APK;
+2. installation and full two-phone native/realtime/accessibility/privacy checks;
+3. only then, runtime-matched preview OTA eligibility and the two-open check.
+
+The backend prerequisites are complete: ten forward migrations and four Edge
+Functions are live, and authenticated production RLS/ownership checks passed.
 
 Rollback constraints are recorded in `ROLLBACK_NOTES_1.0.5.md`.

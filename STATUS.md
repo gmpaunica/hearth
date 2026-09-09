@@ -23,8 +23,9 @@ Milestone 4 consolidates privacy, recovery, app lock, notification detail,
 requester-safe export, private former-partner blocks, precise leave/block
 consequences, recoverable sign-out, and typed account deletion in one Settings
 account center. All 8 finish-review fixes are resolved and the targeted verdict
-is `ship`. The supporting backend contract remains isolated and undeployed in
-`C:\Users\Gmpau\hearth`.
+is `ship`. The supporting backend contract remains isolated in
+`C:\Users\Gmpau\hearth`; its owner-authorized production deployment and
+disposable-account live verification completed on 9 September 2026.
 
 Milestone 5 makes the voxel home scene-first: one coordinated `HomeSurface`, a
 single action registry, a named and bounded room rail, the Moments dock, and one
@@ -102,19 +103,20 @@ checks, and fresh Android/iOS/web exports pass. Main bundle deltas remain betwee
 gesture cycles retain exactly 80 DOM nodes and one canvas with no runtime error
 or measured unbounded heap growth. Read `MILESTONE_9_RELEASE_HARDENING.md`,
 `RELEASE_CHECKLIST_1.0.5.md`, and `ROLLBACK_NOTES_1.0.5.md`.
-The isolated backend also passes 91/91 tests and now contains the ninth pending,
-content-free metrics migration documented in its `MIGRATION_LEDGER.md`.
+The isolated backend passes 92/92 tests. Ten forward migrations are deployed
+through `20260909133000_release_lint_cleanup.sql`, and the four required Edge
+Functions are live; its `MIGRATION_LEDGER.md` records backup hashes and checks.
 
-No OTA, native build, APK, database migration, or Edge Function was created or
-deployed. Milestones 3 and 4 add native modules that are absent from the
-installed versionCode 8 APK. The `1.0.5` candidate fingerprint
+No OTA, native build, or APK was created or deployed. Milestones 3 and 4 add
+native modules that are absent from the installed versionCode 8 APK. The
+`1.0.5` candidate fingerprint
 `a7e7ed4da9ce4065ba505fef1cd8860214025969` differs from installed fingerprint
 `f9ee9e04d4d811c47b4eadad68eff2ffa2e9fdb3`, and its runtime is intentionally
 separate. Do not OTA this candidate to `1.0.4`; the next phone preview requires
-explicit owner authorization for a versionCode 9 APK, and the backend requires
-separate deployment authorization. No physical-device,
-two-phone, native-sharing, recovery, RLS, export, deletion, or block claim has
-been verified. Read `MILESTONE_1_BASELINE.md`,
+explicit owner authorization for a versionCode 9 APK. Production backend RLS,
+export, deletion, and block contracts passed a disposable three-user matrix;
+physical-device, two-phone, native-sharing, and recovery behavior remain
+unverified. Read `MILESTONE_1_BASELINE.md`,
 `MILESTONE_2_STORYBOOK_FRONT_DOOR.md`, `MILESTONE_3_PRIVATE_BY_DEFAULT.md`,
 `MILESTONE_4_OWNERSHIP_AND_SAFETY.md`, and
 `MILESTONE_5_SIMPLIFIED_HOME.md`, and
