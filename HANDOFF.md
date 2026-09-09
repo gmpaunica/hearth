@@ -11,18 +11,21 @@
 > When you finish a piece of work, update `STATUS.md` and, if the architecture
 > changed, this file.
 
-## Current backend checkpoint — 4 September 2026
+## Current backend checkpoint — 9 September 2026
 
 This is the backend-hardening checkout only. Its current checkpoint and remote
-migration boundary are recorded in `MILESTONE_1_BACKEND_CHECKPOINT.md`. The
+migration boundary are recorded in `MIGRATION_LEDGER.md`. The
 canonical installed phone baseline is `1.0.4` in
 `C:\Windows\System32\hearth`; never publish its client from this tree and never
 copy changes between the two dirty histories without an explicit reconciliation
 task.
 
 No database migration or Edge Function was deployed during this checkpoint.
-Remote history ends at `20260819143000`; all later local migrations remain
-pending an explicit deployment authorization.
+Remote history ends at `20260819143000`; nine later local migrations remain
+pending explicit deployment authorization. The final migration provides the
+content-free `record_active_home_day()` contract, 90-day raw retention, and
+service-only domain aggregates. TypeScript, strict lint, secret/diff checks,
+and all 91 backend tests pass.
 
 ---
 

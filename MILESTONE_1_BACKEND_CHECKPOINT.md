@@ -17,12 +17,14 @@ project is deployed through `20260819143000_fix_diary_voice_receipts.sql`.
 These later migrations remain local and undeployed:
 
 - `20260822120000_living_home_foundation.sql`
-- `20260822160000_living_home_security.sql`
-- `20260822170000_living_home_editor.sql`
-- `20260822180000_living_home_active_days.sql`
-- `20260822190000_living_home_catalog.sql`
-- `20260822200000_living_home_editor_authority.sql`
-- `20260822210000_living_home_structural_integrity.sql`
+- `20260822160000_home_attachment_safety.sql`
+- `20260822170000_indoor_home_catalog.sql`
+- `20260822180000_garden_home_catalog.sql`
+- `20260822190000_home_upgrade_catalog.sql`
+- `20260822200000_advanced_garden_catalog.sql`
+- `20260822210000_home_milestone_keepsakes.sql`
+- `20260905120000_relationship_safety.sql`
+- `20260909120000_content_free_metrics.sql`
 
 No migration history was repaired and no migration or Edge Function was
 deployed.
