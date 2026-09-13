@@ -28,12 +28,17 @@ Create a separate backend-hardening checkout when needed:
 
 ```powershell
 git fetch origin
-git worktree add ..\hearth-backend origin/claude/session-c959ub
+git worktree add -b backend-hardening ..\hearth-backend origin/claude/session-c959ub
 ```
 
-The standalone website is intentionally stored in its own repository. Clone it
-beside the app after its repository URL is recorded in the website's
-`PUBLICATION_ROADMAP.md`.
+Clone the standalone website beside the app:
+
+```powershell
+git clone https://github.com/gmpaunica/hearth-site.git ..\hearth-site
+```
+
+Both repositories are private, so authenticate the new laptop with the same
+GitHub account before cloning.
 
 ## What GitHub does not contain
 
