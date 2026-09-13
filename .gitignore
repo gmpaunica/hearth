@@ -31,8 +31,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local environment and secret files
+.env
+.env.*
+!.env.example
 
 # generated and machine-local state
 /tmp/

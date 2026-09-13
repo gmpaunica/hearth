@@ -6,6 +6,10 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 Read `PRODUCT_BRIEF.md` before making product, design, copy, architecture, or implementation decisions. Treat it as the source of truth for the app's purpose, safety boundaries, MVP priorities, emotional-repair flows, and spatial memory system.
 
+Read `docs/universal-brain.md` alongside the product brief. It is the durable
+record of accepted owner feedback and decisions that must remain consistent
+across Codex terminals and fresh clones.
+
 Read `EXPERIENCE_ROADMAP.md` before planning or implementing experience work. It records the approved interaction principle, feature order, and owner-review gates. Implement only one numbered experience feature at a time, publish it to preview, and wait for owner review before starting the next one.
 
 Read `VOXEL_ART_DIRECTION.md` before changing characters, rooms, furniture, cosmetics, or future house-customization assets. It records the approved reference density and modular construction rules.
